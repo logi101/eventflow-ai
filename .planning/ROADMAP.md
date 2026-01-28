@@ -75,6 +75,12 @@ Plans:
 
 **Requirements:** TMPL-01, TMPL-02, TMPL-03, TMPL-04
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Seed 8 default reminder templates into message_templates
+- [ ] 03-02-PLAN.md — Wire send-reminder to fetch templates + variable substitution + verify
+
 **Success Criteria:**
 1. send-reminder queries message_templates by type before sending
 2. Variable substitution replaces {{participant_name}}, {{event_name}}, {{event_date}}, {{venue_name}}, {{venue_address}}

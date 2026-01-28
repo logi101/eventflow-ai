@@ -12,6 +12,14 @@
 
 **Requirements:** SCHED-01, SCHED-02, SCHED-03, SCHED-04
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md - Enable pg_cron, pg_net, vault extensions
+- [ ] 01-02-PLAN.md - Configure Vault secrets for credentials
+- [ ] 01-03-PLAN.md - Create trigger_reminder_job function
+- [ ] 01-04-PLAN.md - Schedule cron jobs for reminders
+
 **Success Criteria:**
 1. pg_cron extension shows as enabled in Supabase dashboard
 2. Database function `trigger_reminder_job(reminder_type)` exists and callable

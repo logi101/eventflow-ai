@@ -15,10 +15,10 @@
 **Plans:** 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md - Enable pg_cron, pg_net, vault extensions
-- [ ] 01-02-PLAN.md - Configure Vault secrets for credentials
-- [ ] 01-03-PLAN.md - Create trigger_reminder_job function
-- [ ] 01-04-PLAN.md - Schedule cron jobs for reminders
+- [x] 01-01-PLAN.md - Enable pg_cron, pg_net, vault extensions
+- [x] 01-02-PLAN.md - Configure Vault secrets for credentials
+- [x] 01-03-PLAN.md - Create trigger_reminder_job function
+- [x] 01-04-PLAN.md - Schedule cron jobs for reminders
 
 **Success Criteria:**
 1. pg_cron extension shows as enabled in Supabase dashboard
@@ -39,6 +39,14 @@ Plans:
 **Goal:** Implement all 8 reminder types in send-reminder Edge Function
 
 **Requirements:** REM-01, REM-02, REM-03, REM-04, REM-05, REM-06, REM-07, REM-08
+
+**Plans:** 4 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Schema migration for new reminder types
+- [ ] 02-02-PLAN.md — Activation & week-before reminder handlers
+- [ ] 02-03-PLAN.md — Event-end & follow-up reminder handlers
+- [ ] 02-04-PLAN.md — Full integration test & verification
 
 **Success Criteria:**
 1. send-reminder accepts `type` parameter for all 8 types
@@ -134,4 +142,4 @@ Plans:
 **Total:** 5 phases, 20 requirements, 24 success criteria
 
 ---
-*Roadmap created: 2026-01-28*
+*Roadmap updated: 2026-01-28*

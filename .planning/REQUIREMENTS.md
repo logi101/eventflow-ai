@@ -16,14 +16,14 @@ Requirements for automated reminder system. Each maps to roadmap phases.
 
 ### Reminder Types (REM)
 
-- [ ] **REM-01**: Activation reminder sent when manager activates event or sets date
-- [ ] **REM-02**: Week-before reminder sent 7 days before event
-- [ ] **REM-03**: Day-before reminder sent evening before event
-- [ ] **REM-04**: Morning reminder sent on event day with location details
-- [ ] **REM-05**: 15-minute reminder sent before each scheduled activity
-- [ ] **REM-06**: Event-end reminder sent after event concludes (thank you)
-- [ ] **REM-07**: 3-month follow-up sent (only if manager approved)
-- [ ] **REM-08**: 6-month follow-up sent (only if manager approved)
+- [x] **REM-01**: Activation reminder sent when manager activates event or sets date
+- [x] **REM-02**: Week-before reminder sent 7 days before event
+- [x] **REM-03**: Day-before reminder sent evening before event
+- [x] **REM-04**: Morning reminder sent on event day with location details
+- [x] **REM-05**: 15-minute reminder sent before each scheduled activity
+- [x] **REM-06**: Event-end reminder sent after event concludes (thank you)
+- [x] **REM-07**: 3-month follow-up sent (only if manager approved)
+- [x] **REM-08**: 6-month follow-up sent (only if manager approved)
 
 ### Template System (TMPL)
 
@@ -75,18 +75,18 @@ Deferred to future milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHED-01 | Phase 1 | Pending |
-| SCHED-02 | Phase 1 | Pending |
-| SCHED-03 | Phase 1 | Pending |
-| SCHED-04 | Phase 1 | Pending |
-| REM-01 | Phase 2 | Pending |
-| REM-02 | Phase 2 | Pending |
-| REM-03 | Phase 2 | Pending |
-| REM-04 | Phase 2 | Pending |
-| REM-05 | Phase 2 | Pending |
-| REM-06 | Phase 2 | Pending |
-| REM-07 | Phase 2 | Pending |
-| REM-08 | Phase 2 | Pending |
+| SCHED-01 | Phase 1 | Complete |
+| SCHED-02 | Phase 1 | Complete |
+| SCHED-03 | Phase 1 | Complete |
+| SCHED-04 | Phase 1 | Complete |
+| REM-01 | Phase 2 | Complete |
+| REM-02 | Phase 2 | Complete |
+| REM-03 | Phase 2 | Complete |
+| REM-04 | Phase 2 | Complete |
+| REM-05 | Phase 2 | Complete |
+| REM-06 | Phase 2 | Complete |
+| REM-07 | Phase 2 | Complete |
+| REM-08 | Phase 2 | Complete |
 | TMPL-01 | Phase 3 | Pending |
 | TMPL-02 | Phase 3 | Pending |
 | TMPL-03 | Phase 3 | Pending |
@@ -107,4 +107,4 @@ Deferred to future milestone.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 after initial definition*
+*Last updated: 2026-01-28 after Phase 2 completion*

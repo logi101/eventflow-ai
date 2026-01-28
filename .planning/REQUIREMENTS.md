@@ -27,10 +27,10 @@ Requirements for automated reminder system. Each maps to roadmap phases.
 
 ### Template System (TMPL)
 
-- [ ] **TMPL-01**: send-reminder fetches templates from message_templates table
-- [ ] **TMPL-02**: Variable substitution works ({{participant_name}}, {{event_name}}, etc.)
-- [ ] **TMPL-03**: Each reminder type has a default template in the database
-- [ ] **TMPL-04**: Templates support Hebrew RTL with Heebo font styling hints
+- [x] **TMPL-01**: send-reminder fetches templates from message_templates table
+- [x] **TMPL-02**: Variable substitution works ({{participant_name}}, {{event_name}}, etc.)
+- [x] **TMPL-03**: Each reminder type has a default template in the database
+- [x] **TMPL-04**: Templates support Hebrew RTL with Heebo font styling hints
 
 ### Manager Controls (CTRL)
 
@@ -87,10 +87,10 @@ Deferred to future milestone.
 | REM-06 | Phase 2 | Complete |
 | REM-07 | Phase 2 | Complete |
 | REM-08 | Phase 2 | Complete |
-| TMPL-01 | Phase 3 | Pending |
-| TMPL-02 | Phase 3 | Pending |
-| TMPL-03 | Phase 3 | Pending |
-| TMPL-04 | Phase 3 | Pending |
+| TMPL-01 | Phase 3 | Complete |
+| TMPL-02 | Phase 3 | Complete |
+| TMPL-03 | Phase 3 | Complete |
+| TMPL-04 | Phase 3 | Complete |
 | CTRL-01 | Phase 4 | Pending |
 | CTRL-02 | Phase 4 | Pending |
 | CTRL-03 | Phase 4 | Pending |
@@ -107,4 +107,4 @@ Deferred to future milestone.
 
 ---
 *Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 after Phase 2 completion*
+*Last updated: 2026-01-28 after Phase 3 completion*

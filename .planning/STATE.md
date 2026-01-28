@@ -2,17 +2,17 @@
 
 ## Current Position
 
-Phase: 3 (Dynamic Template System) — IN PROGRESS
-Plan: 03-01 complete, 03-02 next
-Status: 8 system templates seeded, wiring Edge Function next
-Last activity: 2026-01-28 — Plan 03-01 complete (8 templates seeded)
+Phase: 3 (Dynamic Template System) — COMPLETE
+Plan: 03-02 complete (2/2 plans done)
+Status: Phase 3 fully executed — templates seeded + Edge Function v7 deployed
+Last activity: 2026-01-28 — Phase 3 complete (dynamic template system)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Participants receive the right message at the right time automatically
-**Current focus:** Phase 3 - Wire send-reminder to fetch templates from DB
+**Current focus:** Phase 3 complete — next: Phase 4 (Manager Controls)
 
 ## Accumulated Context
 
@@ -28,22 +28,28 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - Follow-up date windows are 4 days wide for cron timing tolerance
 - Template content matches v6 hardcoded messages exactly (seamless transition)
 - Idempotent DO block guard for template seeding
+- Template-first pattern with hardcoded fallback for all 8 handlers
+- Template fetched once per event (not per participant) for efficiency
+- Org-specific template override with system template fallback
 
 ### Blockers
 (None currently)
 
 ### Technical Notes
-- Edge Function send-reminder deployed as v6 with all 8 handlers
+- Edge Function send-reminder deployed as v7 with template-first message building
 - All 8 cron jobs active and verified
 - Deduplication uses `message_type` column (enum-based)
 - Settings flags in events.settings JSONB control per-event reminder behavior
-- 8 system templates now seeded in message_templates table
+- 8 system templates seeded in message_templates table
+- 4 utility functions: getMessageTemplate, substituteVariables, buildEventVariableMap, buildScheduleVariableMap
 - CRITICAL: Use `message_type` column (NOT `type`) for template queries
 - CRITICAL: Use `.is('organization_id', null)` for NULL checks in PostgREST
+- Variable substitution supports 11 variables across event-level and schedule-level
 
 ### Completed Phases
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
 - Phase 2: Reminder Types Implementation (4/4 plans complete)
+- Phase 3: Dynamic Template System (2/2 plans complete)
 
 ---
 *State updated: 2026-01-28*

@@ -78,8 +78,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Seed 8 default reminder templates into message_templates
-- [ ] 03-02-PLAN.md — Wire send-reminder to fetch templates + variable substitution + verify
+- [x] 03-01-PLAN.md — Seed 8 default reminder templates into message_templates
+- [x] 03-02-PLAN.md — Wire send-reminder to fetch templates + variable substitution + verify
 
 **Success Criteria:**
 1. send-reminder queries message_templates by type before sending
@@ -148,4 +148,4 @@ Plans:
 **Total:** 5 phases, 20 requirements, 24 success criteria
 
 ---
-*Roadmap updated: 2026-01-28*
+*Roadmap updated: 2026-01-28 after Phase 3 completion*

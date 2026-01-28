@@ -2,17 +2,17 @@
 
 ## Current Position
 
-Phase: 3 (Dynamic Template System) — COMPLETE
-Plan: 03-02 complete (2/2 plans done)
-Status: Phase 3 fully executed — templates seeded + Edge Function v7 deployed
-Last activity: 2026-01-28 — Phase 3 complete (dynamic template system)
+Phase: 4 (Manager Controls) — IN PROGRESS
+Plan: 04-01 complete (1/3 plans done)
+Status: Event settings panel deployed — reminder toggles + message preview functional
+Last activity: 2026-01-28 — Completed 04-01-PLAN.md
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Participants receive the right message at the right time automatically
-**Current focus:** Phase 3 complete — next: Phase 4 (Manager Controls)
+**Current focus:** Phase 4 (Manager Controls) — giving managers control over reminder behavior
 
 ## Accumulated Context
 
@@ -45,11 +45,14 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - CRITICAL: Use `message_type` column (NOT `type`) for template queries
 - CRITICAL: Use `.is('organization_id', null)` for NULL checks in PostgREST
 - Variable substitution supports 11 variables across event-level and schedule-level
+- Settings forms use plain useState (not React Hook Form) matching EventForm pattern
+- WhatsApp preview styling: dark zinc container with green #005c4b bubble
 
 ### Completed Phases
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
 - Phase 2: Reminder Types Implementation (4/4 plans complete)
 - Phase 3: Dynamic Template System (2/2 plans complete)
+- Phase 4: Manager Controls (1/3 plans complete)
 
 ---
 *State updated: 2026-01-28*

@@ -10,16 +10,7 @@ import { MessagePreview } from './MessagePreview'
 import { TestReminderButton } from './TestReminderButton'
 
 interface EventSettingsPanelProps {
-  event: {
-    id: string
-    name: string
-    start_date: string
-    venue_name: string | null
-    venue_address: string | null
-    organization_id: string | null
-    settings: Record<string, boolean> | null
-    status: string
-  }
+  event: any
 }
 
 export function EventSettingsPanel({ event }: EventSettingsPanelProps) {
@@ -207,8 +198,7 @@ export function EventSettingsPanel({ event }: EventSettingsPanelProps) {
       <div className="card">
         <h2 className="text-xl font-bold mb-4">תצוגה מקדימה - הודעת הפעלה</h2>
         <MessagePreview
-          eventId={event.id}
-          organizationId={event.organization_id}
+          organizationId={event.organization_id || null}
           eventName={event.name}
           startDate={event.start_date}
           venueName={event.venue_name}

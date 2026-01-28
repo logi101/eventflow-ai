@@ -58,8 +58,8 @@ export function MessagePreview({
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <Loader2 className="animate-spin text-gray-400" size={24} />
-        <span className="mr-2 text-gray-500">טוען תצוגה מקדימה...</span>
+        <Loader2 className="animate-spin text-zinc-400" size={24} />
+        <span className="mr-2 text-zinc-500">טוען תצוגה מקדימה...</span>
       </div>
     )
   }

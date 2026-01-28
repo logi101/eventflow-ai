@@ -2,56 +2,226 @@
 // EventFlow - Event Settings Panel
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { useState } from 'react'
+import { Save, Loader2 } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { eventSettingsSchema, type EventSettings } from '../schemas/eventSettings'
+import { MessagePreview } from './MessagePreview'
 import { TestReminderButton } from './TestReminderButton'
 
-export function EventSettingsPanel({ event }: { event: any }) {
-  const settings = {
-    reminder_activation: true,
-    reminder_week_before: true,
-    reminder_day_before: true,
-    reminder_morning: true,
-    reminder_15min: true,
-    reminder_event_end: true,
-    reminder_follow_up_3mo: true,
-    reminder_follow_up_6mo: true,
-  } as any
+interface EventSettingsPanelProps {
+  event: {
+    id: string
+    name: string
+    start_date: string
+    venue_name: string | null
+    venue_address: string | null
+    organization_id: string | null
+    settings: Record<string, boolean> | null
+    status: string
+  }
+}
 
-  const reminders = [
-    { key: 'reminder_activation', label: 'הודעת הפעלה' },
-    { key: 'reminder_week_before', label: 'תזכורת שבוע לפני' },
-    { key: 'reminder_day_before', label: 'תזכורת יום לפני' },
-    { key: 'reminder_morning', label: 'תזכורת בוקר האירוע' },
-    { key: 'reminder_15min', label: 'תזכורת 15 דקות לפני' },
-    { key: 'reminder_event_end', label: 'הודעה בסיום אירוע' },
-    { key: 'reminder_follow_up_3mo', label: 'מעקב 3 חודשים' },
-    { key: 'reminder_follow_up_6mo', label: 'מעקב 6 חודשים' },
-  ]
+export function EventSettingsPanel({ event }: EventSettingsPanelProps) {
+  // Parse current settings with defaults
+  const currentSettings = eventSettingsSchema.parse(event.settings || {})
+
+  // Local state for settings
+  const [settings, setSettings] = useState<EventSettings>(currentSettings)
+  const [saving, setSaving] = useState(false)
+
+  // Toast state
+  const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
+    show: false,
+    message: '',
+    type: 'success'
+  })
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ show: true, message, type })
+    setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
+  }
+
+  // Check if settings have changed
+  const isDirty = JSON.stringify(settings) !== JSON.stringify(currentSettings)
+
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ settings })
+        .eq('id', event.id)
+
+      if (error) {
+        console.error('Error saving settings:', error)
+        showToast('שגיאה בשמירת ההגדרות', 'error')
+        return
+      }
+
+      showToast('הגדרות נשמרו בהצלחה')
+    } catch (err) {
+      console.error('Exception saving settings:', err)
+      showToast('שגיאה בשמירת ההגדרות', 'error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleToggle = (key: keyof EventSettings) => {
+    setSettings(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }))
+  }
 
   return (
     <div className="space-y-6">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div
+          className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg ${
+            toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+          } text-white`}
+        >
+          {toast.message}
+        </div>
+      )}
+
       <div className="card">
         <h2 className="text-xl font-bold mb-4">הגדרות תזכורות</h2>
-        <div className="space-y-4">
-          {reminders.map((item) => (
-            <div key={item.key} className="flex items-center justify-between p-3 rounded-lg hover:bg-zinc-800/50 cursor-pointer">
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={settings[item.key]}
-                  className="w-4 h-4 rounded accent-orange-500 cursor-pointer shrink-0"
-                />
-                <span className="text-sm">{item.label}</span>
-              </div>
-            </div>
-          ))}
+
+        {/* Standard Reminders Section */}
+        <div className="space-y-4 mb-6">
+          <h3 className="text-lg font-semibold text-zinc-300">תזכורות אוטומטיות</h3>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_activation}
+              onChange={() => handleToggle('reminder_activation')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">הודעת הפעלה (אחרי הפעלת אירוע)</span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_week_before}
+              onChange={() => handleToggle('reminder_week_before')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">תזכורת שבוע לפני</span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_day_before}
+              onChange={() => handleToggle('reminder_day_before')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">תזכורת יום לפני</span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_morning}
+              onChange={() => handleToggle('reminder_morning')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">תזכורת בוקר האירוע</span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_15min}
+              onChange={() => handleToggle('reminder_15min')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">תזכורת 15 דקות לפני</span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_event_end}
+              onChange={() => handleToggle('reminder_event_end')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">הודעה בסיום אירוע</span>
+          </label>
         </div>
-        <button className="mt-6 w-full px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-          שמור הגדרות
-        </button>
+
+        {/* Follow-up Reminders Section */}
+        <div className="space-y-4 pt-6 border-t border-zinc-700">
+          <h3 className="text-lg font-semibold text-zinc-300">תזכורות מעקב (אופציונליות)</h3>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_follow_up_3mo}
+              onChange={() => handleToggle('reminder_follow_up_3mo')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">מעקב 3 חודשים</span>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={settings.reminder_follow_up_6mo}
+              onChange={() => handleToggle('reminder_follow_up_6mo')}
+              className="w-4 h-4 rounded accent-orange-500"
+            />
+            <span className="text-sm text-zinc-300">מעקב 6 חודשים</span>
+          </label>
+        </div>
+
+        {/* Save Button */}
+        <div className="mt-6 pt-6 border-t border-zinc-700">
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || saving}
+            className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="animate-spin" size={18} />
+                שומר...
+              </>
+            ) : (
+              <>
+                <Save size={18} />
+                שמור הגדרות
+              </>
+            )}
+          </button>
+        </div>
       </div>
+
+      {/* Message Preview */}
+      <div className="card">
+        <h2 className="text-xl font-bold mb-4">תצוגה מקדימה - הודעת הפעלה</h2>
+        <MessagePreview
+          eventId={event.id}
+          organizationId={event.organization_id}
+          eventName={event.name}
+          startDate={event.start_date}
+          venueName={event.venue_name}
+          venueAddress={event.venue_address}
+        />
+      </div>
+
+      {/* Test Reminder Section */}
       <div className="card">
         <h2 className="text-xl font-bold mb-2">בדיקת תזכורות</h2>
-        <p className="text-sm text-zinc-400 mb-4">שלח הודעת בדיקה לטלפון שלך כדי לוודא שהכל עובד</p>
+        <p className="text-sm text-zinc-400 mb-4">
+          שלח הודעת בדיקה לטלפון שלך כדי לוודא שהכל עובד
+        </p>
         <TestReminderButton eventId={event.id} />
       </div>
     </div>

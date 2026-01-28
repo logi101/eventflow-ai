@@ -101,6 +101,12 @@ Plans:
 
 **Requirements:** CTRL-01, CTRL-02, CTRL-03, CTRL-04
 
+**Plans:** 2 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — Settings panel with 8 reminder toggles + activation message preview
+- [ ] 04-02-PLAN.md — Test reminder button + Edge Function test mode
+
 **Success Criteria:**
 1. Event settings UI has toggles for follow_up_3mo and follow_up_6mo
 2. Database events.settings JSONB stores these flags

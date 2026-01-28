@@ -1,0 +1,1084 @@
+import { useState, useEffect, useRef } from 'react'
+import {
+  Upload, Download, Link2, Bell, RefreshCw, CheckCircle,
+  X, Clock, AlertTriangle, Send, Loader2, ClipboardList, Users
+} from 'lucide-react'
+import { supabase } from '../../lib/supabase'
+import type {
+  Schedule, Participant, ParticipantSchedule, UpcomingReminder, ParticipantStatus
+} from '../../types'
+import * as XLSX from 'xlsx'
+
+export function ProgramManagementPage() {
+  const [activeTab, setActiveTab] = useState<'import' | 'assign' | 'reminders'>('import')
+  const [events, setEvents] = useState<{ id: string; name: string; start_date: string }[]>([])
+  const [selectedEventId, setSelectedEventId] = useState<string>('')
+  const [schedules, setSchedules] = useState<Schedule[]>([])
+  const [participants, setParticipants] = useState<Participant[]>([])
+  const [assignments, setAssignments] = useState<ParticipantSchedule[]>([])
+  const [loading, setLoading] = useState(true)
+  const [importing, setImporting] = useState(false)
+  const [sending, setSending] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const participantsFileRef = useRef<HTMLInputElement>(null)
+
+  // Load initial data
+  useEffect(() => {
+    loadEvents()
+  }, [])
+
+  // Load event-specific data when event changes
+  useEffect(() => {
+    if (selectedEventId) {
+      loadEventData()
+    }
+  }, [selectedEventId])
+
+  async function loadEvents() {
+    const { data } = await supabase
+      .from('events')
+      .select('id, name, start_date')
+      .order('start_date', { ascending: false })
+
+    if (data) {
+      setEvents(data)
+      if (data.length > 0) {
+        setSelectedEventId(data[0].id)
+      }
+    }
+    setLoading(false)
+  }
+
+  async function loadEventData() {
+    setLoading(true)
+
+    // Load schedules for event
+    const { data: schedulesData } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('event_id', selectedEventId)
+      .order('start_time', { ascending: true })
+
+    if (schedulesData) setSchedules(schedulesData)
+
+    // Load participants for event
+    const { data: participantsData } = await supabase
+      .from('participants')
+      .select('*')
+      .eq('event_id', selectedEventId)
+      .order('last_name', { ascending: true })
+
+    if (participantsData) setParticipants(participantsData)
+
+    // Load assignments
+    const { data: assignmentsData } = await supabase
+      .from('participant_schedules')
+      .select(`
+        *,
+        participants(id, first_name, last_name, phone, email),
+        schedules(id, title, start_time, end_time, track, track_color)
+      `)
+      .in('participant_id', participantsData?.map(p => p.id) || [])
+
+    if (assignmentsData) setAssignments(assignmentsData)
+
+    setLoading(false)
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Excel Import Functions
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function handleScheduleImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !selectedEventId) return
+
+    setImporting(true)
+
+    try {
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data)
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
+
+      const schedulesToInsert = rows.map((row, index) => ({
+        event_id: selectedEventId,
+        title: String(row['כותרת'] || row['title'] || row['שם'] || ''),
+        description: row['תיאור'] || row['description'] || null,
+        start_time: parseExcelDateTime(row['שעת התחלה'] || row['start_time'] || row['התחלה']),
+        end_time: parseExcelDateTime(row['שעת סיום'] || row['end_time'] || row['סיום']),
+        location: row['מיקום'] || row['location'] || null,
+        room: row['חדר'] || row['room'] || null,
+        track: row['טראק'] || row['track'] || row['מסלול'] || null,
+        track_color: row['צבע'] || row['color'] || getTrackColor(row['טראק'] || row['track'] || row['מסלול']),
+        speaker_name: row['מרצה'] || row['speaker'] || row['מנחה'] || null,
+        speaker_title: row['תפקיד מרצה'] || row['speaker_title'] || null,
+        is_break: Boolean(row['הפסקה'] || row['is_break']),
+        is_mandatory: Boolean(row['חובה'] || row['mandatory']),
+        send_reminder: true,
+        reminder_minutes_before: Number(row['תזכורת דקות'] || row['reminder_minutes'] || 15),
+        sort_order: index
+      })).filter(s => s.title && s.start_time && s.end_time)
+
+      if (schedulesToInsert.length === 0) {
+        alert('לא נמצאו פריטים תקינים בקובץ')
+        setImporting(false)
+        return
+      }
+
+      const { error } = await supabase
+        .from('schedules')
+        .insert(schedulesToInsert)
+
+      if (error) {
+        console.error('Import error:', error)
+        alert('שגיאה בייבוא: ' + error.message)
+      } else {
+        alert(`יובאו ${schedulesToInsert.length} פריטים בהצלחה!`)
+        loadEventData()
+      }
+    } catch (err) {
+      console.error('Parse error:', err)
+      alert('שגיאה בקריאת הקובץ')
+    }
+
+    setImporting(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  async function handleParticipantsImport(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !selectedEventId) return
+
+    setImporting(true)
+
+    try {
+      const data = await file.arrayBuffer()
+      const workbook = XLSX.read(data)
+      const sheet = workbook.Sheets[workbook.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
+
+      const participantsToInsert = rows.map(row => ({
+        event_id: selectedEventId,
+        first_name: String(row['שם פרטי'] || row['first_name'] || ''),
+        last_name: String(row['שם משפחה'] || row['last_name'] || ''),
+        phone: normalizePhone(String(row['טלפון'] || row['phone'] || '')),
+        email: row['אימייל'] || row['email'] || null,
+        status: 'confirmed' as ParticipantStatus,
+        // Track assignment stored in custom_fields for later processing
+        custom_fields: {
+          track: row['טראק'] || row['track'] || row['מסלול'] || null
+        }
+      })).filter(p => p.first_name && p.phone)
+
+      if (participantsToInsert.length === 0) {
+        alert('לא נמצאו משתתפים תקינים בקובץ')
+        setImporting(false)
+        return
+      }
+
+      const { data: insertedParticipants, error } = await supabase
+        .from('participants')
+        .insert(participantsToInsert)
+        .select()
+
+      if (error) {
+        console.error('Import error:', error)
+        alert('שגיאה בייבוא: ' + error.message)
+      } else {
+        // Auto-assign participants to tracks
+        if (insertedParticipants) {
+          await autoAssignToTracks(insertedParticipants)
+        }
+        alert(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!`)
+        loadEventData()
+      }
+    } catch (err) {
+      console.error('Parse error:', err)
+      alert('שגיאה בקריאת הקובץ')
+    }
+
+    setImporting(false)
+    if (participantsFileRef.current) participantsFileRef.current.value = ''
+  }
+
+  async function autoAssignToTracks(insertedParticipants: Participant[]) {
+    const assignmentsToCreate: { participant_id: string; schedule_id: string }[] = []
+
+    for (const participant of insertedParticipants) {
+      const track = (participant.custom_fields as Record<string, unknown>)?.track as string
+      if (!track) continue
+
+      // Find all schedules matching this track
+      const trackSchedules = schedules.filter(s =>
+        s.track?.toLowerCase() === track.toLowerCase() || s.is_mandatory
+      )
+
+      for (const schedule of trackSchedules) {
+        assignmentsToCreate.push({
+          participant_id: participant.id,
+          schedule_id: schedule.id
+        })
+      }
+    }
+
+    if (assignmentsToCreate.length > 0) {
+      await supabase.from('participant_schedules').insert(assignmentsToCreate)
+    }
+  }
+
+  function parseExcelDateTime(value: unknown): string {
+    if (!value) return ''
+
+    // If it's already an ISO string
+    if (typeof value === 'string' && value.includes('T')) {
+      return value
+    }
+
+    // If it's an Excel serial date number
+    if (typeof value === 'number') {
+      const date = new Date((value - 25569) * 86400 * 1000)
+      return date.toISOString()
+    }
+
+    // Try to parse as date string
+    const date = new Date(String(value))
+    if (!isNaN(date.getTime())) {
+      return date.toISOString()
+    }
+
+    return ''
+  }
+
+  function normalizePhone(phone: string): string {
+    const digits = phone.replace(/\D/g, '')
+    if (digits.startsWith('972')) return digits
+    if (digits.startsWith('0')) return '972' + digits.slice(1)
+    return '972' + digits
+  }
+
+  function getTrackColor(track: unknown): string {
+    if (!track) return '#3B82F6'
+    const trackStr = String(track).toLowerCase()
+    const colors: Record<string, string> = {
+      'טכנולוגיה': '#3B82F6',
+      'tech': '#3B82F6',
+      'עסקים': '#10B981',
+      'business': '#10B981',
+      'יצירתיות': '#F59E0B',
+      'creative': '#F59E0B',
+      'מנהיגות': '#8B5CF6',
+      'leadership': '#8B5CF6'
+    }
+    return colors[trackStr] || '#3B82F6'
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Assignment Functions
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  async function assignParticipantToSchedule(participantId: string, scheduleId: string) {
+    // Check if already assigned
+    const existing = assignments.find(a =>
+      a.participant_id === participantId && a.schedule_id === scheduleId
+    )
+    if (existing) return
+
+    const { error } = await supabase
+      .from('participant_schedules')
+      .insert({
+        participant_id: participantId,
+        schedule_id: scheduleId
+      })
+
+    if (!error) {
+      loadEventData()
+    }
+  }
+
+  async function removeAssignment(assignmentId: string) {
+    const { error } = await supabase
+      .from('participant_schedules')
+      .delete()
+      .eq('id', assignmentId)
+
+    if (!error) {
+      loadEventData()
+    }
+  }
+
+  async function assignAllToSchedule(scheduleId: string) {
+    const unassigned = participants.filter(p =>
+      !assignments.some(a => a.participant_id === p.id && a.schedule_id === scheduleId)
+    )
+
+    if (unassigned.length === 0) return
+
+    const newAssignments = unassigned.map(p => ({
+      participant_id: p.id,
+      schedule_id: scheduleId
+    }))
+
+    const { error } = await supabase
+      .from('participant_schedules')
+      .insert(newAssignments)
+
+    if (!error) {
+      loadEventData()
+    }
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Reminder Functions
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function getUpcomingReminders(): UpcomingReminder[] {
+    const now = new Date()
+    const upcoming: UpcomingReminder[] = []
+
+    for (const schedule of schedules) {
+      if (!schedule.send_reminder) continue
+
+      const startTime = new Date(schedule.start_time)
+      const reminderTime = new Date(startTime.getTime() - schedule.reminder_minutes_before * 60000)
+      const minutesUntil = Math.round((reminderTime.getTime() - now.getTime()) / 60000)
+
+      // Show reminders that are due in the next 60 minutes or up to 5 minutes overdue
+      if (minutesUntil > 60 || minutesUntil < -5) continue
+
+      // Get participants assigned to this schedule
+      const scheduleAssignments = assignments.filter(a => a.schedule_id === schedule.id)
+      const assignedParticipants = scheduleAssignments.map(a => {
+        const participant = participants.find(p => p.id === a.participant_id)
+        return participant ? {
+          id: participant.id,
+          first_name: participant.first_name,
+          last_name: participant.last_name,
+          phone: participant.phone,
+          reminder_sent: a.reminder_sent
+        } : null
+      }).filter((p): p is NonNullable<typeof p> => p !== null)
+
+      if (assignedParticipants.length > 0) {
+        upcoming.push({
+          schedule,
+          participants: assignedParticipants,
+          minutesUntil
+        })
+      }
+    }
+
+    return upcoming.sort((a, b) => a.minutesUntil - b.minutesUntil)
+  }
+
+  function generateReminderMessage(
+    participant: { first_name: string; last_name: string },
+    schedule: Schedule,
+    roomInfo?: { room_number: string; building?: string | null; floor?: string | null }
+  ): string {
+    const startTime = new Date(schedule.start_time).toLocaleTimeString('he-IL', {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+
+    let message = `שלום ${participant.first_name} ${participant.last_name}! 👋\n\n`
+    message += `🔔 תזכורת: בעוד ${schedule.reminder_minutes_before} דקות מתחיל:\n\n`
+    message += `📌 *${schedule.title}*\n`
+    message += `🕐 שעה: ${startTime}\n`
+
+    if (schedule.location) {
+      message += `📍 מיקום: ${schedule.location}\n`
+    }
+    if (schedule.room) {
+      message += `🚪 חדר פעילות: ${schedule.room}\n`
+    }
+    if (schedule.speaker_name) {
+      message += `👤 מרצה: ${schedule.speaker_name}\n`
+    }
+    if (schedule.description) {
+      message += `\n📝 ${schedule.description}\n`
+    }
+
+    // Add participant's personal room info if available
+    if (roomInfo) {
+      message += `\n🏨 *החדר שלך:*\n`
+      message += `🚪 חדר: ${roomInfo.room_number}\n`
+      if (roomInfo.building) {
+        message += `🏢 בניין: ${roomInfo.building}\n`
+      }
+      if (roomInfo.floor) {
+        message += `📍 קומה: ${roomInfo.floor}\n`
+      }
+    }
+
+    message += `\nנתראה שם! 🎉`
+
+    return message
+  }
+
+  async function sendReminder(
+    participant: { id: string; first_name: string; last_name: string; phone: string },
+    schedule: Schedule
+  ) {
+    // Fetch participant's room assignment
+    const { data: roomData } = await supabase
+      .from('participant_rooms')
+      .select('room_number, building, floor')
+      .eq('participant_id', participant.id)
+      .eq('event_id', selectedEventId)
+      .single()
+
+    const message = generateReminderMessage(participant, schedule, roomData || undefined)
+
+    try {
+      // Call the Edge Function to send WhatsApp message
+      const { error } = await supabase.functions.invoke('send-whatsapp', {
+        body: {
+          phone: participant.phone,
+          message
+        }
+      })
+
+      if (error) throw error
+
+      // Mark reminder as sent
+      await supabase
+        .from('participant_schedules')
+        .update({
+          reminder_sent: true,
+          reminder_sent_at: new Date().toISOString()
+        })
+        .eq('participant_id', participant.id)
+        .eq('schedule_id', schedule.id)
+
+      // Log the message
+      await supabase
+        .from('messages')
+        .insert({
+          event_id: selectedEventId,
+          participant_id: participant.id,
+          channel: 'whatsapp',
+          to_phone: participant.phone,
+          content: message,
+          status: 'sent',
+          sent_at: new Date().toISOString()
+        })
+
+      return true
+    } catch (err) {
+      console.error('Failed to send reminder:', err)
+      return false
+    }
+  }
+
+  async function sendAllReminders(reminder: UpcomingReminder) {
+    setSending(true)
+    let successCount = 0
+    let failCount = 0
+
+    for (const participant of reminder.participants) {
+      if (participant.reminder_sent) continue
+
+      const success = await sendReminder(participant, reminder.schedule)
+      if (success) {
+        successCount++
+      } else {
+        failCount++
+      }
+
+      // Small delay between messages to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    setSending(false)
+    loadEventData()
+
+    alert(`נשלחו ${successCount} הודעות${failCount > 0 ? `, ${failCount} נכשלו` : ''}`)
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Download Template
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  function downloadScheduleTemplate() {
+    const template = [
+      {
+        'כותרת': 'פתיחה וברכות',
+        'תיאור': 'ברכות פתיחה מהמנכ"ל',
+        'שעת התחלה': '2024-03-15T09:00:00',
+        'שעת סיום': '2024-03-15T09:30:00',
+        'מיקום': 'אולם ראשי',
+        'חדר': 'A1',
+        'טראק': 'כללי',
+        'מרצה': 'ישראל ישראלי',
+        'תפקיד מרצה': 'מנכ"ל',
+        'הפסקה': false,
+        'חובה': true,
+        'תזכורת דקות': 15
+      },
+      {
+        'כותרת': 'הפסקת קפה',
+        'תיאור': '',
+        'שעת התחלה': '2024-03-15T10:30:00',
+        'שעת סיום': '2024-03-15T11:00:00',
+        'מיקום': 'לובי',
+        'חדר': '',
+        'טראק': '',
+        'מרצה': '',
+        'תפקיד מרצה': '',
+        'הפסקה': true,
+        'חובה': false,
+        'תזכורת דקות': 5
+      }
+    ]
+
+    const ws = XLSX.utils.json_to_sheet(template)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'תוכניה')
+    XLSX.writeFile(wb, 'תבנית_תוכניה.xlsx')
+  }
+
+  function downloadParticipantsTemplate() {
+    const template = [
+      {
+        'שם פרטי': 'ישראל',
+        'שם משפחה': 'ישראלי',
+        'טלפון': '0501234567',
+        'אימייל': 'israel@example.com',
+        'טראק': 'טכנולוגיה'
+      },
+      {
+        'שם פרטי': 'שרה',
+        'שם משפחה': 'כהן',
+        'טלפון': '0509876543',
+        'אימייל': 'sara@example.com',
+        'טראק': 'עסקים'
+      }
+    ]
+
+    const ws = XLSX.utils.json_to_sheet(template)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'משתתפים')
+    XLSX.writeFile(wb, 'תבנית_משתתפים.xlsx')
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Stats
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  const stats = {
+    schedules: schedules.length,
+    participants: participants.length,
+    assignments: assignments.length,
+    tracks: [...new Set(schedules.map(s => s.track).filter(Boolean))].length,
+    pendingReminders: assignments.filter(a => !a.reminder_sent).length
+  }
+
+  const upcomingReminders = getUpcomingReminders()
+
+  if (loading && !selectedEventId) {
+    return (
+      <div className="p-8 flex justify-center items-center min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="p-8">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold" data-testid="program-title">ניהול תוכניה</h1>
+          <p className="text-gray-500">ייבוא תוכניה, שיוך משתתפים ושליחת תזכורות</p>
+        </div>
+        <select
+          value={selectedEventId}
+          onChange={(e) => setSelectedEventId(e.target.value)}
+          className="input min-w-[250px]"
+          data-testid="event-selector"
+        >
+          <option value="">בחר אירוע</option>
+          {events.map(event => (
+            <option key={event.id} value={event.id}>{event.name}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-5 gap-4 mb-6">
+        <div className="card">
+          <p className="text-gray-500 text-sm">פריטי תוכניה</p>
+          <p className="text-2xl font-bold">{stats.schedules}</p>
+        </div>
+        <div className="card">
+          <p className="text-gray-500 text-sm">משתתפים</p>
+          <p className="text-2xl font-bold text-blue-600">{stats.participants}</p>
+        </div>
+        <div className="card">
+          <p className="text-gray-500 text-sm">שיוכים</p>
+          <p className="text-2xl font-bold text-green-600">{stats.assignments}</p>
+        </div>
+        <div className="card">
+          <p className="text-gray-500 text-sm">טראקים</p>
+          <p className="text-2xl font-bold text-purple-600">{stats.tracks}</p>
+        </div>
+        <div className="card">
+          <p className="text-gray-500 text-sm">תזכורות ממתינות</p>
+          <p className="text-2xl font-bold text-orange-600">{stats.pendingReminders}</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-6 border-b">
+        <button
+          onClick={() => setActiveTab('import')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'import'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Upload className="w-4 h-4 inline ml-2" />
+          ייבוא
+        </button>
+        <button
+          onClick={() => setActiveTab('assign')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'assign'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Link2 className="w-4 h-4 inline ml-2" />
+          שיוך משתתפים
+        </button>
+        <button
+          onClick={() => setActiveTab('reminders')}
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
+            activeTab === 'reminders'
+              ? 'border-primary text-primary'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <Bell className="w-4 h-4 inline ml-2" />
+          תזכורות
+          {upcomingReminders.length > 0 && (
+            <span className="mr-2 bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+              {upcomingReminders.length}
+            </span>
+          )}
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'import' && (
+        <div className="grid grid-cols-2 gap-6">
+          {/* Schedule Import */}
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">
+              <ClipboardList className="w-5 h-5 inline ml-2 text-blue-600" />
+              ייבוא תוכניה מאקסל
+            </h2>
+            <p className="text-gray-600 mb-4">
+              יבא קובץ אקסל עם פריטי התוכניה: כותרת, שעות, מיקום, טראק, מרצה
+            </p>
+
+            <div className="space-y-4">
+              <button
+                onClick={downloadScheduleTemplate}
+                className="btn-secondary w-full"
+              >
+                <Download className="w-4 h-4 ml-2" />
+                הורד תבנית לדוגמה
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleScheduleImport}
+                className="hidden"
+              />
+
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={!selectedEventId || importing}
+                className="btn-primary w-full"
+              >
+                {importing ? (
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 ml-2" />
+                )}
+                {importing ? 'מייבא...' : 'יבא תוכניה'}
+              </button>
+            </div>
+
+            {schedules.length > 0 && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                <CheckCircle className="w-4 h-4 inline ml-2 text-green-600" />
+                <span className="text-green-700">
+                  {schedules.length} פריטים בתוכניה
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Participants Import */}
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">
+              <Users className="w-5 h-5 inline ml-2 text-green-600" />
+              ייבוא משתתפים עם שיוך
+            </h2>
+            <p className="text-gray-600 mb-4">
+              יבא קובץ אקסל עם משתתפים: שם, טלפון, טראק - השיוך יתבצע אוטומטית
+            </p>
+
+            <div className="space-y-4">
+              <button
+                onClick={downloadParticipantsTemplate}
+                className="btn-secondary w-full"
+              >
+                <Download className="w-4 h-4 ml-2" />
+                הורד תבנית לדוגמה
+              </button>
+
+              <input
+                ref={participantsFileRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleParticipantsImport}
+                className="hidden"
+              />
+
+              <button
+                onClick={() => participantsFileRef.current?.click()}
+                disabled={!selectedEventId || importing}
+                className="btn-primary w-full"
+              >
+                {importing ? (
+                  <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                ) : (
+                  <Upload className="w-4 h-4 ml-2" />
+                )}
+                {importing ? 'מייבא...' : 'יבא משתתפים'}
+              </button>
+            </div>
+
+            {participants.length > 0 && (
+              <div className="mt-4 p-3 bg-green-50 rounded-lg">
+                <CheckCircle className="w-4 h-4 inline ml-2 text-green-600" />
+                <span className="text-green-700">
+                  {participants.length} משתתפים
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'assign' && (
+        <div className="card">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-bold">שיוך משתתפים לפריטי תוכניה</h2>
+            <button onClick={loadEventData} className="btn-secondary text-sm">
+              <RefreshCw className="w-4 h-4 ml-1" />
+              רענן
+            </button>
+          </div>
+
+          {schedules.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">יש לייבא תוכניה קודם</p>
+          ) : (
+            <div className="space-y-4">
+              {schedules.map(schedule => {
+                const scheduleAssignments = assignments.filter(a => a.schedule_id === schedule.id)
+                const assignedParticipantIds = scheduleAssignments.map(a => a.participant_id)
+                const unassignedParticipants = participants.filter(p => !assignedParticipantIds.includes(p.id))
+
+                return (
+                  <div
+                    key={schedule.id}
+                    className={`p-4 rounded-lg border ${
+                      schedule.is_break ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        {schedule.track_color && (
+                          <div
+                            className="w-3 h-3 rounded-full"
+                            style={{ backgroundColor: schedule.track_color }}
+                          />
+                        )}
+                        <div>
+                          <h3 className="font-semibold">{schedule.title}</h3>
+                          <p className="text-sm text-gray-500">
+                            {new Date(schedule.start_time).toLocaleTimeString('he-IL', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                            {' - '}
+                            {new Date(schedule.end_time).toLocaleTimeString('he-IL', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                            {schedule.track && ` | ${schedule.track}`}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                          {scheduleAssignments.length} / {participants.length}
+                        </span>
+                        {unassignedParticipants.length > 0 && (
+                          <button
+                            onClick={() => assignAllToSchedule(schedule.id)}
+                            className="text-sm text-blue-600 hover:text-blue-800"
+                          >
+                            + הוסף הכל
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Assigned Participants */}
+                    {scheduleAssignments.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {scheduleAssignments.map(assignment => {
+                          const participant = participants.find(p => p.id === assignment.participant_id)
+                          if (!participant) return null
+
+                          return (
+                            <span
+                              key={assignment.id}
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
+                                assignment.reminder_sent
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-blue-100 text-blue-800'
+                              }`}
+                            >
+                              {participant.first_name} {participant.last_name}
+                              {assignment.reminder_sent && (
+                                <CheckCircle className="w-3 h-3" />
+                              )}
+                              <button
+                                onClick={() => removeAssignment(assignment.id)}
+                                className="hover:text-red-600"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </span>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Add Participant Dropdown */}
+                    {unassignedParticipants.length > 0 && (
+                      <select
+                        onChange={(e) => {
+                          if (e.target.value) {
+                            assignParticipantToSchedule(e.target.value, schedule.id)
+                            e.target.value = ''
+                          }
+                        }}
+                        className="input text-sm"
+                        defaultValue=""
+                      >
+                        <option value="">+ הוסף משתתף...</option>
+                        {unassignedParticipants.map(p => (
+                          <option key={p.id} value={p.id}>
+                            {p.first_name} {p.last_name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'reminders' && (
+        <div className="space-y-6">
+          {/* Upcoming Reminders */}
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">
+              <Bell className="w-5 h-5 inline ml-2 text-orange-600" />
+              תזכורות קרובות
+            </h2>
+
+            {upcomingReminders.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Bell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                <p>אין תזכורות קרובות</p>
+                <p className="text-sm">תזכורות יופיעו כאן 60 דקות לפני המועד</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {upcomingReminders.map((reminder, index) => {
+                  const pendingCount = reminder.participants.filter(p => !p.reminder_sent).length
+                  const sentCount = reminder.participants.filter(p => p.reminder_sent).length
+
+                  return (
+                    <div
+                      key={index}
+                      className={`p-4 rounded-lg border ${
+                        reminder.minutesUntil <= 0
+                          ? 'bg-red-50 border-red-300'
+                          : reminder.minutesUntil <= 15
+                          ? 'bg-orange-50 border-orange-300'
+                          : 'bg-yellow-50 border-yellow-300'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            {reminder.minutesUntil <= 0 ? (
+                              <AlertTriangle className="w-5 h-5 text-red-600" />
+                            ) : (
+                              <Clock className="w-5 h-5 text-orange-600" />
+                            )}
+                            <h3 className="font-semibold">{reminder.schedule.title}</h3>
+                          </div>
+                          <p className="text-sm text-gray-600">
+                            {reminder.minutesUntil <= 0
+                              ? `איחור של ${Math.abs(reminder.minutesUntil)} דקות!`
+                              : `בעוד ${reminder.minutesUntil} דקות`
+                            }
+                            {' | '}
+                            {new Date(reminder.schedule.start_time).toLocaleTimeString('he-IL', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="text-sm text-left">
+                            <p className="text-green-600">{sentCount} נשלחו</p>
+                            <p className="text-orange-600">{pendingCount} ממתינים</p>
+                          </div>
+
+                          {pendingCount > 0 && (
+                            <button
+                              onClick={() => sendAllReminders(reminder)}
+                              disabled={sending}
+                              className="btn-primary"
+                            >
+                              {sending ? (
+                                <Loader2 className="w-4 h-4 ml-2 animate-spin" />
+                              ) : (
+                                <Send className="w-4 h-4 ml-2" />
+                              )}
+                              שלח {pendingCount} תזכורות
+                            </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Participant List */}
+                      <div className="flex flex-wrap gap-2">
+                        {reminder.participants.map(participant => (
+                          <span
+                            key={participant.id}
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
+                              participant.reminder_sent
+                                ? 'bg-green-100 text-green-800'
+                                : 'bg-white text-gray-700 border'
+                            }`}
+                          >
+                            {participant.first_name} {participant.last_name}
+                            {participant.reminder_sent ? (
+                              <CheckCircle className="w-3 h-3 text-green-600" />
+                            ) : (
+                              <Clock className="w-3 h-3 text-orange-600" />
+                            )}
+                          </span>
+                        ))}
+                      </div>
+
+                      {/* Message Preview */}
+                      {pendingCount > 0 && (
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                            תצוגה מקדימה של ההודעה
+                          </summary>
+                          <pre className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap text-right" dir="rtl">
+                            {generateReminderMessage(
+                              reminder.participants[0],
+                              reminder.schedule
+                            )}
+                          </pre>
+                        </details>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* All Schedules Status */}
+          <div className="card">
+            <h2 className="text-xl font-bold mb-4">סטטוס תזכורות לכל התוכניה</h2>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-right p-2">פריט</th>
+                    <th className="text-right p-2">שעה</th>
+                    <th className="text-right p-2">משתתפים</th>
+                    <th className="text-right p-2">נשלחו</th>
+                    <th className="text-right p-2">ממתינים</th>
+                    <th className="text-right p-2">סטטוס</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {schedules.map(schedule => {
+                    const scheduleAssignments = assignments.filter(a => a.schedule_id === schedule.id)
+                    const sentCount = scheduleAssignments.filter(a => a.reminder_sent).length
+                    const pendingCount = scheduleAssignments.filter(a => !a.reminder_sent).length
+                    const isPast = new Date(schedule.start_time) < new Date()
+
+                    return (
+                      <tr key={schedule.id} className={`border-b ${isPast ? 'opacity-50' : ''}`}>
+                        <td className="p-2">{schedule.title}</td>
+                        <td className="p-2">
+                          {new Date(schedule.start_time).toLocaleTimeString('he-IL', {
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </td>
+                        <td className="p-2">{scheduleAssignments.length}</td>
+                        <td className="p-2 text-green-600">{sentCount}</td>
+                        <td className="p-2 text-orange-600">{pendingCount}</td>
+                        <td className="p-2">
+                          {isPast ? (
+                            <span className="text-gray-400">עבר</span>
+                          ) : pendingCount === 0 && sentCount > 0 ? (
+                            <span className="text-green-600">✓ הושלם</span>
+                          ) : pendingCount > 0 ? (
+                            <span className="text-orange-600">ממתין</span>
+                          ) : (
+                            <span className="text-gray-400">אין משתתפים</span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}

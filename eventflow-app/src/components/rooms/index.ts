@@ -1,0 +1,1 @@
+export { RoomAssignmentPanel } from './RoomAssignmentPanel'

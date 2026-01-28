@@ -1,0 +1,362 @@
+// supabase/functions/send-reminder/index.ts
+// Edge Function לשליחת תזכורות אוטומטיות - מופעל על ידי Cron Job
+
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+interface ReminderJob {
+  type: 'day_before' | 'morning' | '15_min'
+}
+
+interface Event {
+  id: string
+  name: string
+  start_date: string
+  venue_name?: string
+  venue_address?: string
+  settings?: {
+    reminder_day_before?: boolean
+    reminder_morning_of?: boolean
+    reminder_15_min?: boolean
+  }
+}
+
+interface Participant {
+  id: string
+  first_name: string
+  phone_normalized?: string
+  has_companion?: boolean
+  companion_name?: string
+  companion_phone_normalized?: string
+  status: string
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { type }: ReminderJob = await req.json()
+    const now = new Date()
+    const results = { processed: 0, sent: 0, errors: 0 }
+
+    if (type === 'day_before') {
+      // Find events happening tomorrow
+      const tomorrow = new Date(now)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+      tomorrow.setHours(0, 0, 0, 0)
+      
+      const dayAfterTomorrow = new Date(tomorrow)
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 1)
+
+      const { data: events } = await supabase
+        .from('events')
+        .select(`
+          id, name, start_date, venue_name, venue_address, organization_id,
+          settings,
+          participants (
+            id, first_name, phone_normalized, status,
+            has_companion, companion_name, companion_phone_normalized
+          )
+        `)
+        .gte('start_date', tomorrow.toISOString())
+        .lt('start_date', dayAfterTomorrow.toISOString())
+        .eq('status', 'active')
+
+      if (events) {
+        for (const event of events) {
+          if (!event.settings?.reminder_day_before) continue
+
+          for (const participant of event.participants || []) {
+            if (participant.status !== 'confirmed') continue
+
+            results.processed++
+
+            // Check if reminder already sent
+            const { data: existingMsg } = await supabase
+              .from('messages')
+              .select('id')
+              .eq('event_id', event.id)
+              .eq('participant_id', participant.id)
+              .eq('type', 'reminder_day_before')
+              .single()
+
+            if (existingMsg) continue
+
+            // Create message
+            const message = buildDayBeforeMessage(event, participant)
+            
+            const { data: msgData, error: msgError } = await supabase
+              .from('messages')
+              .insert({
+                event_id: event.id,
+                participant_id: participant.id,
+                type: 'reminder_day_before',
+                channel: 'whatsapp',
+                recipient_name: participant.first_name,
+                recipient_phone: participant.phone_normalized,
+                content: message,
+                status: 'pending',
+              })
+              .select()
+              .single()
+
+            if (msgError) {
+              results.errors++
+              continue
+            }
+
+            // Send via WhatsApp
+            const sendResult = await sendWhatsApp(
+              supabase,
+              event.organization_id,
+              participant.phone_normalized,
+              message,
+              msgData.id
+            )
+
+            if (sendResult.success) {
+              results.sent++
+            } else {
+              results.errors++
+            }
+
+            // Send to companion if exists
+            if (participant.has_companion && participant.companion_phone_normalized) {
+              const companionMessage = buildDayBeforeMessage(event, {
+                first_name: participant.companion_name || 'אורח/ת',
+              })
+
+              await supabase
+                .from('messages')
+                .insert({
+                  event_id: event.id,
+                  participant_id: participant.id,
+                  type: 'reminder_day_before',
+                  channel: 'whatsapp',
+                  recipient_name: participant.companion_name,
+                  recipient_phone: participant.companion_phone_normalized,
+                  content: companionMessage,
+                  is_companion: true,
+                  status: 'pending',
+                })
+
+              await sendWhatsApp(
+                supabase,
+                event.organization_id,
+                participant.companion_phone_normalized,
+                companionMessage
+              )
+            }
+          }
+        }
+      }
+    }
+
+    if (type === 'morning') {
+      // Find events happening today
+      const today = new Date(now)
+      today.setHours(0, 0, 0, 0)
+      
+      const tomorrow = new Date(today)
+      tomorrow.setDate(tomorrow.getDate() + 1)
+
+      const { data: events } = await supabase
+        .from('events')
+        .select(`
+          id, name, start_date, venue_name, venue_address, organization_id,
+          settings,
+          participants (
+            id, first_name, phone_normalized, status
+          )
+        `)
+        .gte('start_date', today.toISOString())
+        .lt('start_date', tomorrow.toISOString())
+        .eq('status', 'active')
+
+      if (events) {
+        for (const event of events) {
+          if (!event.settings?.reminder_morning) continue
+
+          for (const participant of event.participants || []) {
+            if (participant.status !== 'confirmed') continue
+
+            results.processed++
+
+            const { data: existingMsg } = await supabase
+              .from('messages')
+              .select('id')
+              .eq('event_id', event.id)
+              .eq('participant_id', participant.id)
+              .eq('type', 'reminder_morning')
+              .single()
+
+            if (existingMsg) continue
+
+            const message = buildMorningMessage(event, participant)
+            
+            const { data: msgData } = await supabase
+              .from('messages')
+              .insert({
+                event_id: event.id,
+                participant_id: participant.id,
+                type: 'reminder_morning',
+                channel: 'whatsapp',
+                recipient_name: participant.first_name,
+                recipient_phone: participant.phone_normalized,
+                content: message,
+                status: 'pending',
+              })
+              .select()
+              .single()
+
+            const sendResult = await sendWhatsApp(
+              supabase,
+              event.organization_id,
+              participant.phone_normalized,
+              message,
+              msgData?.id
+            )
+
+            if (sendResult.success) results.sent++
+            else results.errors++
+          }
+        }
+      }
+    }
+
+    if (type === '15_min') {
+      // Find sessions starting in 15-20 minutes
+      const in15min = new Date(now.getTime() + 15 * 60 * 1000)
+      const in20min = new Date(now.getTime() + 20 * 60 * 1000)
+
+      const { data: schedules } = await supabase
+        .from('schedules')
+        .select(`
+          id, title, location, start_time, event_id,
+          events!inner (organization_id, settings),
+          participant_schedules (
+            id, participant_id, reminder_sent,
+            participants (id, first_name, phone_normalized)
+          )
+        `)
+        .gte('start_time', in15min.toISOString())
+        .lt('start_time', in20min.toISOString())
+        .eq('send_reminder', true)
+
+      if (schedules) {
+        for (const schedule of schedules) {
+          if (!schedule.events?.settings?.reminder_15min) continue
+
+          for (const ps of schedule.participant_schedules || []) {
+            if (ps.reminder_sent) continue
+
+            results.processed++
+
+            const message = `${ps.participants.first_name}, בעוד 15 דקות: ${schedule.title} 📍${schedule.location || ''}`
+
+            const sendResult = await sendWhatsApp(
+              supabase,
+              schedule.events.organization_id,
+              ps.participants.phone_normalized,
+              message
+            )
+
+            if (sendResult.success) {
+              results.sent++
+              await supabase
+                .from('participant_schedules')
+                .update({ reminder_sent: true, reminder_sent_at: now.toISOString() })
+                .eq('id', ps.id)
+            } else {
+              results.errors++
+            }
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, results }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+
+  } catch (error) {
+    console.error('Error in send-reminder function:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
+  }
+})
+
+// Helper functions
+function buildDayBeforeMessage(event: Event, participant: Participant): string {
+  const eventDate = new Date(event.start_date)
+  const dateStr = eventDate.toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })
+  const timeStr = eventDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+
+  return `היי ${participant.first_name}! 🔔
+
+תזכורת: מחר ${event.name}
+
+📅 ${dateStr}
+🕐 ${timeStr}
+📍 ${event.venue_name || ''} ${event.venue_address || ''}
+
+נתראה מחר! 👋`
+}
+
+function buildMorningMessage(event: Event, participant: Participant): string {
+  const eventDate = new Date(event.start_date)
+  const timeStr = eventDate.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+
+  return `בוקר טוב ${participant.first_name}! ☀️
+
+היום זה הזמן - ${event.name}
+
+🕐 ${timeStr}
+📍 ${event.venue_name || ''} ${event.venue_address || ''}
+
+יום מעולה! 🎯`
+}
+
+async function sendWhatsApp(
+  supabase: ReturnType<typeof createClient>,
+  organizationId: string,
+  phone: string,
+  message: string,
+  messageId?: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        organization_id: organizationId,
+        phone,
+        message,
+        message_id: messageId,
+      }),
+    })
+
+    const result = await response.json()
+    return result
+  } catch (error) {
+    return { success: false, error: error.message }
+  }
+}

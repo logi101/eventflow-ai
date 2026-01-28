@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useQuery } from '@tanstack/react-query'
-import { MessageCircle, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
 interface MessagePreviewProps {
@@ -17,14 +17,13 @@ interface MessagePreviewProps {
 }
 
 export function MessagePreview({
-  eventId,
   organizationId,
   eventName,
   startDate,
   venueName,
   venueAddress,
   messageType = 'reminder_activation'
-}: MessagePreviewProps) {
+}: Omit<MessagePreviewProps, 'eventId'>) {
   // Fetch message template for the given type
   const { data: template, isLoading } = useQuery({
     queryKey: ['message-template', organizationId, messageType],

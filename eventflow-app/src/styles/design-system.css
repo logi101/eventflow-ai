@@ -1,0 +1,493 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   EventFlow Design System - "Warm Hospitality"
+   A refined, welcoming aesthetic for event management
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=Rubik:wght@400;500;600&display=swap');
+
+:root {
+  /* ─── Color Palette ─── */
+  /* Warm neutrals as base */
+  --ef-cream: #FAF8F5;
+  --ef-cream-dark: #F5F2ED;
+  --ef-sand: #E8E4DD;
+  --ef-stone: #D4CFC6;
+  --ef-slate: #8B8680;
+  --ef-charcoal: #3D3A36;
+  --ef-ink: #1F1D1A;
+
+  /* Accent colors - warm and inviting */
+  --ef-terracotta: #C4704B;
+  --ef-terracotta-light: #E8956E;
+  --ef-terracotta-dark: #A35A3A;
+  --ef-amber: #D4A853;
+  --ef-sage: #7A9B8A;
+  --ef-sage-light: #A8C4B4;
+  --ef-ocean: #5B8FA8;
+
+  /* Semantic colors */
+  --ef-success: #6B9B7A;
+  --ef-warning: #D4A853;
+  --ef-error: #C4704B;
+  --ef-info: #5B8FA8;
+
+  /* Track colors - distinct but harmonious */
+  --ef-track-a: #5B8FA8;  /* Conference attendees - calm blue */
+  --ef-track-b: #C4704B;  /* Spouses - warm terracotta */
+  --ef-track-c: #7A9B8A;  /* VIP - refined sage */
+  --ef-track-shared: #D4A853; /* Shared events - golden amber */
+
+  /* ─── Typography ─── */
+  --font-display: 'Rubik', sans-serif;
+  --font-body: 'Heebo', sans-serif;
+
+  /* ─── Spacing Scale ─── */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+  --space-3xl: 4rem;
+
+  /* ─── Border Radius ─── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* ─── Shadows - Soft and warm ─── */
+  --shadow-sm: 0 1px 2px rgba(31, 29, 26, 0.04);
+  --shadow-md: 0 4px 12px rgba(31, 29, 26, 0.06);
+  --shadow-lg: 0 8px 24px rgba(31, 29, 26, 0.08);
+  --shadow-xl: 0 16px 48px rgba(31, 29, 26, 0.1);
+  --shadow-inner: inset 0 2px 4px rgba(31, 29, 26, 0.04);
+
+  /* ─── Transitions ─── */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ─── Base Styles ─── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  direction: rtl;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--ef-cream);
+  color: var(--ef-ink);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle paper texture overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  z-index: 9999;
+}
+
+/* ─── Typography Utilities ─── */
+.ef-display {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.ef-heading-1 {
+  font-family: var(--font-display);
+  font-size: 2.5rem;
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--ef-ink);
+}
+
+.ef-heading-2 {
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--ef-ink);
+}
+
+.ef-heading-3 {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--ef-charcoal);
+}
+
+.ef-body {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  color: var(--ef-charcoal);
+}
+
+.ef-small {
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--ef-slate);
+}
+
+.ef-caption {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--ef-slate);
+}
+
+/* ─── Card Component ─── */
+.ef-card {
+  background: white;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--ef-sand);
+  transition: box-shadow var(--transition-base), transform var(--transition-base);
+}
+
+.ef-card:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.ef-card-interactive:hover {
+  transform: translateY(-2px);
+}
+
+.ef-card-header {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--ef-sand);
+}
+
+.ef-card-body {
+  padding: var(--space-lg);
+}
+
+.ef-card-footer {
+  padding: var(--space-md) var(--space-lg);
+  background: var(--ef-cream);
+  border-top: 1px solid var(--ef-sand);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+/* ─── Button Components ─── */
+.ef-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-lg);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.ef-btn-primary {
+  background: var(--ef-terracotta);
+  color: white;
+  box-shadow: 0 2px 8px rgba(196, 112, 75, 0.25);
+}
+
+.ef-btn-primary:hover {
+  background: var(--ef-terracotta-dark);
+  box-shadow: 0 4px 12px rgba(196, 112, 75, 0.35);
+  transform: translateY(-1px);
+}
+
+.ef-btn-secondary {
+  background: white;
+  color: var(--ef-charcoal);
+  border: 1px solid var(--ef-stone);
+}
+
+.ef-btn-secondary:hover {
+  background: var(--ef-cream);
+  border-color: var(--ef-slate);
+}
+
+.ef-btn-ghost {
+  background: transparent;
+  color: var(--ef-charcoal);
+}
+
+.ef-btn-ghost:hover {
+  background: var(--ef-sand);
+}
+
+.ef-btn-sm {
+  padding: var(--space-xs) var(--space-md);
+  font-size: 0.8125rem;
+}
+
+.ef-btn-lg {
+  padding: var(--space-md) var(--space-xl);
+  font-size: 1rem;
+}
+
+/* ─── Input Components ─── */
+.ef-input {
+  width: 100%;
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  color: var(--ef-ink);
+  background: white;
+  border: 1px solid var(--ef-stone);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.ef-input:focus {
+  outline: none;
+  border-color: var(--ef-terracotta);
+  box-shadow: 0 0 0 3px rgba(196, 112, 75, 0.15);
+}
+
+.ef-input::placeholder {
+  color: var(--ef-slate);
+}
+
+.ef-label {
+  display: block;
+  margin-bottom: var(--space-xs);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ef-charcoal);
+}
+
+/* ─── Badge Components ─── */
+.ef-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: 2px var(--space-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--radius-full);
+}
+
+.ef-badge-track-a {
+  background: rgba(91, 143, 168, 0.15);
+  color: var(--ef-track-a);
+}
+
+.ef-badge-track-b {
+  background: rgba(196, 112, 75, 0.15);
+  color: var(--ef-track-b);
+}
+
+.ef-badge-track-c {
+  background: rgba(122, 155, 138, 0.15);
+  color: var(--ef-track-c);
+}
+
+.ef-badge-shared {
+  background: rgba(212, 168, 83, 0.15);
+  color: #9A7A30;
+}
+
+.ef-badge-success {
+  background: rgba(107, 155, 122, 0.15);
+  color: var(--ef-success);
+}
+
+.ef-badge-warning {
+  background: rgba(212, 168, 83, 0.15);
+  color: #9A7A30;
+}
+
+.ef-badge-error {
+  background: rgba(196, 112, 75, 0.15);
+  color: var(--ef-error);
+}
+
+/* ─── Status Indicators ─── */
+.ef-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.ef-status-active {
+  background: var(--ef-success);
+  box-shadow: 0 0 0 3px rgba(107, 155, 122, 0.2);
+}
+
+.ef-status-pending {
+  background: var(--ef-warning);
+}
+
+.ef-status-inactive {
+  background: var(--ef-slate);
+}
+
+/* ─── Track Color Indicator ─── */
+.ef-track-indicator {
+  width: 4px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* ─── Avatar ─── */
+.ef-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--ef-sand);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-weight: 600;
+  color: var(--ef-charcoal);
+  flex-shrink: 0;
+}
+
+.ef-avatar-sm {
+  width: 32px;
+  height: 32px;
+  font-size: 0.875rem;
+}
+
+.ef-avatar-lg {
+  width: 56px;
+  height: 56px;
+  font-size: 1.25rem;
+}
+
+/* ─── Divider ─── */
+.ef-divider {
+  height: 1px;
+  background: var(--ef-sand);
+  margin: var(--space-md) 0;
+}
+
+/* ─── Animations ─── */
+@keyframes ef-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes ef-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ef-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ef-pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.ef-animate-fade-in {
+  animation: ef-fade-in var(--transition-base) ease forwards;
+}
+
+.ef-animate-slide-up {
+  animation: ef-slide-up var(--transition-base) ease forwards;
+}
+
+.ef-animate-scale-in {
+  animation: ef-scale-in var(--transition-spring) forwards;
+}
+
+/* Staggered animations */
+.ef-stagger > * {
+  opacity: 0;
+  animation: ef-slide-up var(--transition-base) ease forwards;
+}
+
+.ef-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.ef-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.ef-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.ef-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.ef-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.ef-stagger > *:nth-child(6) { animation-delay: 250ms; }
+
+/* ─── Scrollbar Styling ─── */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--ef-cream);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ef-stone);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ef-slate);
+}
+
+/* ─── Layout Utilities ─── */
+.ef-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--space-lg);
+}
+
+.ef-page {
+  min-height: 100vh;
+  padding: var(--space-xl) 0;
+}
+
+.ef-grid {
+  display: grid;
+  gap: var(--space-lg);
+}
+
+.ef-flex {
+  display: flex;
+}
+
+.ef-flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ef-gap-sm { gap: var(--space-sm); }
+.ef-gap-md { gap: var(--space-md); }
+.ef-gap-lg { gap: var(--space-lg); }

@@ -2,17 +2,17 @@
 
 ## Current Position
 
-Phase: 4 (Manager Controls) — IN PROGRESS
-Plan: 04-01 complete (1/3 plans done)
-Status: Event settings panel deployed — reminder toggles + message preview functional
-Last activity: 2026-01-28 — Completed 04-01-PLAN.md
+Phase: 2 (Reminder Types Implementation) — COMPLETE
+Plan: 02-04 verified
+Status: Phase 2 complete, all 8 reminder types working
+Last activity: 2026-01-30 - Completed quick task 001: iOS PWA Push Notifications (frontend deployed, backend setup script created)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Participants receive the right message at the right time automatically
-**Current focus:** Phase 4 (Manager Controls) — giving managers control over reminder behavior
+**Current focus:** Phase 2 complete. Next: Phase 3 - Dynamic Templates
 
 ## Accumulated Context
 
@@ -26,33 +26,26 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - Both `message_type` and `subject` populated for backward compatibility
 - Follow-up reminders default to false (opt-in by manager)
 - Follow-up date windows are 4 days wide for cron timing tolerance
-- Template content matches v6 hardcoded messages exactly (seamless transition)
-- Idempotent DO block guard for template seeding
-- Template-first pattern with hardcoded fallback for all 8 handlers
-- Template fetched once per event (not per participant) for efficiency
-- Org-specific template override with system template fallback
 
 ### Blockers
 (None currently)
 
 ### Technical Notes
-- Edge Function send-reminder deployed as v7 with template-first message building
+- Edge Function send-reminder deployed as v6 with all 8 handlers
 - All 8 cron jobs active and verified
 - Deduplication uses `message_type` column (enum-based)
 - Settings flags in events.settings JSONB control per-event reminder behavior
-- 8 system templates seeded in message_templates table
-- 4 utility functions: getMessageTemplate, substituteVariables, buildEventVariableMap, buildScheduleVariableMap
-- CRITICAL: Use `message_type` column (NOT `type`) for template queries
-- CRITICAL: Use `.is('organization_id', null)` for NULL checks in PostgREST
-- Variable substitution supports 11 variables across event-level and schedule-level
-- Settings forms use plain useState (not React Hook Form) matching EventForm pattern
-- WhatsApp preview styling: dark zinc container with green #005c4b bubble
+- message_templates table exists but not yet wired to send-reminder (Phase 3)
 
 ### Completed Phases
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
 - Phase 2: Reminder Types Implementation (4/4 plans complete)
-- Phase 3: Dynamic Template System (2/2 plans complete)
-- Phase 4: Manager Controls (1/3 plans complete)
+
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | iOS PWA Push Notifications | 2026-01-30 | pending | [001-ios-pwa-push-notifications](./quick/001-ios-pwa-push-notifications/) |
 
 ---
-*State updated: 2026-01-28*
+*State updated: 2026-01-30*

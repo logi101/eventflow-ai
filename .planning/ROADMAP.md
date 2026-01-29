@@ -75,12 +75,6 @@ Plans:
 
 **Requirements:** TMPL-01, TMPL-02, TMPL-03, TMPL-04
 
-**Plans:** 2 plans
-
-Plans:
-- [x] 03-01-PLAN.md — Seed 8 default reminder templates into message_templates
-- [x] 03-02-PLAN.md — Wire send-reminder to fetch templates + variable substitution + verify
-
 **Success Criteria:**
 1. send-reminder queries message_templates by type before sending
 2. Variable substitution replaces {{participant_name}}, {{event_name}}, {{event_date}}, {{venue_name}}, {{venue_address}}
@@ -100,12 +94,6 @@ Plans:
 **Goal:** Managers can control follow-up reminders and preview messages
 
 **Requirements:** CTRL-01, CTRL-02, CTRL-03, CTRL-04
-
-**Plans:** 2 plans
-
-Plans:
-- [ ] 04-01-PLAN.md — Settings panel with 8 reminder toggles + activation message preview
-- [ ] 04-02-PLAN.md — Test reminder button + Edge Function test mode
 
 **Success Criteria:**
 1. Event settings UI has toggles for follow_up_3mo and follow_up_6mo
@@ -154,4 +142,4 @@ Plans:
 **Total:** 5 phases, 20 requirements, 24 success criteria
 
 ---
-*Roadmap updated: 2026-01-28 after Phase 3 completion*
+*Roadmap updated: 2026-01-28*

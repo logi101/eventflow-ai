@@ -5,7 +5,7 @@
 Phase: 2 (Reminder Types Implementation) — COMPLETE
 Plan: 02-04 verified
 Status: Phase 2 complete, all 8 reminder types working
-Last activity: 2026-01-30 - Completed quick task 001: iOS PWA Push Notifications (frontend deployed, backend setup script created)
+Last activity: 2026-01-30 - Completed quick task 001: iOS PWA Push Notifications (full stack: frontend on Firebase, backend on Supabase)
 
 ## Project Reference
 
@@ -36,6 +36,9 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - Deduplication uses `message_type` column (enum-based)
 - Settings flags in events.settings JSONB control per-event reminder behavior
 - message_templates table exists but not yet wired to send-reminder (Phase 3)
+- push_subscriptions table created with RLS (3 policies)
+- send-push-notification Edge Function deployed (RFC 8291 encryption, --no-verify-jwt)
+- VAPID keys set as Supabase secrets
 
 ### Completed Phases
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
@@ -45,7 +48,7 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
-| 001 | iOS PWA Push Notifications | 2026-01-30 | pending | [001-ios-pwa-push-notifications](./quick/001-ios-pwa-push-notifications/) |
+| 001 | iOS PWA Push Notifications | 2026-01-30 | complete | [001-ios-pwa-push-notifications](./quick/001-ios-pwa-push-notifications/) |
 
 ---
 *State updated: 2026-01-30*

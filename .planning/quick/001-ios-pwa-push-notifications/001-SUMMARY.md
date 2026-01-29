@@ -1,6 +1,6 @@
 # Quick Task 001: iOS PWA Push Notifications
 
-## Status: PARTIAL - Frontend deployed, backend needs one-time setup
+## Status: COMPLETE - Full stack deployed (frontend + backend)
 
 ## What was done
 
@@ -27,12 +27,10 @@ All 9 files from the git pull are correct and ready:
 6. Deployed to Firebase: https://eventflow-ai-prod.web.app
 7. Created setup script: `scripts/setup-push-notifications.sh`
 
-### Requires manual terminal step
-The Supabase CLI requires TTY authentication (browser-based login). Run once:
-```bash
-cd eventflow-app && bash scripts/setup-push-notifications.sh
-```
-This script handles: login, link project, set VAPID secrets, apply migration, deploy edge function.
+### Backend Setup (completed via Management API)
+8. Created `push_subscriptions` table with RLS (3 policies: INSERT, SELECT, DELETE)
+9. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY as Supabase Edge Function secrets
+10. Deployed `send-push-notification` Edge Function (--no-verify-jwt)
 
 ## VAPID Keys
 - Public: `BLQDKcWNcb0_kaJSGDA93BWRqBc3pjB10HeliCHTTVrx-aFnE2I9xuqbrTTJj0tmnUEc9U4BV1JL3MapU6EiAoc`
@@ -44,7 +42,7 @@ This script handles: login, link project, set VAPID secrets, apply migration, de
 | send-whatsapp | Yes |
 | send-reminder | Yes |
 | ai-chat | Yes |
-| send-push-notification | **Not yet** (needs script) |
+| send-push-notification | Yes |
 
 ## Verification Checklist
 - [x] `npm run build` passes
@@ -52,7 +50,7 @@ This script handles: login, link project, set VAPID secrets, apply migration, de
 - [x] `dist/manifest.webmanifest` has `display: standalone`
 - [x] `.env` has `VITE_VAPID_PUBLIC_KEY`
 - [x] Frontend deployed to Firebase
-- [ ] Supabase secrets set (VAPID keys)
-- [ ] push_subscriptions table created
-- [ ] send-push-notification function deployed
-- [ ] End-to-end test notification received
+- [x] Supabase secrets set (VAPID keys)
+- [x] push_subscriptions table created (with RLS + 3 policies)
+- [x] send-push-notification function deployed
+- [ ] End-to-end test notification received (requires iOS device in PWA mode)

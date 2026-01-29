@@ -126,7 +126,7 @@ function StatsCards({ stats, isLoading }: { stats: ReturnType<typeof useMessageS
     return (
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
         {[...Array(6)].map((_, i) => (
-          <div key={i} className="rounded-lg p-4 bg-zinc-800 animate-pulse">
+          <div key={i} className="rounded-lg p-4 bg-zinc-800 border border-zinc-700 animate-pulse">
             <div className="h-8 bg-zinc-700 rounded mb-2"></div>
             <div className="h-4 bg-zinc-700 rounded"></div>
           </div>
@@ -147,11 +147,11 @@ function StatsCards({ stats, isLoading }: { stats: ReturnType<typeof useMessageS
   ]
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div className="relative grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
       {cards.map(card => (
-        <div key={card.label} className={`rounded-lg p-4 ${card.color}`}>
-          <div className="text-2xl font-bold">{card.value}</div>
-          <div className="text-sm">{card.label}</div>
+        <div key={card.label} className={`relative rounded-lg p-4 border border-zinc-700 ${card.color}`}>
+          <div className="text-2xl font-bold relative z-10">{card.value}</div>
+          <div className="text-sm relative z-10">{card.label}</div>
         </div>
       ))}
     </div>
@@ -551,9 +551,9 @@ export function MessagesPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto bg-zinc-900 min-h-screen">
+    <div className="p-6 max-w-7xl mx-auto bg-zinc-900 min-h-screen relative">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-6 relative z-10">
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-bold text-white" data-testid="messages-title">הודעות</h1>
           {selectedEvent && !showAllMessages && (
@@ -566,9 +566,9 @@ export function MessagesPage() {
           {selectedEvent && (
             <button
               onClick={() => setShowAllMessages(!showAllMessages)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                showAllMessages 
-                  ? 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600' 
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors relative z-10 ${
+                showAllMessages
+                  ? 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600'
                   : 'bg-orange-600 text-white hover:bg-orange-700'
               }`}
             >
@@ -585,14 +585,14 @@ export function MessagesPage() {
           )}
           <button
             onClick={() => refetch()}
-            className="p-2 hover:bg-zinc-700 rounded-lg"
+            className="p-2 hover:bg-zinc-700 rounded-lg relative z-10"
             title="רענן"
           >
             <RefreshCw size={20} className="text-zinc-300" />
           </button>
           <button
             onClick={() => setShowSendModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 relative z-10"
           >
             <Plus size={18} />
             הודעה חדשה
@@ -601,7 +601,9 @@ export function MessagesPage() {
       </div>
 
       {/* Stats Cards */}
-      <StatsCards stats={stats} isLoading={statsLoading} />
+      <div className="relative z-10">
+        <StatsCards stats={stats} isLoading={statsLoading} />
+      </div>
 
       {/* Filters Bar */}
       <div className="bg-zinc-800 rounded-lg shadow mb-4 p-4 border border-zinc-700">

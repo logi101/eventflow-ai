@@ -1,7 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EventFlow - Navigation Sidebar (Premium Design)
+// EventFlow - Navigation Sidebar (Premium Design - Collapsible Accordion)
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Home,
@@ -19,10 +20,13 @@ import {
   ChevronLeft,
   Settings,
   Zap,
-  ShieldCheck
+  ShieldCheck,
+  PanelRightClose,
+  PanelRightOpen
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
+import { PushNotificationSettings } from '../PushNotificationSettings'
 
 // Links for when NO event is selected (home view)
 const homeLinks = [
@@ -53,6 +57,7 @@ export function Sidebar() {
   const location = useLocation()
   const { selectedEvent, clearSelectedEvent } = useEvent()
   const { isSuperAdmin } = useAuth()
+  const [isOpen, setIsOpen] = useState(true)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -74,6 +79,36 @@ export function Sidebar() {
     }
   }
 
+  // Collapsed sidebar - just toggle button
+  if (!isOpen) {
+    return (
+      <aside
+        className="w-14 h-screen sticky top-0 flex flex-col items-center py-4 relative"
+        style={{
+          background: 'linear-gradient(180deg, rgba(15, 17, 23, 0.98) 0%, rgba(8, 9, 13, 0.98) 100%)',
+          borderLeft: '1px solid rgba(255, 255, 255, 0.06)'
+        }}
+        data-testid="sidebar-collapsed"
+      >
+        {/* Accent line */}
+        <div
+          className="absolute top-0 right-0 w-[2px] h-full opacity-60"
+          style={{
+            background: 'linear-gradient(180deg, #f97316 0%, #fbbf24 40%, transparent 100%)'
+          }}
+        />
+
+        <button
+          onClick={() => setIsOpen(true)}
+          className="p-2 rounded-xl text-zinc-400 hover:text-white hover:bg-white/10 transition-all duration-200"
+          title="פתח תפריט"
+        >
+          <PanelRightOpen size={20} />
+        </button>
+      </aside>
+    )
+  }
+
   return (
     <aside
       className="w-64 h-screen sticky top-0 p-6 flex flex-col relative overflow-y-auto overflow-x-hidden backdrop-blur-xl"
@@ -91,9 +126,9 @@ export function Sidebar() {
         }}
       />
 
-      {/* Logo */}
-      <div className="mb-8 pt-2">
-        <Link to="/" className="block group">
+      {/* Logo + Collapse button */}
+      <div className="mb-8 pt-2 flex items-start justify-between">
+        <Link to="/" className="block group flex-1">
           <h1
             className="text-2xl font-bold text-gradient glow-text transition-all duration-300 group-hover:scale-[1.02]"
             style={{
@@ -105,6 +140,13 @@ export function Sidebar() {
           </h1>
           <p className="text-zinc-500 text-sm mt-1.5 tracking-wide">מערכת הפקת אירועים</p>
         </Link>
+        <button
+          onClick={() => setIsOpen(false)}
+          className="p-2 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 transition-all duration-200 -mt-1 -ml-2"
+          title="סגור תפריט"
+        >
+          <PanelRightClose size={18} />
+        </button>
       </div>
 
       {/* Selected Event Card (when event is selected) */}
@@ -286,8 +328,13 @@ export function Sidebar() {
         )}
       </nav>
 
+      {/* Push Notifications */}
+      <div className="mt-6 pt-6 border-t border-zinc-700/30">
+        <PushNotificationSettings />
+      </div>
+
       {/* Bottom Actions */}
-      <div className="mt-auto pt-6 border-t border-zinc-700/30">
+      <div className="mt-4 pt-4 border-t border-zinc-700/30">
         <Link
           to="/settings"
           className="flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-zinc-400 hover:text-white hover:bg-white/5 transition-all duration-200 font-medium text-[15px]"

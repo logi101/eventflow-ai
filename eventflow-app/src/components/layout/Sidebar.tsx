@@ -73,7 +73,7 @@ export function Sidebar() {
 
   return (
     <aside
-      className="w-64 min-h-screen p-6 flex flex-col relative overflow-hidden backdrop-blur-xl"
+      className="w-64 h-screen sticky top-0 p-6 flex flex-col relative overflow-y-auto overflow-x-hidden backdrop-blur-xl"
       style={{
         background: 'linear-gradient(180deg, rgba(15, 17, 23, 0.98) 0%, rgba(8, 9, 13, 0.98) 100%)',
         borderLeft: '1px solid rgba(255, 255, 255, 0.06)'

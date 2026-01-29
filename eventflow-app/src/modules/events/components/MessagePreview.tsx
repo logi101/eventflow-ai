@@ -140,21 +140,66 @@ function buildFallbackMessage(
   location: string
 ): string {
   const messages: Record<string, string> = {
-    reminder_activation: `היי ${participantName}! 🎉\n\nנרשמת בהצלחה לאירוע: ${eventName}\n\n📅 ${formattedDate}\n🕐 ${formattedTime}\n📍 ${location}\n\nאנחנו מתרגשים לראות אותך!`,
-    
-    reminder_week_before: `היי ${participantName}! ⏰\n\nעוד שבוע ל-${eventName}!\n\nהזמן להתכונן ולהתרגש מהאירוע המיוחד הזה. נשמח לראות אותך בקרוב!`,
-    
-    reminder_day_before: `היי ${participantName}! 🔔\n\nתזכורת: מחר ${eventName}!\n\n📅 ${formattedDate}\n🕐 ${formattedTime}\n📍 ${location}\n\nאל תשכח להגיע בזמן!`,
-    
-    reminder_morning: `בוקר טוב ${participantName}! ☀️\n\nהיום זה הזמן - ${eventName}!\n\n🕐 ${formattedTime}\n📍 ${location}\n\nתזכורת אחרונה - אל תפספס את האירוע המיוחד!`,
-    
-    reminder_15min: `שלום ${participantName}! 👋\n\n🔔 בעוד 15 דקות נפתח את ${eventName}!\n\n📍 ${location}\n\nאנחנו מחכים לך!`,
-    
-    reminder_event_end: `${participantName} היקר/ה, 🙏\n\nתודה רבה על ההשתתפות ב-${eventName}!\n\nהיינו שמחים לראות אותך ומקווים שהאירוע עמד בציפיות שלך. נשמח לראות אותך שוב באירועים הבאים!`,
-    
-    reminder_follow_up_3mo: `שלום ${participantName}! 👋\n\nעברו 3 חודשים מאז ${eventName}.\n\nאנחנו מקווים שהאירוע היה מוצלח ומקווים לראות אותך שוב באירועים הבאים שלנו!`,
-    
-    reminder_follow_up_6mo: `היי ${participantName}! 🌟\n\nחצי שנה עברה מאז ${eventName}.\n\nאנחנו מקווים שהאירוע היה מוצלח ומקווים לראות אותך שוב באירועים הבאים שלנו!`
+    reminder_activation: `היי ${participantName}! 🎉
+
+נרשמת בהצלחה לאירוע: ${eventName}
+
+📅 ${formattedDate}
+🕐 ${formattedTime}
+📍 ${location}
+
+אנחנו מתרגשים לראות אותך!`,
+
+    reminder_week_before: `היי ${participantName}! ⏰
+
+עוד שבוע ל-${eventName}!
+
+הזמן להתכונן ולהתרגש מהאירוע המיוחד הזה. נשמח לראות אותך בקרוב!`,
+
+    reminder_day_before: `היי ${participantName}! 🔔
+
+תזכורת: מחר ${eventName}!
+
+📅 ${formattedDate}
+🕐 ${formattedTime}
+📍 ${location}
+
+אל תשכח להגיע בזמן!`,
+
+    reminder_morning: `בוקר טוב ${participantName}! ☀️
+
+היום זה הזמן - ${eventName}!
+
+🕐 ${formattedTime}
+📍 ${location}
+
+תזכורת אחרונה - אל תפספס את האירוע המיוחד!`,
+
+    reminder_15min: `שלום ${participantName}! 👋
+
+🔔 בעוד 15 דקות נפתח את ${eventName}!
+
+📍 ${location}
+
+אנחנו מחכים לך!`,
+
+    reminder_event_end: `${participantName} היקר/ה, 🙏
+
+תודה רבה על ההשתתפות ב-${eventName}!
+
+היינו שמחים לראות אותך ומקווים שהאירוע עמד בציפיות שלך. נשמח לראות אותך שוב באירועים הבאים!`,
+
+    reminder_follow_up_3mo: `שלום ${participantName}! 👋
+
+עברו 3 חודשים מאז ${eventName}.
+
+אנחנו מקווים שהאירוע היה מוצלח ומקווים לראות אותך שוב באירועים הבאים שלנו!`,
+
+    reminder_follow_up_6mo: `היי ${participantName}! 🌟
+
+חצי שנה עברה מאז ${eventName}.
+
+אנחנו מקווים שהאירוע היה מוצלח ומקווים לראות אותך שוב באירועים הבאים שלנו!`
   }
 
   return messages[messageType] || messages.reminder_activation

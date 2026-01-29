@@ -11,7 +11,9 @@ const corsHeaders = {
 }
 
 interface ReminderJob {
+  mode?: 'test'
   type: 'day_before' | 'morning' | '15_min'
+  test_phone?: string
 }
 
 serve(async (req) => {
@@ -25,9 +27,147 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { type }: ReminderJob = await req.json()
+    const { mode, type, test_phone }: ReminderJob = await req.json()
     const now = new Date()
     let results = { processed: 0, sent: 0, errors: 0 }
+
+    // Handle test mode
+    if (mode === 'test') {
+      // Fetch event
+      const { data: event } = await supabase
+        .from('events')
+        .select('id, name, start_date, venue_name, venue_address')
+        .eq('id', test_phone)
+        .single()
+
+      if (!event) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Event not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Build message based on type
+      const eventDate = new Date(event.start_date)
+      const formattedDate = eventDate.toLocaleDateString('he-IL', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long'
+      })
+      const formattedTime = eventDate.toLocaleTimeString('he-IL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+
+      const location = [event.venue_name, event.venue_address]
+        .filter(Boolean)
+        .join(', ')
+        .trim() || 'לא צוין מיקום'
+
+      let message = ''
+      const messageType = `reminder_${type}`
+
+      // Try to get template from database
+      const { data: template } = await supabase
+        .from('message_templates')
+        .select('content')
+        .eq('message_type', messageType)
+        .eq('is_active', true)
+        .maybeSingle()
+
+      if (template?.content) {
+        // Substitute variables in template
+        message = template.content
+        const variables = {
+          participant_name: 'דוגמה משתתף/ת',
+          event_name: event.name,
+          event_date: formattedDate,
+          event_time: formattedTime,
+          event_location: location
+        }
+        Object.entries(variables).forEach(([key, value]) => {
+          message = message.replace(new RegExp(`{{${key}}}`, 'g'), value)
+        })
+      } else {
+        // Build fallback message
+        const participantName = 'דוגמה משתתף/ת'
+
+        const messages: Record<string, string> = {
+          activation: `היי ${participantName}! 🎉
+
+נרשמת בהצלחה לאירוע: ${event.name}
+
+📅 ${formattedDate}
+🕐 ${formattedTime}
+📍 ${location}
+
+אנחנו מתרגשים לראות אותך!`,
+
+          day_before: `היי ${participantName}! 🔔
+
+תזכורת: מחר ${event.name}!
+
+📅 ${formattedDate}
+🕐 ${formattedTime}
+📍 ${location}
+
+אל תשכח להגיע בזמן!`,
+
+          morning: `בוקר טוב ${participantName}! ☀️
+
+היום זה הזמן - ${event.name}!
+
+🕐 ${formattedTime}
+📍 ${location}
+
+תזכורת אחרונה - אל תפספס את האירוע המיוחד!`,
+
+          '15_min': `שלום ${participantName}! 👋
+
+🔔 בעוד 15 דקות נפתח את ${event.name}!
+
+📍 ${location}
+
+אנחנו מחכים לך!`,
+
+          event_end: `${participantName} היקר/ה, 🙏
+
+תודה רבה על ההשתתפות ב-${event.name}!
+
+היינו שמחים לראות אותך ומקווים שהאירוע עמד בציפיות שלך. נשמח לראות אותך שוב באירועים הבאים!`,
+
+          follow_up_3mo: `שלום ${participantName}! 👋
+
+עברו 3 חודשים מאז ${event.name}.
+
+אנחנו מקווים שהאירוע היה מוצלח ומקווים לראות אותך שוב באירועים הבאים שלנו!`,
+
+          follow_up_6mo: `היי ${participantName}! 🌟
+
+חצי שנה עברה מאז ${event.name}.
+
+אנחנו מקווים שהאירוע היה מוצלח ומקווים לראות אותך שוב באירועים הבאים שלנו!`
+        }
+
+        message = messages[type] || messages.activation
+      }
+
+      // Send the test message
+      const sendResult = await sendWhatsApp(
+        supabase,
+        event.organization_id || '',
+        test_phone,
+        message
+      )
+
+      return new Response(
+        JSON.stringify({ success: sendResult.success, message }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Continue with normal reminder processing
 
     if (type === 'day_before') {
       // Find events happening tomorrow

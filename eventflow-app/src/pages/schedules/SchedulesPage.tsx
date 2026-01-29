@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { Plus, Edit2, Trash2, Clock, MapPin, User, Coffee, Play, Calendar, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { Schedule, ScheduleFormData } from '../../types'
@@ -20,6 +20,8 @@ export function SchedulesPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<string>('all')
+  const nowLineRef = useRef<HTMLDivElement>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
@@ -41,6 +43,21 @@ export function SchedulesPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Update the now line every minute
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Auto-scroll to now line after data loads
+  useEffect(() => {
+    if (!loading && nowLineRef.current) {
+      setTimeout(() => {
+        nowLineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
+    }
+  }, [loading])
 
   async function loadData() {
     setLoading(true)
@@ -84,6 +101,24 @@ export function SchedulesPage() {
     groups[date].push(schedule)
     return groups
   }, {} as Record<string, Schedule[]>)
+
+  // Today's date string for now-line comparison
+  const todayDateStr = currentTime.toLocaleDateString('he-IL', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  // Find where to insert the now line within a day's sorted schedules
+  function getNowLinePosition(daySchedules: Schedule[]): number {
+    for (let i = 0; i < daySchedules.length; i++) {
+      if (currentTime < new Date(daySchedules[i].start_time)) {
+        return i
+      }
+    }
+    return daySchedules.length
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -280,114 +315,155 @@ export function SchedulesPage() {
           <p className="text-gray-500 text-center py-8">אין פריטים בלוח הזמנים</p>
         ) : (
           <div className="space-y-8">
-            {Object.entries(groupedSchedules).map(([date, daySchedules]) => (
+            {Object.entries(groupedSchedules).map(([date, daySchedules]) => {
+              const isToday = date === todayDateStr
+              const nowPosition = isToday ? getNowLinePosition(daySchedules) : -1
+
+              return (
               <div key={date}>
                 {/* Date Header */}
                 <div className="flex items-center gap-3 mb-4">
                   <Calendar className="w-5 h-5 text-primary" />
                   <h2 className="text-lg font-semibold text-gray-700">{date}</h2>
+                  {isToday && (
+                    <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">היום</span>
+                  )}
                 </div>
 
                 {/* Timeline Items */}
                 <div className="relative pr-8 border-r-2 border-gray-200 space-y-4">
-                  {daySchedules.map(schedule => (
-                    <div
-                      key={schedule.id}
-                      className={`relative pr-8 ${
-                        schedule.is_break ? 'opacity-75' : ''
-                      }`}
-                    >
-                      {/* Timeline Dot */}
+                  {daySchedules.map((schedule, index) => (
+                    <Fragment key={schedule.id}>
+                      {/* Now Line - before this item */}
+                      {nowPosition === index && (
+                        <div ref={nowLineRef} className="relative flex items-center py-1">
+                          <div
+                            className="absolute -right-[25px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-500 z-10"
+                            style={{ boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)' }}
+                          />
+                          <div className="w-full flex items-center gap-3 pr-8">
+                            <span className="text-[11px] font-bold text-red-500 shrink-0">
+                              {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            <div className="flex-1 h-[2px] bg-red-500" />
+                          </div>
+                        </div>
+                      )}
+
                       <div
-                        className={`absolute -right-[25px] w-4 h-4 rounded-full border-2 border-white ${
-                          schedule.is_break ? 'bg-orange-400' : schedule.track_color ? '' : 'bg-blue-500'
+                        className={`relative pr-8 ${
+                          schedule.is_break ? 'opacity-75' : ''
                         }`}
-                        style={schedule.track_color && !schedule.is_break ? { backgroundColor: schedule.track_color } : {}}
-                      />
+                      >
+                        {/* Timeline Dot */}
+                        <div
+                          className={`absolute -right-[25px] w-4 h-4 rounded-full border-2 border-white ${
+                            schedule.is_break ? 'bg-orange-400' : schedule.track_color ? '' : 'bg-blue-500'
+                          }`}
+                          style={schedule.track_color && !schedule.is_break ? { backgroundColor: schedule.track_color } : {}}
+                        />
 
-                      {/* Content Card */}
-                      <div className={`p-4 rounded-lg border ${
-                        schedule.is_break
-                          ? 'bg-orange-50 border-orange-200'
-                          : 'bg-white border-gray-200 hover:shadow-md'
-                      } transition-shadow`}>
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            {/* Time & Duration */}
-                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                              <Clock className="w-4 h-4" />
-                              <span>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</span>
-                              <span className="text-gray-400">({getDuration(schedule.start_time, schedule.end_time)})</span>
-                            </div>
-
-                            {/* Title */}
-                            <div className="flex items-center gap-2">
-                              {schedule.is_break ? (
-                                <Coffee className="w-4 h-4 text-orange-500" />
-                              ) : (
-                                <Play className="w-4 h-4 text-blue-500" />
-                              )}
-                              <h3 className="font-semibold text-lg">{schedule.title}</h3>
-                              {schedule.is_mandatory && (
-                                <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">חובה</span>
-                              )}
-                              {schedule.track && (
-                                <span
-                                  className="text-xs px-2 py-0.5 rounded text-white"
-                                  style={{ backgroundColor: schedule.track_color || '#6B7280' }}
-                                >
-                                  {schedule.track}
-                                </span>
-                              )}
-                            </div>
-
-                            {/* Description */}
-                            {schedule.description && (
-                              <p className="text-gray-600 text-sm mt-1">{schedule.description}</p>
-                            )}
-
-                            {/* Location & Room */}
-                            {(schedule.location || schedule.room) && (
-                              <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
-                                <MapPin className="w-4 h-4" />
-                                <span>{[schedule.location, schedule.room].filter(Boolean).join(' - ')}</span>
+                        {/* Content Card */}
+                        <div className={`p-4 rounded-lg border ${
+                          schedule.is_break
+                            ? 'bg-orange-50 border-orange-200'
+                            : 'bg-white border-gray-200 hover:shadow-md'
+                        } transition-shadow`}>
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              {/* Time & Duration */}
+                              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                                <Clock className="w-4 h-4" />
+                                <span>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</span>
+                                <span className="text-gray-400">({getDuration(schedule.start_time, schedule.end_time)})</span>
                               </div>
-                            )}
 
-                            {/* Speaker */}
-                            {schedule.speaker_name && (
-                              <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
-                                <User className="w-4 h-4" />
-                                <span>{schedule.speaker_name}</span>
-                                {schedule.speaker_title && (
-                                  <span className="text-gray-400">| {schedule.speaker_title}</span>
+                              {/* Title */}
+                              <div className="flex items-center gap-2">
+                                {schedule.is_break ? (
+                                  <Coffee className="w-4 h-4 text-orange-500" />
+                                ) : (
+                                  <Play className="w-4 h-4 text-blue-500" />
+                                )}
+                                <h3 className="font-semibold text-lg">{schedule.title}</h3>
+                                {schedule.is_mandatory && (
+                                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">חובה</span>
+                                )}
+                                {schedule.track && (
+                                  <span
+                                    className="text-xs px-2 py-0.5 rounded text-white"
+                                    style={{ backgroundColor: schedule.track_color || '#6B7280' }}
+                                  >
+                                    {schedule.track}
+                                  </span>
                                 )}
                               </div>
-                            )}
-                          </div>
 
-                          {/* Actions */}
-                          <div className="flex gap-1">
-                            <button
-                              onClick={() => openEditModal(schedule)}
-                              className="p-2 hover:bg-gray-100 rounded text-gray-500"
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(schedule.id)}
-                              className="p-2 hover:bg-red-50 rounded text-red-500"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                              {/* Description */}
+                              {schedule.description && (
+                                <p className="text-gray-600 text-sm mt-1">{schedule.description}</p>
+                              )}
+
+                              {/* Location & Room */}
+                              {(schedule.location || schedule.room) && (
+                                <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
+                                  <MapPin className="w-4 h-4" />
+                                  <span>{[schedule.location, schedule.room].filter(Boolean).join(' - ')}</span>
+                                </div>
+                              )}
+
+                              {/* Speaker */}
+                              {schedule.speaker_name && (
+                                <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
+                                  <User className="w-4 h-4" />
+                                  <span>{schedule.speaker_name}</span>
+                                  {schedule.speaker_title && (
+                                    <span className="text-gray-400">| {schedule.speaker_title}</span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex gap-1">
+                              <button
+                                onClick={() => openEditModal(schedule)}
+                                className="p-2 hover:bg-gray-100 rounded text-gray-500"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(schedule.id)}
+                                className="p-2 hover:bg-red-50 rounded text-red-500"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
+                    </Fragment>
                   ))}
+
+                  {/* Now Line - after all items */}
+                  {nowPosition === daySchedules.length && (
+                    <div ref={nowLineRef} className="relative flex items-center py-1">
+                      <div
+                        className="absolute -right-[25px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-500 z-10"
+                        style={{ boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)' }}
+                      />
+                      <div className="w-full flex items-center gap-3 pr-8">
+                        <span className="text-[11px] font-bold text-red-500 shrink-0">
+                          {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        <div className="flex-1 h-[2px] bg-red-500" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Fragment } from 'react'
 import { Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom'
 import { Calendar, Users, Truck, CheckSquare, MessageCircle, Bot, Plus, Edit2, Trash2, MapPin, Clock, X, Loader2, Send, Upload, Download, Search, UserPlus, Star, Phone, Mail, Globe, ClipboardList, Play, Coffee, User, FileQuestion, BarChart3, ThumbsUp, ThumbsDown, MessageSquare, ScanLine, CheckCircle, XCircle, UserCheck, PieChart, DollarSign, FileText, Bell, Link2, AlertTriangle, RefreshCw, ArrowLeft, Grid3X3, List, CalendarDays, Mic, Monitor, Video, Building2, Save, Eye, Target, Shield, Zap } from 'lucide-react'
 import { FloatingChat } from './components/chat'
@@ -2496,6 +2496,8 @@ function SchedulesPage() {
   const [showModal, setShowModal] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
   const [selectedEvent, setSelectedEvent] = useState<string>('all')
+  const nowLineRef = useRef<HTMLDivElement>(null)
+  const [currentTime, setCurrentTime] = useState(new Date())
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
@@ -2513,6 +2515,21 @@ function SchedulesPage() {
     send_reminder: true,
     reminder_minutes_before: '15'
   })
+
+  // Update the now line every minute
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Auto-scroll to now line after data loads
+  useEffect(() => {
+    if (!loading && nowLineRef.current) {
+      setTimeout(() => {
+        nowLineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }, 300)
+    }
+  }, [loading])
 
   async function loadData() {
     setLoading(true)
@@ -2560,6 +2577,24 @@ function SchedulesPage() {
     groups[date].push(schedule)
     return groups
   }, {} as Record<string, Schedule[]>)
+
+  // Today's date string for now-line comparison
+  const todayDateStr = currentTime.toLocaleDateString('he-IL', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })
+
+  // Find where to insert the now line within a day's sorted schedules
+  function getNowLinePosition(daySchedules: Schedule[]): number {
+    for (let i = 0; i < daySchedules.length; i++) {
+      if (currentTime < new Date(daySchedules[i].start_time)) {
+        return i
+      }
+    }
+    return daySchedules.length
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -2785,7 +2820,11 @@ function SchedulesPage() {
             </div>
           ) : (
             <div className="space-y-10">
-              {Object.entries(groupedSchedules).map(([date, daySchedules]) => (
+              {Object.entries(groupedSchedules).map(([date, daySchedules]) => {
+                const isToday = date === todayDateStr
+                const nowPosition = isToday ? getNowLinePosition(daySchedules) : -1
+
+                return (
                 <div key={date}>
                   {/* Date Header */}
                   <div className="flex items-center gap-3 mb-6">
@@ -2793,108 +2832,145 @@ function SchedulesPage() {
                       <Calendar className="w-5 h-5 text-white" />
                     </div>
                     <h2 className="text-xl font-bold text-white">{date}</h2>
+                    {isToday && (
+                      <span className="text-xs bg-red-500/20 text-red-400 px-2.5 py-1 rounded-lg font-medium border border-red-500/30">עכשיו</span>
+                    )}
                   </div>
 
                   {/* Timeline Items */}
                   <div className="relative pr-8 border-r-2 border-amber-500/30 space-y-4">
-                    {daySchedules.map(schedule => (
-                      <div
-                        key={schedule.id}
-                        className="relative pr-8 group"
-                      >
-                        {/* Timeline Dot */}
+                    {daySchedules.map((schedule, index) => (
+                      <Fragment key={schedule.id}>
+                        {/* Now Line - current time indicator */}
+                        {nowPosition === index && (
+                          <div ref={nowLineRef} className="relative flex items-center py-1">
+                            <div
+                              className="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 z-10 border-2 border-red-400"
+                              style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.2)' }}
+                            />
+                            <div className="w-full flex items-center gap-3 pr-8">
+                              <span className="text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
+                                {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className="flex-1 h-[2px] bg-gradient-to-l from-red-500 to-red-500/20 rounded-full" />
+                            </div>
+                          </div>
+                        )}
+
                         <div
-                          className={`absolute -right-[10px] w-5 h-5 rounded-full border-3 border-white shadow-md ${
-                            schedule.is_break ? 'bg-gradient-to-br from-orange-400 to-amber-500' : schedule.track_color ? '' : 'bg-gradient-to-br from-blue-400 to-blue-600'
-                          }`}
-                          style={schedule.track_color && !schedule.is_break ? { background: `linear-gradient(135deg, ${schedule.track_color}, ${schedule.track_color}dd)` } : {}}
-                        />
+                          className="relative pr-8 group"
+                        >
+                          {/* Timeline Dot */}
+                          <div
+                            className={`absolute -right-[10px] w-5 h-5 rounded-full border-3 border-white shadow-md ${
+                              schedule.is_break ? 'bg-gradient-to-br from-orange-400 to-amber-500' : schedule.track_color ? '' : 'bg-gradient-to-br from-blue-400 to-blue-600'
+                            }`}
+                            style={schedule.track_color && !schedule.is_break ? { background: `linear-gradient(135deg, ${schedule.track_color}, ${schedule.track_color}dd)` } : {}}
+                          />
 
-                        {/* Content Card */}
-                        <div className={`p-5 rounded-2xl border ${
-                          schedule.is_break
-                            ? 'bg-gradient-to-r from-orange-500/15 to-amber-500/10 border-orange-500/30'
-                            : 'bg-[#1a1d27]/90 border-white/10 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10'
-                        } transition-all duration-300`}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              {/* Time & Duration */}
-                              <div className="flex items-center gap-2 text-sm text-zinc-400 mb-2">
-                                <span className="bg-white/5 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5">
-                                  <Clock className="w-3.5 h-3.5" />
-                                  {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
-                                </span>
-                                <span className="text-zinc-500 bg-white/5 px-2 py-1 rounded-lg text-xs">({getDuration(schedule.start_time, schedule.end_time)})</span>
-                              </div>
-
-                              {/* Title */}
-                              <div className="flex items-center gap-2 flex-wrap">
-                                {schedule.is_break ? (
-                                  <Coffee className="w-5 h-5 text-orange-500" />
-                                ) : (
-                                  <Play className="w-5 h-5 text-blue-500" />
-                                )}
-                                <h3 className="font-bold text-lg text-white group-hover:text-orange-400 transition-colors">{schedule.title}</h3>
-                                {schedule.is_mandatory && (
-                                  <span className="text-xs bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-lg font-medium">חובה</span>
-                                )}
-                                {schedule.track && (
-                                  <span
-                                    className="text-xs px-2.5 py-1 rounded-lg text-white font-medium shadow-sm"
-                                    style={{ backgroundColor: schedule.track_color || '#6B7280' }}
-                                  >
-                                    {schedule.track}
+                          {/* Content Card */}
+                          <div className={`p-5 rounded-2xl border ${
+                            schedule.is_break
+                              ? 'bg-gradient-to-r from-orange-500/15 to-amber-500/10 border-orange-500/30'
+                              : 'bg-[#1a1d27]/90 border-white/10 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10'
+                          } transition-all duration-300`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                {/* Time & Duration */}
+                                <div className="flex items-center gap-2 text-sm text-zinc-400 mb-2">
+                                  <span className="bg-white/5 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
                                   </span>
-                                )}
-                              </div>
-
-                              {/* Description */}
-                              {schedule.description && (
-                                <p className="text-zinc-400 text-sm mt-2">{schedule.description}</p>
-                              )}
-
-                              {/* Location & Room */}
-                              {(schedule.location || schedule.room) && (
-                                <div className="flex items-center gap-2 text-sm text-zinc-400 mt-3 bg-white/5 px-3 py-1.5 rounded-lg inline-flex">
-                                  <MapPin className="w-4 h-4 text-rose-400" />
-                                  <span>{[schedule.location, schedule.room].filter(Boolean).join(' - ')}</span>
+                                  <span className="text-zinc-500 bg-white/5 px-2 py-1 rounded-lg text-xs">({getDuration(schedule.start_time, schedule.end_time)})</span>
                                 </div>
-                              )}
 
-                              {/* Speaker */}
-                              {schedule.speaker_name && (
-                                <div className="flex items-center gap-2 text-sm text-zinc-400 mt-2 bg-blue-500/10 px-3 py-1.5 rounded-lg inline-flex">
-                                  <User className="w-4 h-4 text-blue-400" />
-                                  <span className="font-medium">{schedule.speaker_name}</span>
-                                  {schedule.speaker_title && (
-                                    <span className="text-zinc-500">| {schedule.speaker_title}</span>
+                                {/* Title */}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {schedule.is_break ? (
+                                    <Coffee className="w-5 h-5 text-orange-500" />
+                                  ) : (
+                                    <Play className="w-5 h-5 text-blue-500" />
+                                  )}
+                                  <h3 className="font-bold text-lg text-white group-hover:text-orange-400 transition-colors">{schedule.title}</h3>
+                                  {schedule.is_mandatory && (
+                                    <span className="text-xs bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-lg font-medium">חובה</span>
+                                  )}
+                                  {schedule.track && (
+                                    <span
+                                      className="text-xs px-2.5 py-1 rounded-lg text-white font-medium shadow-sm"
+                                      style={{ backgroundColor: schedule.track_color || '#6B7280' }}
+                                    >
+                                      {schedule.track}
+                                    </span>
                                   )}
                                 </div>
-                              )}
-                            </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => openEditModal(schedule)}
-                                className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
-                              >
-                                <Edit2 className="w-4 h-4 text-zinc-400" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(schedule.id)}
-                                className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
-                              >
-                                <Trash2 className="w-4 h-4 text-red-500" />
-                              </button>
+                                {/* Description */}
+                                {schedule.description && (
+                                  <p className="text-zinc-400 text-sm mt-2">{schedule.description}</p>
+                                )}
+
+                                {/* Location & Room */}
+                                {(schedule.location || schedule.room) && (
+                                  <div className="flex items-center gap-2 text-sm text-zinc-400 mt-3 bg-white/5 px-3 py-1.5 rounded-lg inline-flex">
+                                    <MapPin className="w-4 h-4 text-rose-400" />
+                                    <span>{[schedule.location, schedule.room].filter(Boolean).join(' - ')}</span>
+                                  </div>
+                                )}
+
+                                {/* Speaker */}
+                                {schedule.speaker_name && (
+                                  <div className="flex items-center gap-2 text-sm text-zinc-400 mt-2 bg-blue-500/10 px-3 py-1.5 rounded-lg inline-flex">
+                                    <User className="w-4 h-4 text-blue-400" />
+                                    <span className="font-medium">{schedule.speaker_name}</span>
+                                    {schedule.speaker_title && (
+                                      <span className="text-zinc-500">| {schedule.speaker_title}</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => openEditModal(schedule)}
+                                  className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                                >
+                                  <Edit2 className="w-4 h-4 text-zinc-400" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(schedule.id)}
+                                  className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
+                      </Fragment>
                     ))}
+
+                    {/* Now Line - after all items */}
+                    {nowPosition === daySchedules.length && (
+                      <div ref={nowLineRef} className="relative flex items-center py-1">
+                        <div
+                          className="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 z-10 border-2 border-red-400"
+                          style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.2)' }}
+                        />
+                        <div className="w-full flex items-center gap-3 pr-8">
+                          <span className="text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
+                            {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <div className="flex-1 h-[2px] bg-gradient-to-l from-red-500 to-red-500/20 rounded-full" />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>

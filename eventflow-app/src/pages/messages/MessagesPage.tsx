@@ -45,6 +45,7 @@ import {
   Bot
 } from 'lucide-react'
 import { useMessages, useMessageStats, useSendMessage, useRetryMessage } from '../../hooks/useMessages'
+import { useEvent } from '../../contexts/EventContext'
 import type {
   MessageWithRelations,
   MessageStatus,
@@ -150,21 +151,24 @@ function StatsCards({ stats }: { stats: ReturnType<typeof useMessageStats>['data
 
 function SendMessageModal({
   isOpen,
-  onClose
+  onClose,
+  eventId
 }: {
   isOpen: boolean
   onClose: () => void
+  eventId?: string
 }) {
   const [phone, setPhone] = useState('')
   const [message, setMessage] = useState('')
   const sendMessage = useSendMessage()
-
+ 
   const handleSend = async () => {
     try {
       await sendMessage.mutateAsync({
         to_phone: phone,
         content: message,
-        channel: 'whatsapp'
+        channel: 'whatsapp',
+        event_id: eventId
       })
       onClose()
       setPhone('')
@@ -371,8 +375,12 @@ function MessageDetailModal({
 // ────────────────────────────────────────────────────────────────────────────
 
 export function MessagesPage() {
+  // Get selected event from context
+  const { selectedEvent } = useEvent()
+  
   // State
   const [filters, setFilters] = useState<MessageFilters>({})
+  const [showAllMessages, setShowAllMessages] = useState(false)
   const [sorting, setSorting] = useState<SortingState>([])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
@@ -381,8 +389,11 @@ export function MessagesPage() {
   const [showFilters, setShowFilters] = useState(false)
 
   // Data
-  const { data: messages = [], isLoading, error, refetch } = useMessages(filters)
-  const { data: stats } = useMessageStats()
+  const { data: messages = [], isLoading, error, refetch } = useMessages({
+    ...filters,
+    event_id: showAllMessages ? undefined : selectedEvent?.id
+  })
+  const { data: stats } = useMessageStats(showAllMessages ? undefined : selectedEvent?.id)
 
   // Table columns definition
   const columns = useMemo<ColumnDef<MessageWithRelations>[]>(() => [
@@ -530,8 +541,35 @@ export function MessagesPage() {
     <div className="p-6 max-w-7xl mx-auto bg-zinc-900 min-h-screen">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-white" data-testid="messages-title">הודעות</h1>
+        <div className="flex flex-col gap-1">
+          <h1 className="text-2xl font-bold text-white" data-testid="messages-title">הודעות</h1>
+          {selectedEvent && !showAllMessages && (
+            <div className="text-sm text-zinc-400">
+              <span className="text-orange-400">{selectedEvent.name}</span> - אירוע נוכחי
+            </div>
+          )}
+        </div>
         <div className="flex items-center gap-2">
+          {selectedEvent && (
+            <button
+              onClick={() => setShowAllMessages(!showAllMessages)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                showAllMessages 
+                  ? 'bg-zinc-700 text-zinc-300 hover:bg-zinc-600' 
+                  : 'bg-orange-600 text-white hover:bg-orange-700'
+              }`}
+            >
+              {showAllMessages ? (
+                <>
+                  <span>אירוע נוכחי</span>
+                </>
+              ) : (
+                <>
+                  <span>הצג הכל</span>
+                </>
+              )}
+            </button>
+          )}
           <button
             onClick={() => refetch()}
             className="p-2 hover:bg-zinc-700 rounded-lg"
@@ -721,7 +759,11 @@ export function MessagesPage() {
       </div>
 
       {/* Modals */}
-      <SendMessageModal isOpen={showSendModal} onClose={() => setShowSendModal(false)} />
+      <SendMessageModal 
+        isOpen={showSendModal} 
+        onClose={() => setShowSendModal(false)}
+        eventId={showAllMessages ? undefined : selectedEvent?.id}
+      />
       <MessageDetailModal message={selectedMessage} onClose={() => setSelectedMessage(null)} />
     </div>
   )

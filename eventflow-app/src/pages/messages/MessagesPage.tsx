@@ -121,7 +121,20 @@ function DirectionBadge({ direction, autoReply }: { direction: MessageDirection;
 // Stats Cards Component
 // ────────────────────────────────────────────────────────────────────────────
 
-function StatsCards({ stats }: { stats: ReturnType<typeof useMessageStats>['data'] }) {
+function StatsCards({ stats, isLoading }: { stats: ReturnType<typeof useMessageStats>['data']; isLoading: boolean }) {
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="rounded-lg p-4 bg-zinc-800 animate-pulse">
+            <div className="h-8 bg-zinc-700 rounded mb-2"></div>
+            <div className="h-4 bg-zinc-700 rounded"></div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   if (!stats) return null
 
   const cards = [
@@ -393,7 +406,7 @@ export function MessagesPage() {
     ...filters,
     event_id: showAllMessages ? undefined : selectedEvent?.id
   })
-  const { data: stats } = useMessageStats(showAllMessages ? undefined : selectedEvent?.id)
+  const { data: stats, isLoading: statsLoading } = useMessageStats(showAllMessages ? undefined : selectedEvent?.id)
 
   // Table columns definition
   const columns = useMemo<ColumnDef<MessageWithRelations>[]>(() => [
@@ -588,7 +601,7 @@ export function MessagesPage() {
       </div>
 
       {/* Stats Cards */}
-      <StatsCards stats={stats} />
+      <StatsCards stats={stats} isLoading={statsLoading} />
 
       {/* Filters Bar */}
       <div className="bg-zinc-800 rounded-lg shadow mb-4 p-4 border border-zinc-700">

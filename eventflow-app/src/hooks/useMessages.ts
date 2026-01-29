@@ -103,15 +103,22 @@ export function useMessageStats(eventId?: string) {
         query = query.eq('event_id', eventId)
       }
 
-      const { data, error } = await query
+      // Get all messages for accurate stats
+      const { data, error, count } = await query
 
       if (error) {
         console.error('Error fetching message stats:', error)
         throw error
       }
 
+      console.log('Message stats data:', {
+        eventId,
+        totalMessages: count,
+        messagesFetched: data?.length
+      })
+
       const stats: MessageStats = {
-        total: data.length,
+        total: data?.length || 0,
         pending: 0,
         sent: 0,
         delivered: 0,
@@ -128,7 +135,8 @@ export function useMessageStats(eventId?: string) {
         }
       }
 
-      data.forEach(msg => {
+      // Count messages by each criteria
+      data?.forEach(msg => {
         // Count by status
         if (msg.status === 'pending' || msg.status === 'scheduled') stats.pending++
         else if (msg.status === 'sent') stats.sent++
@@ -146,8 +154,11 @@ export function useMessageStats(eventId?: string) {
         else stats.byDirection.outgoing++
       })
 
+      console.log('Message stats result:', stats)
       return stats
-    }
+    },
+    staleTime: 0, // Always refetch
+    refetchInterval: 30000 // Refetch every 30 seconds
   })
 }
 

@@ -56,6 +56,18 @@ export type ActionType =
   | 'run_skill'
   | 'switch_agent'
   | 'run_automation'
+  // AI agent results (from Gemini function calling)
+  | 'event_created'
+  | 'event_creation_failed'
+  | 'checklist_added'
+  | 'vendors_assigned'
+  | 'events_found'
+  | 'vendors_found'
+  | 'schedule_suggested'
+  | 'identify_event_type'
+  | 'set_date'
+  | 'set_participants'
+  | 'suggest_create_event'
 
 export interface ChatAction {
   id: string

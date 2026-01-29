@@ -18,9 +18,11 @@ import {
   Bell,
   ChevronLeft,
   Settings,
-  Zap
+  Zap,
+  ShieldCheck
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
+import { useAuth } from '../../contexts/AuthContext'
 
 // Links for when NO event is selected (home view)
 const homeLinks = [
@@ -50,6 +52,7 @@ const globalLinks = [
 export function Sidebar() {
   const location = useLocation()
   const { selectedEvent, clearSelectedEvent } = useEvent()
+  const { isSuperAdmin } = useAuth()
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -249,6 +252,38 @@ export function Sidebar() {
             ))}
           </ul>
         </div>
+
+        {/* Admin Links (super_admin only) */}
+        {isSuperAdmin && (
+          <div className="mt-6 pt-6 border-t border-zinc-700/30">
+            <p className="text-[11px] text-zinc-500 font-semibold mb-3 px-4 uppercase tracking-wider">ניהול מערכת</p>
+            <ul className="space-y-1.5">
+              <li>
+                <Link
+                  to="/admin/users"
+                  className={`flex items-center gap-3.5 px-4 py-3.5 rounded-xl font-medium text-[15px] transition-all duration-200 relative overflow-hidden
+                    ${location.pathname === '/admin/users'
+                      ? 'text-white bg-gradient-to-l from-orange-500/20 to-yellow-500/10 shadow-[0_0_20px_rgba(249,115,22,0.2)]'
+                      : 'text-zinc-400 hover:text-white hover:bg-white/5 hover:translate-x-[-4px]'
+                    }`}
+                  data-testid="nav-admin-users"
+                >
+                  {location.pathname === '/admin/users' && (
+                    <span
+                      className="absolute right-0 top-1/2 -translate-y-1/2 w-[3px] h-[60%] rounded-l-full"
+                      style={{
+                        background: 'linear-gradient(180deg, #f97316 0%, #fbbf24 100%)',
+                        boxShadow: '0 0 10px rgba(249, 115, 22, 0.5)'
+                      }}
+                    />
+                  )}
+                  <ShieldCheck size={18} className={location.pathname === '/admin/users' ? 'text-orange-400' : ''} />
+                  <span>ניהול משתמשים</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </nav>
 
       {/* Bottom Actions */}

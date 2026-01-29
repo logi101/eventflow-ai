@@ -458,12 +458,14 @@ export interface ScheduleChange {
 }
 
 // Auth Types
+export type UserRole = 'super_admin' | 'admin' | 'member'
+
 export interface User {
   id: string
   email: string
   full_name: string | null
   organization_id: string | null
-  role: 'owner' | 'admin' | 'member'
+  role: UserRole
   created_at: string
 }
 

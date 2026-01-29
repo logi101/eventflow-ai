@@ -12,7 +12,13 @@ import {
   Upload,
   Sparkles,
   CheckCircle2,
-  ExternalLink
+  ExternalLink,
+  Search,
+  ClipboardList,
+  Clock,
+  AlertCircle,
+  Tag,
+  UserPlus
 } from 'lucide-react'
 import type { ChatAction, ActionType } from '../../types/chat'
 import { useChatContext } from '../../contexts/ChatContext'
@@ -30,7 +36,7 @@ interface ChatActionsProps {
 // Action Icon Map
 // ============================================================================
 
-const ACTION_ICONS: Record<ActionType, typeof Calendar> = {
+const ACTION_ICONS: Partial<Record<ActionType, typeof Calendar>> = {
   create_event: Calendar,
   create_guest: Users,
   create_vendor: Building2,
@@ -51,7 +57,19 @@ const ACTION_ICONS: Record<ActionType, typeof Calendar> = {
   generate_report: Download,
   run_skill: Sparkles,
   switch_agent: Sparkles,
-  run_automation: Sparkles
+  run_automation: Sparkles,
+  // AI agent result actions
+  event_created: CheckCircle2,
+  event_creation_failed: AlertCircle,
+  checklist_added: ClipboardList,
+  vendors_assigned: Building2,
+  events_found: Search,
+  vendors_found: Search,
+  schedule_suggested: Clock,
+  identify_event_type: Tag,
+  set_date: Calendar,
+  set_participants: UserPlus,
+  suggest_create_event: Calendar,
 }
 
 // ============================================================================

@@ -310,10 +310,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
         // Sound will be played by the component
       }
     } catch (error) {
+      console.error('[EventFlow Chat] sendMessage error:', error)
+      const errorDetail = error instanceof Error ? error.message : 'שגיאה בלתי צפויה'
       const errorMessage: ChatMessage = {
         id: generateId(),
         role: 'assistant',
-        content: 'מצטער, אירעה שגיאה. אנא נסה שוב.',
+        content: `שגיאה בשליחת ההודעה: **${errorDetail}**\n\nבדוק את חיבור האינטרנט ונסה שוב.`,
         timestamp: new Date()
       }
       dispatch({ type: 'ADD_MESSAGE', payload: errorMessage })

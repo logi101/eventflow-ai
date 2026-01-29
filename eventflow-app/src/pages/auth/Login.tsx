@@ -2,14 +2,21 @@
 // EventFlow - Login Page
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const { signIn } = useAuth()
+  const { signIn, user } = useAuth()
+
+  // Redirect away if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/', { replace: true })
+    }
+  }, [user, navigate])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -128,11 +135,8 @@ export function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 text-center text-zinc-400">
-            אין לך חשבון?{' '}
-            <Link to="/signup" className="text-orange-400 hover:text-orange-300 font-medium">
-              הירשם עכשיו
-            </Link>
+          <div className="mt-6 text-center text-zinc-500 text-sm">
+            גישה למערכת בהזמנה בלבד
           </div>
         </div>
 

@@ -85,11 +85,11 @@ export function ChatInput() {
     }
   }
 
-  // Suggestions for quick actions
+  // Suggestions for quick actions - natural language so they go through AI
   const quickSuggestions = [
-    { text: '/help', label: 'עזרה' },
-    { text: '/event', label: 'אירוע' },
-    { text: '/guest', label: 'אורח' }
+    { text: 'עזור לי לתכנן את האירוע', label: 'עזרה' },
+    { text: 'אני רוצה לתכנן אירוע חדש, עזור לי', label: 'אירוע' },
+    { text: 'עזור לי לנהל את רשימת האורחים', label: 'אורח' }
   ]
 
   return (
@@ -106,8 +106,7 @@ export function ChatInput() {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setInputValue(suggestion.text + ' ')
-                inputRef.current?.focus()
+                sendMessage(suggestion.text)
               }}
               className="flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs text-gray-400 transition-colors hover:border-gray-600 hover:text-gray-300"
               style={{ borderColor: `${settings.accentColor}30` }}

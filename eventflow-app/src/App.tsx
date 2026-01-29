@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
-import { Routes, Route, Link, useLocation, useParams, useNavigate } from 'react-router-dom'
+import { Routes, Route, Link, useLocation, useParams, useNavigate, Navigate } from 'react-router-dom'
 import { Calendar, Users, Truck, CheckSquare, MessageCircle, Bot, Plus, Edit2, Trash2, MapPin, Clock, X, Loader2, Send, Upload, Download, Search, UserPlus, Star, Phone, Mail, Globe, ClipboardList, Play, Coffee, User, FileQuestion, BarChart3, ThumbsUp, ThumbsDown, MessageSquare, ScanLine, CheckCircle, XCircle, UserCheck, PieChart, DollarSign, FileText, Bell, Link2, AlertTriangle, RefreshCw, ArrowLeft, Grid3X3, List, CalendarDays, Mic, Monitor, Video, Building2, Save, Eye, Target, Shield, Zap } from 'lucide-react'
 import { FloatingChat } from './components/chat'
 import { supabase } from './lib/supabase'
 import { TestWhatsAppPage } from './pages/admin'
+import { UserManagementPage } from './pages/admin/UserManagementPage'
 import { EventsPage } from '@/modules/events'
 import { EventSettingsPanel } from './modules/events/components/EventSettingsPanel'
 import * as XLSX from 'xlsx'
@@ -21,8 +22,8 @@ import { useEvent } from './contexts/EventContext'
 
 // Auth pages
 import { LoginPage } from './pages/auth/Login'
-import { SignupPage } from './pages/auth/Signup'
 import { ForgotPasswordPage } from './pages/auth/ForgotPassword'
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Types
@@ -8417,6 +8418,11 @@ function AppLayout() {
           <Route path="/ai" element={<AIAssistantPage />} />
           <Route path="/settings" element={<DashboardPage />} />
           <Route path="/admin/test-whatsapp" element={<TestWhatsAppPage />} />
+          <Route path="/admin/users" element={
+            <ProtectedRoute requiredRole="super_admin">
+              <UserManagementPage />
+            </ProtectedRoute>
+          } />
 
           {/* Legacy routes - redirect to home */}
           <Route path="/events" element={<HomePage />} />
@@ -8443,7 +8449,7 @@ function AppLayout() {
 
 export default function App() {
   const location = useLocation()
-  const isAuthPage = ['/login', '/signup', '/forgot-password'].includes(location.pathname)
+  const isAuthPage = ['/login', '/forgot-password'].includes(location.pathname)
 
   // Auth pages - full screen without sidebar
   if (isAuthPage) {
@@ -8451,13 +8457,17 @@ export default function App() {
       <div dir="rtl">
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+          <Route path="/signup" element={<Navigate to="/login" replace />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Routes>
       </div>
     )
   }
 
-  // Main app with sidebar
-  return <AppLayout />
+  // Main app with sidebar - requires authentication
+  return (
+    <ProtectedRoute>
+      <AppLayout />
+    </ProtectedRoute>
+  )
 }

@@ -1,4 +1,6 @@
-// EventFlow AI Chat Service - Hybrid AI Routing (Claude + Gemini)
+// EventFlow AI Chat Service - Gemini-First Architecture
+// ALL messages go to Gemini AI for real conversations.
+// Only /help is handled locally.
 
 import { createClient } from '@supabase/supabase-js'
 import type {
@@ -8,8 +10,7 @@ import type {
   ChatMessage,
   PageContext,
   AIRoutingResult,
-  SkillType,
-  AgentType
+  SkillType
 } from '../types/chat'
 import { SLASH_COMMANDS } from '../hooks/usePageContext'
 
@@ -23,28 +24,36 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // ============================================================================
-// Intent Analysis
+// Slash Command to Natural Language Mapping
 // ============================================================================
 
-// Action keywords in Hebrew and English
-const ACTION_KEYWORDS = {
-  create: ['צור', 'הוסף', 'חדש', 'create', 'add', 'new'],
-  update: ['עדכן', 'שנה', 'ערוך', 'update', 'edit', 'change', 'modify'],
-  delete: ['מחק', 'הסר', 'delete', 'remove'],
-  export: ['ייצא', 'הורד', 'export', 'download'],
-  import: ['ייבא', 'העלה', 'import', 'upload'],
-  send: ['שלח', 'send', 'message', 'הודעה'],
-  search: ['חפש', 'מצא', 'search', 'find'],
-  navigate: ['עבור', 'לך', 'פתח', 'go', 'open', 'navigate']
+// Convert slash commands to natural language so they go through the AI
+const SLASH_TO_NATURAL: Record<string, string> = {
+  '/event': 'אני רוצה ליצור אירוע חדש, עזור לי לתכנן אותו',
+  '/create': 'אני רוצה ליצור משהו חדש, עזור לי',
+  '/guest': 'אני רוצה לנהל את רשימת האורחים, עזור לי',
+  '/import': 'אני רוצה לייבא נתונים, עזור לי',
+  '/vendor': 'אני רוצה לנהל ספקים לאירוע, עזור לי',
+  '/quote': 'אני רוצה לקבל הצעת מחיר מספק, עזור לי',
+  '/task': 'אני רוצה לנהל את המשימות לאירוע, עזור לי',
+  '/done': 'סיימתי משימה, מה הצעד הבא?',
+  '/message': 'אני רוצה לשלוח הודעה למשתתפים, עזור לי',
+  '/template': 'אני רוצה ליצור תבנית הודעה, עזור לי',
+  '/session': 'אני רוצה להוסיף פעילות לתוכנייה, עזור לי',
+  '/speaker': 'אני רוצה להוסיף דובר/מרצה, עזור לי',
+  '/export': 'אני רוצה לייצא נתונים, עזור לי',
+  '/status': 'מה הסטטוס הנוכחי של האירוע?',
+  '/go': 'לאיזה דף כדאי לי לעבור עכשיו?'
 }
 
-// Skill triggers
+// ============================================================================
+// Skill Triggers (only for explicit tool commands)
+// ============================================================================
+
 const SKILL_TRIGGERS: Record<string, SkillType> = {
   'pdf': 'pdf-export',
   'אקסל': 'excel-export',
   'excel': 'excel-export',
-  'ייבא': 'excel-import',
-  'import': 'excel-import',
   'וואטסאפ': 'whatsapp-send',
   'whatsapp': 'whatsapp-send',
   'qr': 'qr-generate',
@@ -55,150 +64,110 @@ const SKILL_TRIGGERS: Record<string, SkillType> = {
   'report': 'report-generate'
 }
 
+// ============================================================================
+// Intent Analysis - Gemini First
+// ============================================================================
+
 /**
  * Analyze user message to determine routing
+ * PRINCIPLE: Everything goes to Gemini AI for real conversation.
+ * Only /help and explicit skill triggers are handled locally.
  */
 function analyzeIntent(message: string): AIRoutingResult {
   const normalizedMessage = message.toLowerCase().trim()
 
-  // Check for slash commands first
-  if (normalizedMessage.startsWith('/')) {
-    const commandParts = normalizedMessage.split(' ')
-    const command = commandParts[0]
-    const matchedCommand = SLASH_COMMANDS.find(c => c.command === command)
+  // /help is the only command handled fully locally
+  if (normalizedMessage.startsWith('/help')) {
+    return {
+      provider: 'claude',
+      reason: 'Help command',
+      isAction: true,
+      command: '/help'
+    }
+  }
 
-    if (matchedCommand) {
+  // Check for slash commands → convert to natural language for AI
+  if (normalizedMessage.startsWith('/')) {
+    const command = normalizedMessage.split(' ')[0]
+    if (SLASH_TO_NATURAL[command]) {
       return {
-        provider: 'claude',
-        reason: 'Slash command detected',
-        isAction: true,
-        command
+        provider: 'gemini',
+        reason: `Slash command converted to AI conversation: ${command}`,
+        isAction: false,
+        command // Keep reference for metadata
       }
     }
   }
 
-  // Check for action keywords
-  for (const [actionType, keywords] of Object.entries(ACTION_KEYWORDS)) {
-    for (const keyword of keywords) {
-      if (normalizedMessage.includes(keyword)) {
+  // Check for explicit skill triggers in short messages (≤3 words)
+  const wordCount = normalizedMessage.split(/\s+/).length
+  if (wordCount <= 3) {
+    for (const [trigger, skill] of Object.entries(SKILL_TRIGGERS)) {
+      if (normalizedMessage.includes(trigger)) {
         return {
           provider: 'claude',
-          reason: `Action keyword detected: ${actionType}`,
-          isAction: true
+          reason: `Skill trigger: ${skill}`,
+          isAction: true,
+          skillRequired: skill
         }
       }
     }
   }
 
-  // Check for skill triggers
-  for (const [trigger, skill] of Object.entries(SKILL_TRIGGERS)) {
-    if (normalizedMessage.includes(trigger)) {
-      return {
-        provider: 'claude',
-        reason: `Skill trigger detected: ${skill}`,
-        isAction: true,
-        skillRequired: skill
-      }
-    }
-  }
-
-  // Default to Gemini for Q&A
+  // EVERYTHING else goes to Gemini AI
   return {
     provider: 'gemini',
-    reason: 'General question/conversation',
+    reason: 'AI conversation',
     isAction: false
   }
 }
 
 // ============================================================================
-// Claude Service (Actions & Skills)
+// Local Handler (only /help and skills)
 // ============================================================================
 
-class ClaudeService {
+class LocalHandler {
   /**
-   * Execute action or skill using Claude
+   * Handle the few things that stay local
    */
-  async execute(
+  async handle(
     message: string,
     intent: AIRoutingResult,
-    context: PageContext,
-    agent: AgentType
-  ): Promise<ChatResponse> {
-    // Handle slash commands locally first
-    if (intent.command) {
-      return this.handleSlashCommand(message, intent.command, context)
-    }
-
-    // For skills, call Supabase Edge Function
-    if (intent.skillRequired) {
-      return this.executeSkill(intent.skillRequired, message, context)
-    }
-
-    // For other actions, generate response with action buttons
-    return this.generateActionResponse(message, context, agent)
-  }
-
-  /**
-   * Handle slash command
-   */
-  private async handleSlashCommand(
-    message: string,
-    command: string,
     context: PageContext
   ): Promise<ChatResponse> {
-    const slashCommand = SLASH_COMMANDS.find(c => c.command === command)
-    if (!slashCommand) {
-      return {
-        content: `הפקודה ${command} לא נמצאה. הקלד /help לרשימת הפקודות.`,
-        metadata: { command }
-      }
+    // /help command
+    if (intent.command === '/help') {
+      return this.handleHelp(context)
     }
 
-    // Handle /help specially
-    if (command === '/help') {
-      const availableCommands = SLASH_COMMANDS.filter(c =>
-        c.availableOn.includes(context.currentPage)
-      )
-
-      const commandList = availableCommands
-        .map(c => `**${c.command}** - ${c.descriptionHebrew}`)
-        .join('\n')
-
-      return {
-        content: `## פקודות זמינות בדף זה:\n\n${commandList}`,
-        metadata: { command }
-      }
+    // Skill triggers
+    if (intent.skillRequired) {
+      return this.handleSkill(intent.skillRequired, context)
     }
 
-    // Extract params after the command
-    const params = message.slice(command.length).trim()
-
-    // Execute the command handler
-    const action = await slashCommand.handler(params, context)
-
-    if (action) {
-      return {
-        content: `מבצע: ${action.labelHebrew}`,
-        actions: [action],
-        metadata: { command }
-      }
+    // Fallback (shouldn't reach here)
+    return {
+      content: 'איך אפשר לעזור?',
+      metadata: {}
     }
+  }
+
+  private handleHelp(context: PageContext): ChatResponse {
+    const availableCommands = SLASH_COMMANDS.filter(c =>
+      c.availableOn.includes(context.currentPage)
+    )
+
+    const commandList = availableCommands
+      .map(c => `**${c.command}** - ${c.descriptionHebrew}`)
+      .join('\n')
 
     return {
-      content: `הפקודה ${command} הופעלה.`,
-      metadata: { command }
+      content: `## פקודות זמינות בדף זה:\n\n${commandList}\n\nאפשר גם פשוט לכתוב מה שאתה צריך ואני אעזור!`,
+      metadata: { command: '/help' }
     }
   }
 
-  /**
-   * Execute a skill
-   */
-  private async executeSkill(
-    skill: SkillType,
-    _message: string,
-    context: PageContext
-  ): Promise<ChatResponse> {
-    // For now, return action button to trigger skill
+  private handleSkill(skill: SkillType, context: PageContext): ChatResponse {
     const skillNames: Record<SkillType, string> = {
       'pdf-export': 'ייצוא PDF',
       'excel-import': 'ייבוא אקסל',
@@ -224,122 +193,42 @@ class ClaudeService {
       metadata: { skillUsed: skill }
     }
   }
-
-  /**
-   * Generate action response based on intent
-   */
-  private async generateActionResponse(
-    message: string,
-    context: PageContext,
-    agent: AgentType
-  ): Promise<ChatResponse> {
-    // Analyze what action the user wants
-    const normalizedMessage = message.toLowerCase()
-
-    // Build actions based on detected intent
-    const actions: ChatAction[] = []
-    let content = ''
-
-    // Check for create actions
-    if (ACTION_KEYWORDS.create.some(k => normalizedMessage.includes(k))) {
-      if (normalizedMessage.includes('אירוע') || normalizedMessage.includes('event')) {
-        actions.push({
-          id: `action-${Date.now()}-1`,
-          type: 'create_event',
-          label: 'Create Event',
-          labelHebrew: 'צור אירוע',
-          data: { source: 'chat' }
-        })
-        content = 'אשמח לעזור ליצור אירוע חדש!'
-      } else if (normalizedMessage.includes('אורח') || normalizedMessage.includes('guest')) {
-        actions.push({
-          id: `action-${Date.now()}-1`,
-          type: 'create_guest',
-          label: 'Add Guest',
-          labelHebrew: 'הוסף אורח',
-          data: { source: 'chat' }
-        })
-        content = 'בוא נוסיף אורח חדש!'
-      } else if (normalizedMessage.includes('ספק') || normalizedMessage.includes('vendor')) {
-        actions.push({
-          id: `action-${Date.now()}-1`,
-          type: 'create_vendor',
-          label: 'Add Vendor',
-          labelHebrew: 'הוסף ספק',
-          data: { source: 'chat' }
-        })
-        content = 'בוא נוסיף ספק חדש!'
-      } else if (normalizedMessage.includes('משימה') || normalizedMessage.includes('task')) {
-        actions.push({
-          id: `action-${Date.now()}-1`,
-          type: 'create_task',
-          label: 'Add Task',
-          labelHebrew: 'הוסף משימה',
-          data: { source: 'chat' }
-        })
-        content = 'בוא נוסיף משימה חדשה!'
-      }
-    }
-
-    // Check for export actions
-    if (ACTION_KEYWORDS.export.some(k => normalizedMessage.includes(k))) {
-      const format = normalizedMessage.includes('pdf') ? 'pdf' : 'excel'
-      actions.push({
-        id: `action-${Date.now()}-1`,
-        type: 'run_skill',
-        label: `Export ${format.toUpperCase()}`,
-        labelHebrew: `ייצא ${format.toUpperCase()}`,
-        data: { skill: `${format}-export`, dataType: context.currentPage }
-      })
-      content = `מוכן לייצא ל-${format.toUpperCase()}!`
-    }
-
-    // Check for send actions
-    if (ACTION_KEYWORDS.send.some(k => normalizedMessage.includes(k))) {
-      actions.push({
-        id: `action-${Date.now()}-1`,
-        type: 'send_whatsapp',
-        label: 'Send WhatsApp',
-        labelHebrew: 'שלח WhatsApp',
-        data: { source: 'chat' }
-      })
-      content = 'מוכן לשלוח הודעה!'
-    }
-
-    // If no specific action detected, provide general help
-    if (actions.length === 0) {
-      content = 'לא הבנתי בדיוק מה תרצה לעשות. אפשר לנסח מחדש או להקליד /help לעזרה.'
-    }
-
-    return {
-      content,
-      actions: actions.length > 0 ? actions : undefined,
-      metadata: { agentType: agent }
-    }
-  }
 }
 
 // ============================================================================
-// Gemini Service (Q&A)
+// Gemini AI Service (the real brain)
 // ============================================================================
 
 class GeminiService {
   /**
    * Chat using Gemini via Supabase Edge Function
+   * This is the main AI - handles ALL conversations
    */
   async chat(
     message: string,
     context: PageContext,
-    conversationHistory: ChatMessage[]
+    conversationHistory: ChatMessage[],
+    slashCommand?: string
   ): Promise<ChatResponse> {
     try {
+      // If this was a slash command, convert to natural language
+      const actualMessage = slashCommand && SLASH_TO_NATURAL[slashCommand]
+        ? SLASH_TO_NATURAL[slashCommand]
+        : message
+
       // Build context message for Gemini
       const systemContext = this.buildSystemContext(context)
       const historyText = this.formatHistory(conversationHistory)
 
+      console.log('[EventFlow AI] Sending message to edge function:', {
+        message: actualMessage.substring(0, 50),
+        page: context.currentPage,
+        historyLength: conversationHistory.length
+      })
+
       const { data, error } = await supabase.functions.invoke('ai-chat', {
         body: {
-          message,
+          message: actualMessage,
           context: systemContext,
           history: historyText,
           page: context.currentPage,
@@ -349,25 +238,159 @@ class GeminiService {
       })
 
       if (error) {
-        console.error('Gemini API error:', error)
+        console.error('[EventFlow AI] Edge function error:', error)
+        // Try to extract detailed error from FunctionsHttpError
+        let errorDetail = 'שגיאה לא ידועה'
+        try {
+          if (error && typeof error === 'object' && 'context' in error) {
+            const ctx = (error as { context: { json: () => Promise<unknown> } }).context
+            if (ctx && typeof ctx.json === 'function') {
+              const errorBody = await ctx.json()
+              console.error('[EventFlow AI] Error body:', errorBody)
+              errorDetail = (errorBody as Record<string, string>).error || JSON.stringify(errorBody)
+            } else {
+              errorDetail = (error as Record<string, unknown>).message as string || JSON.stringify(error)
+            }
+          } else {
+            errorDetail = (error as Record<string, unknown>).message as string || String(error)
+          }
+        } catch {
+          errorDetail = String(error)
+        }
         return {
-          content: 'מצטער, אירעה שגיאה בתקשורת. אנא נסה שוב.',
+          content: `אירעה שגיאה בתקשורת עם העוזר:\n\n**${errorDetail}**\n\nנסה שוב או בדוק את הגדרות המערכת.`,
           metadata: { page: context.currentPage }
         }
       }
 
+      if (!data) {
+        console.error('[EventFlow AI] No data returned from edge function')
+        return {
+          content: 'לא התקבלה תשובה מהשרת. ייתכן שה-Edge Function לא פרוסה. בדוק את לוח הבקרה של Supabase.',
+          metadata: { page: context.currentPage }
+        }
+      }
+
+      // Check for error in response body
+      if (data.error) {
+        console.error('[EventFlow AI] Edge function returned error:', data.error)
+        return {
+          content: `שגיאה מהשרת: **${data.error}**${data.details ? `\n\n${data.details}` : ''}`,
+          metadata: { page: context.currentPage }
+        }
+      }
+
+      const aiContent = data.response || data.message || 'לא הצלחתי לקבל תשובה.'
+
+      // Merge backend actions (from function calling) with frontend-detected actions
+      const backendActions: ChatAction[] = (data.actions || []).map((a: Record<string, unknown>, i: number) => ({
+        id: `backend-action-${Date.now()}-${i}`,
+        type: a.type || 'navigate',
+        label: a.label || String(a.type),
+        labelHebrew: a.labelHebrew || a.label || String(a.type),
+        data: a.data || {},
+        targetPage: a.targetPage,
+      }))
+
+      // Also detect actions from response text (for backwards compatibility)
+      const detectedActions = this.detectActionsFromResponse(aiContent, actualMessage)
+
+      // Deduplicate: prefer backend actions, add detected ones that don't overlap
+      const backendTypes = new Set(backendActions.map((a: ChatAction) => a.type))
+      const uniqueDetected = detectedActions.filter(a => !backendTypes.has(a.type))
+      const allActions = [...backendActions, ...uniqueDetected]
+
       return {
-        content: data.response || data.message || 'לא הצלחתי לקבל תשובה.',
+        content: aiContent,
+        actions: allActions.length > 0 ? allActions : undefined,
         suggestions: data.suggestions,
-        metadata: { page: context.currentPage }
+        metadata: {
+          page: context.currentPage,
+          ...(slashCommand ? { command: slashCommand } : {})
+        }
       }
     } catch (error) {
-      console.error('Gemini service error:', error)
+      console.error('[EventFlow AI] Unexpected service error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'שגיאה לא צפויה'
       return {
-        content: 'מצטער, אירעה שגיאה. אנא נסה שוב מאוחר יותר.',
+        content: `אירעה שגיאה בלתי צפויה: **${errorMsg}**\n\nבדוק שה-Supabase URL וה-Anon Key מוגדרים נכון בקובץ .env`,
         metadata: { page: context.currentPage }
       }
     }
+  }
+
+  /**
+   * Detect relevant actions from AI response text
+   * Adds action buttons alongside the AI conversation
+   */
+  private detectActionsFromResponse(aiResponse: string, userMessage: string): ChatAction[] {
+    const actions: ChatAction[] = []
+    const combined = `${aiResponse} ${userMessage}`
+
+    // If AI suggests creating an event
+    if (
+      combined.includes('ליצור את האירוע') || combined.includes('לפתוח אירוע') ||
+      combined.includes('ניצור אירוע') || combined.includes('אצור לך אירוע') ||
+      combined.includes('ליצור אירוע')
+    ) {
+      actions.push({
+        id: `action-${Date.now()}-create`,
+        type: 'create_event',
+        label: 'Create Event',
+        labelHebrew: 'צור אירוע',
+        data: { source: 'ai-suggestion' }
+      })
+    }
+
+    // If AI talks about checklist/tasks
+    if (combined.includes('צ\'קליסט') || combined.includes('רשימת משימות') || combined.includes('checklist')) {
+      actions.push({
+        id: `action-${Date.now()}-checklist`,
+        type: 'navigate',
+        label: 'Go to Checklist',
+        labelHebrew: 'עבור לצ\'קליסט',
+        targetPage: 'checklist',
+        data: { source: 'ai-suggestion' }
+      })
+    }
+
+    // If AI talks about guests/participants
+    if (combined.includes('רשימת אורחים') || combined.includes('רשימת משתתפים') || combined.includes('מוזמנים')) {
+      actions.push({
+        id: `action-${Date.now()}-guests`,
+        type: 'navigate',
+        label: 'Manage Guests',
+        labelHebrew: 'ניהול אורחים',
+        targetPage: 'guests',
+        data: { source: 'ai-suggestion' }
+      })
+    }
+
+    // If AI talks about vendors/suppliers
+    if (combined.includes('ספקים') || combined.includes('קייטרינג') || combined.includes('מקום אירוע')) {
+      actions.push({
+        id: `action-${Date.now()}-vendors`,
+        type: 'navigate',
+        label: 'Manage Vendors',
+        labelHebrew: 'ניהול ספקים',
+        targetPage: 'vendors',
+        data: { source: 'ai-suggestion' }
+      })
+    }
+
+    // If AI talks about schedule/program
+    if (combined.includes('תוכנייה') || combined.includes('לוח זמנים') || combined.includes('סדר יום')) {
+      actions.push({
+        id: `action-${Date.now()}-program`,
+        type: 'navigate',
+        label: 'Build Program',
+        labelHebrew: 'בנה תוכנייה',
+        targetPage: 'program',
+        data: { source: 'ai-suggestion' }
+      })
+    }
+
+    return actions
   }
 
   /**
@@ -389,18 +412,17 @@ class GeminiService {
     }
 
     return `
-אתה עוזר AI במערכת EventFlow לניהול אירועים.
+את שותפה אמיתית לתכנון אירועים במערכת EventFlow.
 המשתמש נמצא כרגע ב: ${pageDescriptions[context.currentPage] || context.currentPage}
 ${context.eventName ? `אירוע נוכחי: ${context.eventName}` : ''}
 
-תפקידך:
-- לענות על שאלות בנושא תכנון וניהול אירועים
-- לתת המלצות וטיפים מקצועיים
-- לעזור למשתמש לנווט במערכת
-- לענות בעברית באופן ידידותי ומקצועי
-- להיות תמציתי אך מקיף
-
-אל תבצע פעולות - רק תן מידע והמלצות. אם המשתמש רוצה לבצע פעולה, הדרך אותו להשתמש בפקודות (/) או בכפתורי הפעולה.
+התנהגי כשותפה מקצועית להפקת אירועים:
+- שאלי שאלות חכמות כדי להבין מה המשתמש צריך
+- הציעי רעיונות, תוכניות, ופתרונות יצירתיים
+- בני תוכניות מפורטות עם לוחות זמנים
+- התריעי על דברים חסרים או בעיות פוטנציאליות
+- ענה בעברית באופן ידידותי, מקצועי ומפורט
+- שאלי שאלת המשך בסוף כל תשובה כדי לקדם את התכנון
     `.trim()
   }
 
@@ -420,26 +442,32 @@ ${context.eventName ? `אירוע נוכחי: ${context.eventName}` : ''}
 // ============================================================================
 
 class ChatService {
-  private claudeService = new ClaudeService()
+  private localHandler = new LocalHandler()
   private geminiService = new GeminiService()
 
   /**
-   * Process user message and route to appropriate AI
+   * Process user message - Gemini first, always
    */
   async processMessage(request: ChatRequest): Promise<ChatResponse> {
     const { message, context, agent, conversationHistory } = request
 
-    // Analyze intent to determine routing
+    // Analyze intent
     const intent = analyzeIntent(message)
 
-    console.log('Chat routing:', { message, intent })
+    console.log('Chat routing:', { message: message.substring(0, 50), intent })
 
-    // Route to appropriate service
-    if (intent.isAction || intent.provider === 'claude') {
-      return this.claudeService.execute(message, intent, context, agent)
-    } else {
-      return this.geminiService.chat(message, context, conversationHistory)
+    // Local handling: only /help and explicit skill triggers
+    if (intent.provider === 'claude') {
+      return this.localHandler.handle(message, intent, context)
     }
+
+    // Everything else → Gemini AI for real conversation
+    return this.geminiService.chat(
+      message,
+      context,
+      conversationHistory,
+      intent.command // Pass slash command reference if applicable
+    )
   }
 
   /**

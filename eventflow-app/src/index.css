@@ -810,6 +810,17 @@ select.input {
   .card, .stats-card {
     padding: 1rem;
   }
+
+  /* Ensure main content takes full width on mobile */
+  [data-testid="main-content"] {
+    width: 100%;
+    max-width: 100vw;
+  }
+
+  /* Prevent horizontal overflow on mobile */
+  [data-testid="app-container"] {
+    overflow-x: hidden;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

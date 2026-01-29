@@ -43,7 +43,7 @@ function AppLayout() {
   return (
     <div className="flex" dir="rtl" data-testid="app-container">
       <Sidebar />
-      <main className="flex-1 min-h-screen" data-testid="main-content">
+      <main className="flex-1 min-h-screen min-w-0" data-testid="main-content">
         <Routes>
           {/* Home - Event Selection */}
           <Route path="/" element={<HomePage />} />

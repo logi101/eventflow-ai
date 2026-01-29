@@ -1,8 +1,8 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EventFlow - Navigation Sidebar (Premium Design - Collapsible Accordion)
+// EventFlow - Navigation Sidebar (Premium Design - Responsive + Collapsible)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import {
   Home,
@@ -22,11 +22,32 @@ import {
   Zap,
   ShieldCheck,
   PanelLeftOpen,
-  PanelLeftClose
+  PanelLeftClose,
+  Menu,
+  X
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { PushNotificationSettings } from '../PushNotificationSettings'
+
+// ── Mobile detection hook ──
+const MOBILE_BREAKPOINT = 768
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < MOBILE_BREAKPOINT : false
+  )
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mql.addEventListener('change', handler)
+    setIsMobile(mql.matches)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  return isMobile
+}
 
 // Links for when NO event is selected (home view)
 const homeLinks = [
@@ -57,7 +78,33 @@ export function Sidebar() {
   const location = useLocation()
   const { selectedEvent, clearSelectedEvent } = useEvent()
   const { isSuperAdmin } = useAuth()
-  const [isOpen, setIsOpen] = useState(true)
+  const isMobile = useIsMobile()
+  const [isOpen, setIsOpen] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth >= MOBILE_BREAKPOINT : true
+  )
+
+  // Auto-close on mobile, auto-open on desktop when resizing
+  useEffect(() => {
+    setIsOpen(!isMobile)
+  }, [isMobile])
+
+  // Close sidebar on navigation (mobile only)
+  useEffect(() => {
+    if (isMobile) {
+      setIsOpen(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname])
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!isMobile || !isOpen) return
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsOpen(false)
+    }
+    window.addEventListener('keydown', handleKey)
+    return () => window.removeEventListener('keydown', handleKey)
+  }, [isMobile, isOpen])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -80,51 +127,91 @@ export function Sidebar() {
   }
 
   return (
-    <aside
-      className="h-screen sticky top-0 flex flex-col relative backdrop-blur-xl shrink-0"
-      style={{
-        width: isOpen ? '16rem' : '3.5rem',
-        transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
-        background: 'linear-gradient(180deg, rgba(15, 17, 23, 0.98) 0%, rgba(8, 9, 13, 0.98) 100%)',
-        borderLeft: '1px solid rgba(255, 255, 255, 0.06)',
-      }}
-      data-testid="sidebar"
-    >
-      {/* Subtle gradient accent on the right edge */}
-      <div
-        className="absolute top-0 right-0 w-[2px] h-full opacity-60"
-        style={{
-          background: 'linear-gradient(180deg, #f97316 0%, #fbbf24 40%, transparent 100%)'
-        }}
-      />
+    <>
+      {/* ── Mobile Hamburger Button (visible when sidebar closed on mobile) ── */}
+      {isMobile && !isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-4 right-4 z-50 p-3 rounded-2xl text-white shadow-lg"
+          style={{
+            background: 'linear-gradient(135deg, #f97316 0%, #f59e0b 100%)',
+            boxShadow: '0 4px 20px rgba(249, 115, 22, 0.4)',
+          }}
+          aria-label="פתח תפריט"
+          data-testid="mobile-menu-btn"
+        >
+          <Menu size={22} />
+        </button>
+      )}
 
-      {/* Scrollable inner content */}
-      <div
-        className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden"
-        style={{ padding: isOpen ? '1.5rem' : '1rem 0.5rem' }}
+      {/* ── Mobile Backdrop Overlay ── */}
+      {isMobile && isOpen && (
+        <div
+          className="fixed inset-0 z-40"
+          style={{
+            background: 'rgba(0, 0, 0, 0.6)',
+            backdropFilter: 'blur(4px)',
+            transition: 'opacity 300ms ease',
+          }}
+          onClick={() => setIsOpen(false)}
+          data-testid="sidebar-backdrop"
+        />
+      )}
+
+      <aside
+        className={`h-screen flex flex-col relative backdrop-blur-xl shrink-0 ${
+          isMobile ? 'fixed top-0 right-0 z-50' : 'sticky top-0'
+        }`}
+        style={{
+          width: isMobile
+            ? (isOpen ? '17rem' : '0')
+            : (isOpen ? '16rem' : '3.5rem'),
+          transition: 'width 300ms cubic-bezier(0.4, 0, 0.2, 1)',
+          background: 'linear-gradient(180deg, rgba(15, 17, 23, 0.98) 0%, rgba(8, 9, 13, 0.98) 100%)',
+          borderLeft: isMobile ? 'none' : '1px solid rgba(255, 255, 255, 0.06)',
+          boxShadow: isMobile && isOpen ? '-10px 0 40px rgba(0, 0, 0, 0.5)' : 'none',
+          overflow: 'hidden',
+        }}
+        data-testid="sidebar"
       >
-        {/* ── Logo + Toggle ── */}
-        <div className={`mb-8 pt-2 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
-          {isOpen && (
-            <Link to="/" className="block group flex-1 min-w-0">
-              <h1
-                className="text-2xl font-bold text-gradient glow-text transition-all duration-300 group-hover:scale-[1.02]"
-                style={{ textShadow: '0 0 30px rgba(249, 115, 22, 0.3)' }}
-                data-testid="app-logo"
-              >
-                EventFlow AI
-              </h1>
-              <p className="text-zinc-500 text-sm mt-1.5 tracking-wide">מערכת הפקת אירועים</p>
-            </Link>
-          )}
-          <button
-            onClick={() => setIsOpen(prev => !prev)}
-            className="p-2 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0"
-            title={isOpen ? 'סגור תפריט' : 'פתח תפריט'}
-          >
-            {isOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
-          </button>
-        </div>
+        {/* Subtle gradient accent on the right edge */}
+        <div
+          className="absolute top-0 right-0 w-[2px] h-full opacity-60"
+          style={{
+            background: 'linear-gradient(180deg, #f97316 0%, #fbbf24 40%, transparent 100%)'
+          }}
+        />
+
+        {/* Scrollable inner content */}
+        <div
+          className="flex-1 flex flex-col overflow-y-auto overflow-x-hidden"
+          style={{
+            padding: isOpen ? '1.5rem' : (isMobile ? '0' : '1rem 0.5rem'),
+            minWidth: isMobile ? '17rem' : undefined,
+          }}
+        >
+          {/* ── Logo + Toggle ── */}
+          <div className={`mb-8 pt-2 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
+            {isOpen && (
+              <Link to="/" className="block group flex-1 min-w-0">
+                <h1
+                  className="text-2xl font-bold text-gradient glow-text transition-all duration-300 group-hover:scale-[1.02]"
+                  style={{ textShadow: '0 0 30px rgba(249, 115, 22, 0.3)' }}
+                  data-testid="app-logo"
+                >
+                  EventFlow AI
+                </h1>
+                <p className="text-zinc-500 text-sm mt-1.5 tracking-wide">מערכת הפקת אירועים</p>
+              </Link>
+            )}
+            <button
+              onClick={() => setIsOpen(prev => !prev)}
+              className="p-2 rounded-xl text-zinc-500 hover:text-white hover:bg-white/10 transition-all duration-200 shrink-0"
+              title={isOpen ? 'סגור תפריט' : 'פתח תפריט'}
+            >
+              {isMobile && isOpen ? <X size={20} /> : isOpen ? <PanelLeftClose size={18} /> : <PanelLeftOpen size={18} />}
+            </button>
+          </div>
 
         {/* ── Selected Event Card ── */}
         {selectedEvent && isOpen && (
@@ -338,8 +425,9 @@ export function Sidebar() {
             {isOpen && <span>הגדרות</span>}
           </Link>
         </div>
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   )
 }
 

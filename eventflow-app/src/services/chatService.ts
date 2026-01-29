@@ -131,7 +131,7 @@ class LocalHandler {
    * Handle the few things that stay local
    */
   async handle(
-    message: string,
+    _message: string,
     intent: AIRoutingResult,
     context: PageContext
   ): Promise<ChatResponse> {
@@ -449,7 +449,7 @@ class ChatService {
    * Process user message - Gemini first, always
    */
   async processMessage(request: ChatRequest): Promise<ChatResponse> {
-    const { message, context, agent, conversationHistory } = request
+    const { message, context, conversationHistory } = request
 
     // Analyze intent
     const intent = analyzeIntent(message)

@@ -1,13 +1,46 @@
 import { useState, useEffect, useRef } from 'react'
-import {
-  Upload, Download, Link2, Bell, RefreshCw, CheckCircle,
-  X, Clock, AlertTriangle, Send, Loader2, ClipboardList, Users
-} from 'lucide-react'
+import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import type {
-  Schedule, Participant, ParticipantSchedule, UpcomingReminder, ParticipantStatus
-} from '../../types'
 import * as XLSX from 'xlsx'
+import type { Schedule, Participant, ParticipantStatus } from '../../types'
+
+interface ParticipantSchedule {
+  id: string
+  participant_id: string
+  schedule_id: string
+  is_companion: boolean
+  reminder_sent: boolean
+  reminder_sent_at: string | null
+  attended: boolean | null
+  created_at: string
+  participants?: {
+    id: string
+    first_name: string
+    last_name: string
+    phone: string
+    email: string | null
+  }
+  schedules?: {
+    id: string
+    title: string
+    start_time: string
+    end_time: string
+    track: string | null
+    track_color: string | null
+  }
+}
+
+interface UpcomingReminder {
+  schedule: Schedule
+  participants: {
+    id: string
+    first_name: string
+    last_name: string
+    phone: string
+    reminder_sent: boolean
+  }[]
+  minutesUntil: number
+}
 
 export function ProgramManagementPage() {
   const [activeTab, setActiveTab] = useState<'import' | 'assign' | 'reminders'>('import')
@@ -373,8 +406,7 @@ export function ProgramManagementPage() {
 
   function generateReminderMessage(
     participant: { first_name: string; last_name: string },
-    schedule: Schedule,
-    roomInfo?: { room_number: string; building?: string | null; floor?: string | null }
+    schedule: Schedule
   ): string {
     const startTime = new Date(schedule.start_time).toLocaleTimeString('he-IL', {
       hour: '2-digit',
@@ -390,25 +422,13 @@ export function ProgramManagementPage() {
       message += `📍 מיקום: ${schedule.location}\n`
     }
     if (schedule.room) {
-      message += `🚪 חדר פעילות: ${schedule.room}\n`
+      message += `🚪 חדר: ${schedule.room}\n`
     }
     if (schedule.speaker_name) {
       message += `👤 מרצה: ${schedule.speaker_name}\n`
     }
     if (schedule.description) {
       message += `\n📝 ${schedule.description}\n`
-    }
-
-    // Add participant's personal room info if available
-    if (roomInfo) {
-      message += `\n🏨 *החדר שלך:*\n`
-      message += `🚪 חדר: ${roomInfo.room_number}\n`
-      if (roomInfo.building) {
-        message += `🏢 בניין: ${roomInfo.building}\n`
-      }
-      if (roomInfo.floor) {
-        message += `📍 קומה: ${roomInfo.floor}\n`
-      }
     }
 
     message += `\nנתראה שם! 🎉`
@@ -420,15 +440,7 @@ export function ProgramManagementPage() {
     participant: { id: string; first_name: string; last_name: string; phone: string },
     schedule: Schedule
   ) {
-    // Fetch participant's room assignment
-    const { data: roomData } = await supabase
-      .from('participant_rooms')
-      .select('room_number, building, floor')
-      .eq('participant_id', participant.id)
-      .eq('event_id', selectedEventId)
-      .single()
-
-    const message = generateReminderMessage(participant, schedule, roomData || undefined)
+    const message = generateReminderMessage(participant, schedule)
 
     try {
       // Call the Edge Function to send WhatsApp message
@@ -590,7 +602,7 @@ export function ProgramManagementPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-3xl font-bold" data-testid="program-title">ניהול תוכניה</h1>
-          <p className="text-gray-500">ייבוא תוכניה, שיוך משתתפים ושליחת תזכורות</p>
+          <p className="text-zinc-400">ייבוא תוכניה, שיוך משתתפים ושליחת תזכורות</p>
         </div>
         <select
           value={selectedEventId}
@@ -608,24 +620,24 @@ export function ProgramManagementPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         <div className="card">
-          <p className="text-gray-500 text-sm">פריטי תוכניה</p>
+          <p className="text-zinc-400 text-sm">פריטי תוכניה</p>
           <p className="text-2xl font-bold">{stats.schedules}</p>
         </div>
         <div className="card">
-          <p className="text-gray-500 text-sm">משתתפים</p>
+          <p className="text-zinc-400 text-sm">משתתפים</p>
           <p className="text-2xl font-bold text-blue-600">{stats.participants}</p>
         </div>
         <div className="card">
-          <p className="text-gray-500 text-sm">שיוכים</p>
-          <p className="text-2xl font-bold text-green-600">{stats.assignments}</p>
+          <p className="text-zinc-400 text-sm">שיוכים</p>
+          <p className="text-2xl font-bold text-emerald-400">{stats.assignments}</p>
         </div>
         <div className="card">
-          <p className="text-gray-500 text-sm">טראקים</p>
+          <p className="text-zinc-400 text-sm">טראקים</p>
           <p className="text-2xl font-bold text-purple-600">{stats.tracks}</p>
         </div>
         <div className="card">
-          <p className="text-gray-500 text-sm">תזכורות ממתינות</p>
-          <p className="text-2xl font-bold text-orange-600">{stats.pendingReminders}</p>
+          <p className="text-zinc-400 text-sm">תזכורות ממתינות</p>
+          <p className="text-2xl font-bold text-orange-400">{stats.pendingReminders}</p>
         </div>
       </div>
 
@@ -636,7 +648,7 @@ export function ProgramManagementPage() {
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${
             activeTab === 'import'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-zinc-400 hover:text-zinc-300'
           }`}
         >
           <Upload className="w-4 h-4 inline ml-2" />
@@ -647,7 +659,7 @@ export function ProgramManagementPage() {
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${
             activeTab === 'assign'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-zinc-400 hover:text-zinc-300'
           }`}
         >
           <Link2 className="w-4 h-4 inline ml-2" />
@@ -658,7 +670,7 @@ export function ProgramManagementPage() {
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${
             activeTab === 'reminders'
               ? 'border-primary text-primary'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-zinc-400 hover:text-zinc-300'
           }`}
         >
           <Bell className="w-4 h-4 inline ml-2" />
@@ -680,7 +692,7 @@ export function ProgramManagementPage() {
               <ClipboardList className="w-5 h-5 inline ml-2 text-blue-600" />
               ייבוא תוכניה מאקסל
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-zinc-400 mb-4">
               יבא קובץ אקסל עם פריטי התוכניה: כותרת, שעות, מיקום, טראק, מרצה
             </p>
 
@@ -716,9 +728,9 @@ export function ProgramManagementPage() {
             </div>
 
             {schedules.length > 0 && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="w-4 h-4 inline ml-2 text-green-600" />
-                <span className="text-green-700">
+              <div className="mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                <CheckCircle className="w-4 h-4 inline ml-2 text-emerald-400" />
+                <span className="text-emerald-400">
                   {schedules.length} פריטים בתוכניה
                 </span>
               </div>
@@ -728,10 +740,10 @@ export function ProgramManagementPage() {
           {/* Participants Import */}
           <div className="card">
             <h2 className="text-xl font-bold mb-4">
-              <Users className="w-5 h-5 inline ml-2 text-green-600" />
+              <Users className="w-5 h-5 inline ml-2 text-emerald-400" />
               ייבוא משתתפים עם שיוך
             </h2>
-            <p className="text-gray-600 mb-4">
+            <p className="text-zinc-400 mb-4">
               יבא קובץ אקסל עם משתתפים: שם, טלפון, טראק - השיוך יתבצע אוטומטית
             </p>
 
@@ -767,9 +779,9 @@ export function ProgramManagementPage() {
             </div>
 
             {participants.length > 0 && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg">
-                <CheckCircle className="w-4 h-4 inline ml-2 text-green-600" />
-                <span className="text-green-700">
+              <div className="mt-4 p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
+                <CheckCircle className="w-4 h-4 inline ml-2 text-emerald-400" />
+                <span className="text-emerald-400">
                   {participants.length} משתתפים
                 </span>
               </div>
@@ -789,7 +801,7 @@ export function ProgramManagementPage() {
           </div>
 
           {schedules.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">יש לייבא תוכניה קודם</p>
+            <p className="text-zinc-400 text-center py-8">יש לייבא תוכניה קודם</p>
           ) : (
             <div className="space-y-4">
               {schedules.map(schedule => {
@@ -801,7 +813,7 @@ export function ProgramManagementPage() {
                   <div
                     key={schedule.id}
                     className={`p-4 rounded-lg border ${
-                      schedule.is_break ? 'bg-orange-50 border-orange-200' : 'bg-white border-gray-200'
+                      schedule.is_break ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[#1a1d27] border-white/10'
                     }`}
                   >
                     <div className="flex justify-between items-start mb-3">
@@ -814,7 +826,7 @@ export function ProgramManagementPage() {
                         )}
                         <div>
                           <h3 className="font-semibold">{schedule.title}</h3>
-                          <p className="text-sm text-gray-500">
+                          <p className="text-sm text-zinc-400">
                             {new Date(schedule.start_time).toLocaleTimeString('he-IL', {
                               hour: '2-digit',
                               minute: '2-digit'
@@ -830,13 +842,13 @@ export function ProgramManagementPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="text-sm text-gray-500">
+                        <span className="text-sm text-zinc-400">
                           {scheduleAssignments.length} / {participants.length}
                         </span>
                         {unassignedParticipants.length > 0 && (
                           <button
                             onClick={() => assignAllToSchedule(schedule.id)}
-                            className="text-sm text-blue-600 hover:text-blue-800"
+                            className="text-sm text-blue-400 hover:text-blue-300"
                           >
                             + הוסף הכל
                           </button>
@@ -856,8 +868,8 @@ export function ProgramManagementPage() {
                               key={assignment.id}
                               className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
                                 assignment.reminder_sent
-                                  ? 'bg-green-100 text-green-800'
-                                  : 'bg-blue-100 text-blue-800'
+                                  ? 'bg-emerald-500/20 text-emerald-400'
+                                  : 'bg-blue-500/20 text-blue-400'
                               }`}
                             >
                               {participant.first_name} {participant.last_name}
@@ -866,7 +878,7 @@ export function ProgramManagementPage() {
                               )}
                               <button
                                 onClick={() => removeAssignment(assignment.id)}
-                                className="hover:text-red-600"
+                                className="hover:text-red-400"
                               >
                                 <X className="w-3 h-3" />
                               </button>
@@ -909,12 +921,12 @@ export function ProgramManagementPage() {
           {/* Upcoming Reminders */}
           <div className="card">
             <h2 className="text-xl font-bold mb-4">
-              <Bell className="w-5 h-5 inline ml-2 text-orange-600" />
+              <Bell className="w-5 h-5 inline ml-2 text-orange-400" />
               תזכורות קרובות
             </h2>
 
             {upcomingReminders.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-zinc-400">
                 <Bell className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                 <p>אין תזכורות קרובות</p>
                 <p className="text-sm">תזכורות יופיעו כאן 60 דקות לפני המועד</p>
@@ -930,23 +942,23 @@ export function ProgramManagementPage() {
                       key={index}
                       className={`p-4 rounded-lg border ${
                         reminder.minutesUntil <= 0
-                          ? 'bg-red-50 border-red-300'
+                          ? 'bg-red-500/10 border-red-500/30'
                           : reminder.minutesUntil <= 15
-                          ? 'bg-orange-50 border-orange-300'
-                          : 'bg-yellow-50 border-yellow-300'
+                          ? 'bg-orange-500/10 border-orange-500/30'
+                          : 'bg-amber-500/10 border-amber-500/30'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
                           <div className="flex items-center gap-2 mb-1">
                             {reminder.minutesUntil <= 0 ? (
-                              <AlertTriangle className="w-5 h-5 text-red-600" />
+                              <AlertTriangle className="w-5 h-5 text-red-400" />
                             ) : (
-                              <Clock className="w-5 h-5 text-orange-600" />
+                              <Clock className="w-5 h-5 text-orange-400" />
                             )}
                             <h3 className="font-semibold">{reminder.schedule.title}</h3>
                           </div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-sm text-zinc-400">
                             {reminder.minutesUntil <= 0
                               ? `איחור של ${Math.abs(reminder.minutesUntil)} דקות!`
                               : `בעוד ${reminder.minutesUntil} דקות`
@@ -961,8 +973,8 @@ export function ProgramManagementPage() {
 
                         <div className="flex items-center gap-3">
                           <div className="text-sm text-left">
-                            <p className="text-green-600">{sentCount} נשלחו</p>
-                            <p className="text-orange-600">{pendingCount} ממתינים</p>
+                            <p className="text-emerald-400">{sentCount} נשלחו</p>
+                            <p className="text-orange-400">{pendingCount} ממתינים</p>
                           </div>
 
                           {pendingCount > 0 && (
@@ -989,15 +1001,15 @@ export function ProgramManagementPage() {
                             key={participant.id}
                             className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
                               participant.reminder_sent
-                                ? 'bg-green-100 text-green-800'
-                                : 'bg-white text-gray-700 border'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-[#1a1d27] text-zinc-300 border border-white/10'
                             }`}
                           >
                             {participant.first_name} {participant.last_name}
                             {participant.reminder_sent ? (
-                              <CheckCircle className="w-3 h-3 text-green-600" />
+                              <CheckCircle className="w-3 h-3 text-emerald-400" />
                             ) : (
-                              <Clock className="w-3 h-3 text-orange-600" />
+                              <Clock className="w-3 h-3 text-orange-400" />
                             )}
                           </span>
                         ))}
@@ -1006,10 +1018,10 @@ export function ProgramManagementPage() {
                       {/* Message Preview */}
                       {pendingCount > 0 && (
                         <details className="mt-3">
-                          <summary className="cursor-pointer text-sm text-blue-600 hover:text-blue-800">
+                          <summary className="cursor-pointer text-sm text-blue-400 hover:text-blue-300">
                             תצוגה מקדימה של ההודעה
                           </summary>
-                          <pre className="mt-2 p-3 bg-white rounded border text-sm whitespace-pre-wrap text-right" dir="rtl">
+                          <pre className="mt-2 p-3 bg-[#1a1d27] rounded border text-sm whitespace-pre-wrap text-right" dir="rtl">
                             {generateReminderMessage(
                               reminder.participants[0],
                               reminder.schedule
@@ -1057,17 +1069,17 @@ export function ProgramManagementPage() {
                           })}
                         </td>
                         <td className="p-2">{scheduleAssignments.length}</td>
-                        <td className="p-2 text-green-600">{sentCount}</td>
-                        <td className="p-2 text-orange-600">{pendingCount}</td>
+                        <td className="p-2 text-emerald-400">{sentCount}</td>
+                        <td className="p-2 text-orange-400">{pendingCount}</td>
                         <td className="p-2">
                           {isPast ? (
-                            <span className="text-gray-400">עבר</span>
+                            <span className="text-zinc-500">עבר</span>
                           ) : pendingCount === 0 && sentCount > 0 ? (
-                            <span className="text-green-600">✓ הושלם</span>
+                            <span className="text-emerald-400">✓ הושלם</span>
                           ) : pendingCount > 0 ? (
-                            <span className="text-orange-600">ממתין</span>
+                            <span className="text-orange-400">ממתין</span>
                           ) : (
-                            <span className="text-gray-400">אין משתתפים</span>
+                            <span className="text-zinc-500">אין משתתפים</span>
                           )}
                         </td>
                       </tr>

@@ -40,11 +40,11 @@ export const formatCurrency = (amount: number, currency: string = 'ILS') => {
 // Event Status Helpers
 export const getStatusColor = (status: EventStatus) => {
   const colors: Record<EventStatus, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    planning: 'bg-blue-100 text-blue-800',
-    active: 'bg-green-100 text-green-800',
-    completed: 'bg-purple-100 text-purple-800',
-    cancelled: 'bg-red-100 text-red-800'
+    draft: 'bg-white/5 text-zinc-400',
+    planning: 'bg-blue-500/20 text-blue-400',
+    active: 'bg-emerald-500/20 text-emerald-400',
+    completed: 'bg-purple-500/20 text-purple-400',
+    cancelled: 'bg-red-500/20 text-red-400'
   }
   return colors[status] || colors.draft
 }
@@ -63,12 +63,12 @@ export const getStatusLabel = (status: EventStatus) => {
 // Participant Status Helpers
 export const getParticipantStatusColor = (status: ParticipantStatus) => {
   const colors: Record<ParticipantStatus, string> = {
-    invited: 'bg-yellow-100 text-yellow-800',
-    confirmed: 'bg-green-100 text-green-800',
-    declined: 'bg-red-100 text-red-800',
-    maybe: 'bg-orange-100 text-orange-800',
-    checked_in: 'bg-blue-100 text-blue-800',
-    no_show: 'bg-gray-100 text-gray-800'
+    invited: 'bg-amber-500/20 text-amber-400',
+    confirmed: 'bg-emerald-500/20 text-emerald-400',
+    declined: 'bg-red-500/20 text-red-400',
+    maybe: 'bg-orange-500/20 text-orange-400',
+    checked_in: 'bg-blue-500/20 text-blue-400',
+    no_show: 'bg-white/5 text-zinc-400'
   }
   return colors[status] || colors.invited
 }
@@ -108,12 +108,12 @@ export const formatPhoneDisplay = (phone: string): string => {
 // Vendor Status Helpers
 export const getVendorStatusColor = (status: VendorStatus) => {
   const colors: Record<VendorStatus, string> = {
-    pending: 'bg-gray-100 text-gray-800',
-    quote_requested: 'bg-yellow-100 text-yellow-800',
-    quoted: 'bg-blue-100 text-blue-800',
-    approved: 'bg-green-100 text-green-800',
-    rejected: 'bg-red-100 text-red-800',
-    confirmed: 'bg-purple-100 text-purple-800'
+    pending: 'bg-white/5 text-zinc-400',
+    quote_requested: 'bg-amber-500/20 text-amber-400',
+    quoted: 'bg-blue-500/20 text-blue-400',
+    approved: 'bg-emerald-500/20 text-emerald-400',
+    rejected: 'bg-red-500/20 text-red-400',
+    confirmed: 'bg-purple-500/20 text-purple-400'
   }
   return colors[status] || colors.pending
 }
@@ -139,11 +139,11 @@ export const renderStars = (rating: number | null) => {
 // Task Status Helpers
 export const getTaskStatusColor = (status: TaskStatus) => {
   const colors: Record<TaskStatus, string> = {
-    pending: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    completed: 'bg-green-100 text-green-800',
-    blocked: 'bg-red-100 text-red-800',
-    cancelled: 'bg-gray-300 text-gray-600'
+    pending: 'bg-white/5 text-zinc-400',
+    in_progress: 'bg-blue-500/20 text-blue-400',
+    completed: 'bg-emerald-500/20 text-emerald-400',
+    blocked: 'bg-red-500/20 text-red-400',
+    cancelled: 'bg-white/5 text-zinc-400'
   }
   return colors[status]
 }
@@ -162,10 +162,10 @@ export const getTaskStatusLabel = (status: TaskStatus) => {
 // Task Priority Helpers
 export const getPriorityColor = (priority: TaskPriority) => {
   const colors: Record<TaskPriority, string> = {
-    low: 'text-gray-500',
+    low: 'text-zinc-400',
     medium: 'text-blue-500',
     high: 'text-orange-500',
-    critical: 'text-red-600 font-bold'
+    critical: 'text-red-400 font-bold'
   }
   return colors[priority]
 }

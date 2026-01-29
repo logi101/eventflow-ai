@@ -1,7 +1,51 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { Plus, Edit2, Trash2, Clock, MapPin, User, Coffee, Play, Calendar, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import type { Schedule, ScheduleFormData } from '../../types'
+
+interface Schedule {
+  id: string
+  event_id: string
+  title: string
+  description: string | null
+  start_time: string
+  end_time: string
+  location: string | null
+  room: string | null
+  max_capacity: number | null
+  current_count: number
+  is_mandatory: boolean
+  is_break: boolean
+  track: string | null
+  track_color: string | null
+  speaker_name: string | null
+  speaker_title: string | null
+  speaker_bio: string | null
+  speaker_image: string | null
+  materials_url: string | null
+  send_reminder: boolean
+  reminder_minutes_before: number
+  sort_order: number
+  created_at: string
+  events?: { name: string }
+}
+
+interface ScheduleFormData {
+  title: string
+  description: string
+  start_time: string
+  end_time: string
+  location: string
+  room: string
+  max_capacity: string
+  is_mandatory: boolean
+  is_break: boolean
+  track: string
+  track_color: string
+  speaker_name: string
+  speaker_title: string
+  send_reminder: boolean
+  reminder_minutes_before: string
+}
 
 const trackColors = [
   { value: '#3B82F6', label: 'כחול' },
@@ -39,10 +83,6 @@ export function SchedulesPage() {
     send_reminder: true,
     reminder_minutes_before: '15'
   })
-
-  useEffect(() => {
-    loadData()
-  }, [])
 
   // Update the now line every minute
   useEffect(() => {
@@ -84,6 +124,10 @@ export function SchedulesPage() {
 
     setLoading(false)
   }
+
+  useEffect(() => {
+    loadData()
+  }, [])
 
   const filteredSchedules = schedules.filter(schedule => {
     return selectedEvent === 'all' || schedule.event_id === selectedEvent
@@ -193,7 +237,7 @@ export function SchedulesPage() {
       end_time: schedule.end_time.slice(0, 16),
       location: schedule.location || '',
       room: schedule.room || '',
-      max_capacity: schedule.max_participants?.toString() || '',
+      max_capacity: schedule.max_capacity?.toString() || '',
       is_mandatory: schedule.is_mandatory,
       is_break: schedule.is_break,
       track: schedule.track || '',
@@ -254,219 +298,250 @@ export function SchedulesPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex justify-center items-center min-h-[400px]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      <div className="p-8 relative z-10 flex justify-center items-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute inset-0 bg-amber-400/30 blur-2xl rounded-full animate-pulse" />
+            <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
+              <Loader2 className="w-8 h-8 text-white animate-spin" />
+            </div>
+          </div>
+          <p className="text-zinc-400 font-medium">טוען לוח זמנים...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold" data-testid="schedules-title">לוח זמנים</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="btn-primary"
-          data-testid="add-schedule-btn"
-        >
-          <Plus className="w-4 h-4 ml-2" />
-          פריט חדש
-        </button>
+    <div className="p-8 relative z-10">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-1/4 w-72 h-72 bg-amber-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-orange-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="card">
-          <p className="text-gray-500 text-sm">סה"כ פריטים</p>
-          <p className="text-2xl font-bold">{stats.total}</p>
+      <div className="relative p-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white" data-testid="schedules-title">לוח זמנים</h1>
+            <p className="text-zinc-400 mt-1">{stats.total} פריטים | {stats.sessions} מפגשים | {stats.breaks} הפסקות</p>
+          </div>
+          <button
+            onClick={() => setShowModal(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all duration-300"
+            data-testid="add-schedule-btn"
+          >
+            <Plus className="w-5 h-5" />
+            פריט חדש
+          </button>
         </div>
-        <div className="card">
-          <p className="text-gray-500 text-sm">מפגשים</p>
-          <p className="text-2xl font-bold text-blue-600">{stats.sessions}</p>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-8">
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-gray-400 to-gray-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-zinc-400 text-sm font-medium">סה"כ פריטים</p>
+            <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-zinc-400 text-sm font-medium">מפגשים</p>
+            <p className="text-3xl font-bold text-blue-600 mt-1">{stats.sessions}</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-orange-400 to-amber-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-zinc-400 text-sm font-medium">הפסקות</p>
+            <p className="text-3xl font-bold text-orange-400 mt-1">{stats.breaks}</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-purple-400 to-violet-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-zinc-400 text-sm font-medium">חובה</p>
+            <p className="text-3xl font-bold text-purple-600 mt-1">{stats.mandatory}</p>
+          </div>
         </div>
-        <div className="card">
-          <p className="text-gray-500 text-sm">הפסקות</p>
-          <p className="text-2xl font-bold text-orange-600">{stats.breaks}</p>
+
+        {/* Event Filter */}
+        <div className="bg-[#1a1d27]/60 backdrop-blur-sm rounded-2xl p-4 border border-white/10 mb-6">
+          <select
+            value={selectedEvent}
+            onChange={(e) => setSelectedEvent(e.target.value)}
+            className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all min-w-[250px]"
+          >
+            <option value="all">כל האירועים</option>
+            {events.map(event => (
+              <option key={event.id} value={event.id}>{event.name}</option>
+            ))}
+          </select>
         </div>
-        <div className="card">
-          <p className="text-gray-500 text-sm">חובה</p>
-          <p className="text-2xl font-bold text-purple-600">{stats.mandatory}</p>
-        </div>
-      </div>
 
-      {/* Event Filter */}
-      <div className="mb-6">
-        <select
-          value={selectedEvent}
-          onChange={(e) => setSelectedEvent(e.target.value)}
-          className="input min-w-[250px]"
-        >
-          <option value="all">כל האירועים</option>
-          {events.map(event => (
-            <option key={event.id} value={event.id}>{event.name}</option>
-          ))}
-        </select>
-      </div>
+        {/* Timeline */}
+        <div className="bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-6 overflow-hidden" data-testid="schedules-list">
+          {Object.keys(groupedSchedules).length === 0 ? (
+            <div className="text-center py-16">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full" />
+                <Clock className="relative mx-auto mb-4 text-gray-300" size={56} />
+              </div>
+              <p className="text-zinc-300 text-lg font-semibold">אין פריטים בלוח הזמנים</p>
+              <p className="text-zinc-500 text-sm mt-2">הוסף פריט ראשון להתחיל</p>
+            </div>
+          ) : (
+            <div className="space-y-10">
+              {Object.entries(groupedSchedules).map(([date, daySchedules]) => {
+                const isToday = date === todayDateStr
+                const nowPosition = isToday ? getNowLinePosition(daySchedules) : -1
 
-      {/* Timeline */}
-      <div className="card" data-testid="schedules-list">
-        {Object.keys(groupedSchedules).length === 0 ? (
-          <p className="text-gray-500 text-center py-8">אין פריטים בלוח הזמנים</p>
-        ) : (
-          <div className="space-y-8">
-            {Object.entries(groupedSchedules).map(([date, daySchedules]) => {
-              const isToday = date === todayDateStr
-              const nowPosition = isToday ? getNowLinePosition(daySchedules) : -1
+                return (
+                <div key={date}>
+                  {/* Date Header */}
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-md shadow-amber-500/20">
+                      <Calendar className="w-5 h-5 text-white" />
+                    </div>
+                    <h2 className="text-xl font-bold text-white">{date}</h2>
+                    {isToday && (
+                      <span className="text-xs bg-red-500/20 text-red-400 px-2.5 py-1 rounded-lg font-medium border border-red-500/30">עכשיו</span>
+                    )}
+                  </div>
 
-              return (
-              <div key={date}>
-                {/* Date Header */}
-                <div className="flex items-center gap-3 mb-4">
-                  <Calendar className="w-5 h-5 text-primary" />
-                  <h2 className="text-lg font-semibold text-gray-700">{date}</h2>
-                  {isToday && (
-                    <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">היום</span>
-                  )}
-                </div>
-
-                {/* Timeline Items */}
-                <div className="relative pr-8 border-r-2 border-gray-200 space-y-4">
-                  {daySchedules.map((schedule, index) => (
-                    <Fragment key={schedule.id}>
-                      {/* Now Line - before this item */}
-                      {nowPosition === index && (
-                        <div ref={nowLineRef} className="relative flex items-center py-1">
-                          <div
-                            className="absolute -right-[25px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-500 z-10"
-                            style={{ boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)' }}
-                          />
-                          <div className="w-full flex items-center gap-3 pr-8">
-                            <span className="text-[11px] font-bold text-red-500 shrink-0">
-                              {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                            </span>
-                            <div className="flex-1 h-[2px] bg-red-500" />
+                  {/* Timeline Items */}
+                  <div className="relative pr-8 border-r-2 border-amber-500/30 space-y-4">
+                    {daySchedules.map((schedule, index) => (
+                      <Fragment key={schedule.id}>
+                        {/* Now Line - current time indicator */}
+                        {nowPosition === index && (
+                          <div ref={nowLineRef} className="relative flex items-center py-1">
+                            <div
+                              className="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 z-10 border-2 border-red-400"
+                              style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.2)' }}
+                            />
+                            <div className="w-full flex items-center gap-3 pr-8">
+                              <span className="text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
+                                {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className="flex-1 h-[2px] bg-gradient-to-l from-red-500 to-red-500/20 rounded-full" />
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      <div
-                        className={`relative pr-8 ${
-                          schedule.is_break ? 'opacity-75' : ''
-                        }`}
-                      >
-                        {/* Timeline Dot */}
                         <div
-                          className={`absolute -right-[25px] w-4 h-4 rounded-full border-2 border-white ${
-                            schedule.is_break ? 'bg-orange-400' : schedule.track_color ? '' : 'bg-blue-500'
-                          }`}
-                          style={schedule.track_color && !schedule.is_break ? { backgroundColor: schedule.track_color } : {}}
-                        />
+                          className="relative pr-8 group"
+                        >
+                          {/* Timeline Dot */}
+                          <div
+                            className={`absolute -right-[10px] w-5 h-5 rounded-full border-3 border-white shadow-md ${
+                              schedule.is_break ? 'bg-gradient-to-br from-orange-400 to-amber-500' : schedule.track_color ? '' : 'bg-gradient-to-br from-blue-400 to-blue-600'
+                            }`}
+                            style={schedule.track_color && !schedule.is_break ? { background: `linear-gradient(135deg, ${schedule.track_color}, ${schedule.track_color}dd)` } : {}}
+                          />
 
-                        {/* Content Card */}
-                        <div className={`p-4 rounded-lg border ${
-                          schedule.is_break
-                            ? 'bg-orange-50 border-orange-200'
-                            : 'bg-white border-gray-200 hover:shadow-md'
-                        } transition-shadow`}>
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              {/* Time & Duration */}
-                              <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
-                                <Clock className="w-4 h-4" />
-                                <span>{formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}</span>
-                                <span className="text-gray-400">({getDuration(schedule.start_time, schedule.end_time)})</span>
-                              </div>
-
-                              {/* Title */}
-                              <div className="flex items-center gap-2">
-                                {schedule.is_break ? (
-                                  <Coffee className="w-4 h-4 text-orange-500" />
-                                ) : (
-                                  <Play className="w-4 h-4 text-blue-500" />
-                                )}
-                                <h3 className="font-semibold text-lg">{schedule.title}</h3>
-                                {schedule.is_mandatory && (
-                                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded">חובה</span>
-                                )}
-                                {schedule.track && (
-                                  <span
-                                    className="text-xs px-2 py-0.5 rounded text-white"
-                                    style={{ backgroundColor: schedule.track_color || '#6B7280' }}
-                                  >
-                                    {schedule.track}
+                          {/* Content Card */}
+                          <div className={`p-5 rounded-2xl border ${
+                            schedule.is_break
+                              ? 'bg-gradient-to-r from-orange-500/15 to-amber-500/10 border-orange-500/30'
+                              : 'bg-[#1a1d27]/90 border-white/10 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10'
+                          } transition-all duration-300`}>
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                {/* Time & Duration */}
+                                <div className="flex items-center gap-2 text-sm text-zinc-400 mb-2">
+                                  <span className="bg-white/5 px-2.5 py-1 rounded-lg font-medium flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5" />
+                                    {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
                                   </span>
-                                )}
-                              </div>
-
-                              {/* Description */}
-                              {schedule.description && (
-                                <p className="text-gray-600 text-sm mt-1">{schedule.description}</p>
-                              )}
-
-                              {/* Location & Room */}
-                              {(schedule.location || schedule.room) && (
-                                <div className="flex items-center gap-2 text-sm text-gray-500 mt-2">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{[schedule.location, schedule.room].filter(Boolean).join(' - ')}</span>
+                                  <span className="text-zinc-500 bg-white/5 px-2 py-1 rounded-lg text-xs">({getDuration(schedule.start_time, schedule.end_time)})</span>
                                 </div>
-                              )}
 
-                              {/* Speaker */}
-                              {schedule.speaker_name && (
-                                <div className="flex items-center gap-2 text-sm text-gray-600 mt-2">
-                                  <User className="w-4 h-4" />
-                                  <span>{schedule.speaker_name}</span>
-                                  {schedule.speaker_title && (
-                                    <span className="text-gray-400">| {schedule.speaker_title}</span>
+                                {/* Title */}
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  {schedule.is_break ? (
+                                    <Coffee className="w-5 h-5 text-orange-500" />
+                                  ) : (
+                                    <Play className="w-5 h-5 text-blue-500" />
+                                  )}
+                                  <h3 className="font-bold text-lg text-white group-hover:text-orange-400 transition-colors">{schedule.title}</h3>
+                                  {schedule.is_mandatory && (
+                                    <span className="text-xs bg-purple-500/20 text-purple-400 px-2.5 py-1 rounded-lg font-medium">חובה</span>
+                                  )}
+                                  {schedule.track && (
+                                    <span
+                                      className="text-xs px-2.5 py-1 rounded-lg text-white font-medium shadow-sm"
+                                      style={{ backgroundColor: schedule.track_color || '#6B7280' }}
+                                    >
+                                      {schedule.track}
+                                    </span>
                                   )}
                                 </div>
-                              )}
-                            </div>
 
-                            {/* Actions */}
-                            <div className="flex gap-1">
-                              <button
-                                onClick={() => openEditModal(schedule)}
-                                className="p-2 hover:bg-gray-100 rounded text-gray-500"
-                              >
-                                <Edit2 className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handleDelete(schedule.id)}
-                                className="p-2 hover:bg-red-50 rounded text-red-500"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                                {/* Description */}
+                                {schedule.description && (
+                                  <p className="text-zinc-400 text-sm mt-2">{schedule.description}</p>
+                                )}
+
+                                {/* Location & Room */}
+                                {(schedule.location || schedule.room) && (
+                                  <div className="flex items-center gap-2 text-sm text-zinc-400 mt-3 bg-white/5 px-3 py-1.5 rounded-lg inline-flex">
+                                    <MapPin className="w-4 h-4 text-rose-400" />
+                                    <span>{[schedule.location, schedule.room].filter(Boolean).join(' - ')}</span>
+                                  </div>
+                                )}
+
+                                {/* Speaker */}
+                                {schedule.speaker_name && (
+                                  <div className="flex items-center gap-2 text-sm text-zinc-400 mt-2 bg-blue-500/10 px-3 py-1.5 rounded-lg inline-flex">
+                                    <User className="w-4 h-4 text-blue-400" />
+                                    <span className="font-medium">{schedule.speaker_name}</span>
+                                    {schedule.speaker_title && (
+                                      <span className="text-zinc-500">| {schedule.speaker_title}</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Actions */}
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => openEditModal(schedule)}
+                                  className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                                >
+                                  <Edit2 className="w-4 h-4 text-zinc-400" />
+                                </button>
+                                <button
+                                  onClick={() => handleDelete(schedule.id)}
+                                  className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                                >
+                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    </Fragment>
-                  ))}
+                      </Fragment>
+                    ))}
 
-                  {/* Now Line - after all items */}
-                  {nowPosition === daySchedules.length && (
-                    <div ref={nowLineRef} className="relative flex items-center py-1">
-                      <div
-                        className="absolute -right-[25px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-500 z-10"
-                        style={{ boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.2)' }}
-                      />
-                      <div className="w-full flex items-center gap-3 pr-8">
-                        <span className="text-[11px] font-bold text-red-500 shrink-0">
-                          {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        <div className="flex-1 h-[2px] bg-red-500" />
+                    {/* Now Line - after all items */}
+                    {nowPosition === daySchedules.length && (
+                      <div ref={nowLineRef} className="relative flex items-center py-1">
+                        <div
+                          className="absolute -right-[10px] top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-red-500 z-10 border-2 border-red-400"
+                          style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.2)' }}
+                        />
+                        <div className="w-full flex items-center gap-3 pr-8">
+                          <span className="text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
+                            {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                          <div className="flex-1 h-[2px] bg-gradient-to-l from-red-500 to-red-500/20 rounded-full" />
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
 
       {/* Modal */}
       {showModal && (
@@ -476,7 +551,7 @@ export function SchedulesPage() {
               <h2 className="text-xl font-bold">
                 {editingSchedule ? 'עריכת פריט' : 'פריט חדש בלו"ז'}
               </h2>
-              <button onClick={closeModal} className="text-gray-500 hover:text-gray-700">
+              <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-300">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -668,10 +743,10 @@ export function SchedulesPage() {
               </div>
 
               <div className="flex gap-3 pt-4">
-                <button type="submit" className="btn-primary flex-1">
+                <button type="submit" className="flex-1 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all duration-300">
                   {editingSchedule ? 'עדכון' : 'יצירה'}
                 </button>
-                <button type="button" onClick={closeModal} className="btn-secondary">
+                <button type="button" onClick={closeModal} className="px-6 py-2.5 bg-[#1a1d27] border border-white/5 text-zinc-300 rounded-xl font-medium border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300">
                   ביטול
                 </button>
               </div>
@@ -679,6 +754,7 @@ export function SchedulesPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

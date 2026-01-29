@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Edit2, Trash2, Calendar, Clock, MessageSquare, ThumbsUp, ThumbsDown, BarChart3, FileQuestion, Star, X, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, X, Loader2, Calendar, Clock, Star, FileQuestion, BarChart3, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { FeedbackSurvey, FeedbackResponse, SurveyFormData, SimpleEvent } from '../../types'
 
@@ -59,6 +59,11 @@ export function FeedbackPage() {
     setLoading(false)
   }
 
+  useEffect(() => {
+    fetchSurveys()
+    fetchEvents()
+  }, [])
+
   async function fetchResponses(surveyId: string) {
     const { data } = await supabase
       .from('feedback_responses')
@@ -67,11 +72,6 @@ export function FeedbackPage() {
       .order('submitted_at', { ascending: false })
     if (data) setResponses(data)
   }
-
-  useEffect(() => {
-    fetchSurveys()
-    fetchEvents()
-  }, [])
 
   useEffect(() => {
     fetchSurveys()
@@ -228,21 +228,21 @@ export function FeedbackPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" data-testid="feedback-stats">
-        <div className="card bg-blue-50">
-          <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-          <p className="text-gray-600">סך הכל סקרים</p>
+        <div className="premium-stats-card orange">
+          <p className="text-2xl font-bold text-white">{stats.total}</p>
+          <p className="text-zinc-400">סך הכל סקרים</p>
         </div>
-        <div className="card bg-green-50">
-          <p className="text-2xl font-bold text-green-600">{stats.active}</p>
-          <p className="text-gray-600">סקרים פעילים</p>
+        <div className="premium-stats-card green">
+          <p className="text-2xl font-bold text-white">{stats.active}</p>
+          <p className="text-zinc-400">סקרים פעילים</p>
         </div>
-        <div className="card bg-purple-50">
-          <p className="text-2xl font-bold text-purple-600">{stats.totalResponses}</p>
-          <p className="text-gray-600">סה"כ תשובות</p>
+        <div className="premium-stats-card purple">
+          <p className="text-2xl font-bold text-white">{stats.totalResponses}</p>
+          <p className="text-zinc-400">סה"כ תשובות</p>
         </div>
-        <div className="card bg-gray-50">
-          <p className="text-2xl font-bold text-gray-600">{stats.anonymous}</p>
-          <p className="text-gray-600">סקרים אנונימיים</p>
+        <div className="premium-stats-card">
+          <p className="text-2xl font-bold text-zinc-400">{stats.anonymous}</p>
+          <p className="text-zinc-400">סקרים אנונימיים</p>
         </div>
       </div>
 
@@ -270,10 +270,10 @@ export function FeedbackPage() {
           {/* Surveys List */}
           {loading ? (
             <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+              <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
             </div>
           ) : surveys.length === 0 ? (
-            <div className="text-center py-12 text-gray-500" data-testid="no-surveys">
+            <div className="text-center py-12 text-zinc-400" data-testid="no-surveys">
               <FileQuestion className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-lg">אין סקרים עדיין</p>
               <p className="text-sm">צור סקר משוב ראשון לאירוע</p>
@@ -287,20 +287,20 @@ export function FeedbackPage() {
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-lg font-semibold">{survey.title}</h3>
                         <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                          survey.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                          survey.is_active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/5 text-zinc-400'
                         }`}>
                           {survey.is_active ? 'פעיל' : 'לא פעיל'}
                         </span>
                         {survey.anonymous && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
                             אנונימי
                           </span>
                         )}
                       </div>
                       {survey.description && (
-                        <p className="text-gray-600 text-sm mb-2">{survey.description}</p>
+                        <p className="text-zinc-400 text-sm mb-2">{survey.description}</p>
                       )}
-                      <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                      <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
                         <span className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
                           {survey.events?.name || 'ללא אירוע'}
@@ -324,35 +324,35 @@ export function FeedbackPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                        className="p-2 text-blue-400 hover:bg-blue-500/10 rounded-lg"
                         onClick={() => viewSurveyResponses(survey)}
                         title="צפייה בתשובות"
                       >
                         <MessageSquare className="w-5 h-5" />
                       </button>
                       <button
-                        className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg"
+                        className="p-2 text-purple-400 hover:bg-purple-500/10 rounded-lg"
                         onClick={() => viewSurveyAnalytics(survey)}
                         title="אנליטיקה"
                       >
                         <BarChart3 className="w-5 h-5" />
                       </button>
                       <button
-                        className={`p-2 rounded-lg ${survey.is_active ? 'text-orange-600 hover:bg-orange-50' : 'text-green-600 hover:bg-green-50'}`}
+                        className={`p-2 rounded-lg ${survey.is_active ? 'text-orange-400 hover:bg-orange-500/10' : 'text-emerald-400 hover:bg-emerald-500/10'}`}
                         onClick={() => toggleSurveyActive(survey)}
                         title={survey.is_active ? 'השבת' : 'הפעל'}
                       >
                         {survey.is_active ? <ThumbsDown className="w-5 h-5" /> : <ThumbsUp className="w-5 h-5" />}
                       </button>
                       <button
-                        className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className="p-2 text-zinc-400 hover:bg-white/5 rounded-lg"
                         onClick={() => openEditModal(survey)}
                         title="עריכה"
                       >
                         <Edit2 className="w-5 h-5" />
                       </button>
                       <button
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="p-2 text-red-400 hover:bg-red-500/100/10 rounded-lg"
                         onClick={() => deleteSurvey(survey.id)}
                         title="מחיקה"
                       >
@@ -372,10 +372,10 @@ export function FeedbackPage() {
         <div data-testid="responses-view">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">תשובות לסקר: {selectedSurvey.title}</h2>
-            <span className="text-gray-500">{responses.length} תשובות</span>
+            <span className="text-zinc-400">{responses.length} תשובות</span>
           </div>
           {responses.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-zinc-400">
               <MessageSquare className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-lg">אין תשובות עדיין</p>
             </div>
@@ -386,26 +386,26 @@ export function FeedbackPage() {
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       {selectedSurvey.anonymous ? (
-                        <span className="text-gray-500">משתתף אנונימי</span>
+                        <span className="text-zinc-400">משתתף אנונימי</span>
                       ) : response.participants ? (
                         <span className="font-medium">{response.participants.first_name} {response.participants.last_name}</span>
                       ) : (
-                        <span className="text-gray-500">משתתף לא מזוהה</span>
+                        <span className="text-zinc-400">משתתף לא מזוהה</span>
                       )}
                     </div>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-zinc-400">
                       {new Date(response.submitted_at).toLocaleString('he-IL')}
                     </span>
                   </div>
                   <div className="space-y-2">
                     {response.answers && Object.entries(response.answers).map(([questionId, answer]) => (
-                      <div key={questionId} className="bg-gray-50 p-3 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-1">שאלה: {questionId}</p>
+                      <div key={questionId} className="bg-white/5 p-3 rounded-lg">
+                        <p className="text-sm text-zinc-400 mb-1">שאלה: {questionId}</p>
                         <p className="font-medium">
                           {typeof answer === 'number' ? (
                             <span className="flex items-center gap-1">
                               {Array.from({ length: 5 }, (_, i) => (
-                                <Star key={i} className={`w-4 h-4 ${i < (answer as number) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
+                                <Star key={i} className={`w-4 h-4 ${i < answer ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} />
                               ))}
                               <span className="mr-2">{answer}/5</span>
                             </span>
@@ -428,10 +428,10 @@ export function FeedbackPage() {
         <div data-testid="analytics-view">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">אנליטיקה: {selectedSurvey.title}</h2>
-            <span className="text-gray-500">{responses.length} תשובות</span>
+            <span className="text-zinc-400">{responses.length} תשובות</span>
           </div>
           {responses.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-zinc-400">
               <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
               <p className="text-lg">אין נתונים לניתוח</p>
             </div>
@@ -448,23 +448,23 @@ export function FeedbackPage() {
                     {data.average !== undefined && (
                       <div className="mb-4">
                         <p className="text-3xl font-bold text-blue-600">{data.average.toFixed(1)}</p>
-                        <p className="text-gray-500">ממוצע דירוג</p>
+                        <p className="text-zinc-400">ממוצע דירוג</p>
                       </div>
                     )}
 
                     {data.distribution && Object.keys(data.distribution).length > 0 && (
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-gray-600 mb-2">התפלגות תשובות:</p>
+                        <p className="text-sm font-medium text-zinc-400 mb-2">התפלגות תשובות:</p>
                         {Object.entries(data.distribution).map(([value, count]) => (
                           <div key={value} className="flex items-center gap-2">
                             <span className="w-20 text-sm">{value}</span>
-                            <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="flex-1 h-6 bg-white/5 rounded-full overflow-hidden">
                               <div
                                 className="h-full bg-blue-500 rounded-full"
                                 style={{ width: `${(count / responses.length) * 100}%` }}
                               />
                             </div>
-                            <span className="w-12 text-sm text-gray-500">{count} ({Math.round((count / responses.length) * 100)}%)</span>
+                            <span className="w-12 text-sm text-zinc-400">{count} ({Math.round((count / responses.length) * 100)}%)</span>
                           </div>
                         ))}
                       </div>
@@ -472,13 +472,13 @@ export function FeedbackPage() {
 
                     {data.responses && data.responses.length > 0 && !data.distribution && (
                       <div className="mt-4">
-                        <p className="text-sm font-medium text-gray-600 mb-2">תשובות טקסט:</p>
+                        <p className="text-sm font-medium text-zinc-400 mb-2">תשובות טקסט:</p>
                         <ul className="space-y-1">
                           {data.responses.slice(0, 10).map((r, i) => (
-                            <li key={i} className="text-sm bg-gray-50 p-2 rounded">{r}</li>
+                            <li key={i} className="text-sm bg-white/5 p-2 rounded">{r}</li>
                           ))}
                           {data.responses.length > 10 && (
-                            <li className="text-sm text-gray-500">...ועוד {data.responses.length - 10} תשובות</li>
+                            <li className="text-sm text-zinc-400">...ועוד {data.responses.length - 10} תשובות</li>
                           )}
                         </ul>
                       </div>
@@ -497,7 +497,7 @@ export function FeedbackPage() {
           <div className="glass-modal p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto" data-testid="survey-modal">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold">{editingSurvey ? 'עריכת סקר' : 'סקר חדש'}</h2>
-              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setShowModal(false)} className="text-zinc-500 hover:text-zinc-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
@@ -576,7 +576,7 @@ export function FeedbackPage() {
                     name="is_active"
                     checked={formData.is_active}
                     onChange={handleInputChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                    className="w-4 h-4 text-blue-600 border-white/20 rounded"
                   />
                   <span className="text-sm">סקר פעיל</span>
                 </label>
@@ -586,7 +586,7 @@ export function FeedbackPage() {
                     name="anonymous"
                     checked={formData.anonymous}
                     onChange={handleInputChange}
-                    className="w-4 h-4 text-blue-600 border-gray-300 rounded"
+                    className="w-4 h-4 text-blue-600 border-white/20 rounded"
                   />
                   <span className="text-sm">סקר אנונימי</span>
                 </label>

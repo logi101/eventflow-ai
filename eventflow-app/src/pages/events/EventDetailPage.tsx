@@ -1,23 +1,17 @@
-import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
-import { useEvent } from '../../contexts/EventContext'
-import {
-  Calendar, Clock, Users, User, Building2, Shield, Target, Zap, AlertTriangle,
-  Plus, Edit2, Trash2, Save, X, Download, List, Grid3X3, CalendarDays,
-  Eye, ArrowLeft, Coffee, Mic, UserCheck, Video, Monitor, FileText, Loader2
-} from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Link, useParams, useNavigate } from 'react-router-dom'
+import { Calendar, Users, Plus, Edit2, Trash2, Clock, X, Loader2, Coffee, User, FileText, AlertTriangle, ArrowLeft, Grid3X3, List, CalendarDays, Mic, Monitor, Video, Building2, Save, Eye, Target, Shield, Zap, UserCheck, Download } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import type {
-  ProgramDay, Track, Room, Speaker, Contingency, TimeBlock,
-  ContingencyType, ContingencyStatus, RiskLevel, BlockType, ExtendedSchedule, ScheduleChange
-} from '../../types'
-import { formatDate, getStatusColor, getStatusLabel } from '../../utils'
 import * as XLSX from 'xlsx'
 import { EventSettingsPanel } from '../../modules/events/components/EventSettingsPanel'
+import type { Event, ProgramDay, Track, Room, Speaker, Contingency, ScheduleChange, TimeBlock, BlockType, ContingencyType, ContingencyStatus, RiskLevel, ExtendedSchedule } from '../../types'
+import { formatDate, getStatusColor, getStatusLabel } from '../../utils'
 
 export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: string }) {
   const { eventId } = useParams<{ eventId: string }>()
-  const { selectedEvent: event, loading } = useEvent()
+  const navigate = useNavigate()
+  const [event, setEvent] = useState<Event | null>(null)
+  const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState(initialTab)
 
   // Program Builder State
@@ -90,6 +84,26 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
   }
 
+  async function loadEventData() {
+    if (!eventId) return
+    setLoading(true)
+
+    const { data, error } = await supabase
+      .from('events')
+      .select(`*, event_types (id, name, name_en, icon)`)
+      .eq('id', eventId)
+      .single()
+
+    if (error) {
+      console.error('Error loading event:', error)
+      navigate('/events')
+      return
+    }
+
+    setEvent(data)
+    setLoading(false)
+  }
+
   async function loadProgramData() {
     if (!eventId) return
 
@@ -123,6 +137,20 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     // Check for conflicts
     checkForConflicts(sessionsRes.data || [])
   }
+
+  // Load event data
+  useEffect(() => {
+    if (eventId) {
+      loadEventData()
+    }
+  }, [eventId])
+
+  // Load program data when switching to program tab
+  useEffect(() => {
+    if (activeTab === 'program' && eventId) {
+      loadProgramData()
+    }
+  }, [activeTab, eventId])
 
   function checkForConflicts(sessionsList: ExtendedSchedule[]) {
     const newConflicts: { type: string; message: string; scheduleId: string }[] = []
@@ -296,6 +324,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     if (potentialConflicts.length > 0) {
       setConflicts(potentialConflicts)
       setShowConflictPanel(true)
+      // Don't return - let user decide
     }
 
     if (editingSession) {
@@ -322,10 +351,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     loadProgramData()
   }
 
-  function checkSessionConflicts(
-    newSession: { title: string; description: string | null; start_time: string; end_time: string; program_day_id: string | null; track_id: string | null; room_id: string | null; session_type: string | null; event_id: string },
-    allSessions: ExtendedSchedule[]
-  ) {
+  function checkSessionConflicts(newSession: { title: string; description: string | null; start_time: string; end_time: string; program_day_id: string | null; track_id: string | null; room_id: string | null; session_type: string | null; event_id: string }, allSessions: ExtendedSchedule[]) {
     const conflicts: { type: string; message: string; scheduleId: string }[] = []
 
     if (!newSession.room_id || !newSession.program_day_id) return conflicts
@@ -460,10 +486,10 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   // Helper functions
   const getRiskLevelColor = (level: RiskLevel) => {
     const colors = {
-      low: 'bg-green-100 text-green-800',
-      medium: 'bg-yellow-100 text-yellow-800',
-      high: 'bg-orange-100 text-orange-800',
-      critical: 'bg-red-100 text-red-800'
+      low: 'bg-emerald-500/20 text-emerald-400',
+      medium: 'bg-amber-500/20 text-amber-400',
+      high: 'bg-orange-500/20 text-orange-400',
+      critical: 'bg-red-500/20 text-red-400'
     }
     return colors[level]
   }
@@ -547,7 +573,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   if (!event) {
     return (
       <div className="p-8 text-center">
-        <p className="text-gray-500">אירוע לא נמצא</p>
+        <p className="text-zinc-400">אירוע לא נמצא</p>
         <Link to="/events" className="text-orange-500 hover:underline">חזרה לרשימת האירועים</Link>
       </div>
     )
@@ -567,12 +593,12 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
 
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
-        <Link to="/events" className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+        <Link to="/events" className="p-2 hover:bg-white/5 rounded-lg transition-colors">
           <ArrowLeft size={24} />
         </Link>
         <div>
           <h1 className="text-3xl font-bold" data-testid="event-detail-title">{event.name}</h1>
-          <p className="text-gray-500">{formatDate(event.start_date)}</p>
+          <p className="text-zinc-400">{formatDate(event.start_date)}</p>
         </div>
         <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(event.status)}`}>
           {getStatusLabel(event.status)}
@@ -594,7 +620,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
             className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
               activeTab === tab.id
                 ? 'bg-orange-500 text-white'
-                : 'hover:bg-gray-100'
+                : 'hover:bg-white/5'
             }`}
             data-testid={`event-${tab.id}-tab`}
           >
@@ -610,22 +636,22 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           {event.description && (
             <div className="card">
               <h2 className="text-xl font-bold mb-2">תיאור</h2>
-              <p className="text-gray-600">{event.description}</p>
+              <p className="text-zinc-400">{event.description}</p>
             </div>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="card text-center">
               <p className="text-3xl font-bold text-orange-500">{programDays.length}</p>
-              <p className="text-gray-500">ימי תוכנית</p>
+              <p className="text-zinc-400">ימי תוכנית</p>
             </div>
             <div className="card text-center">
               <p className="text-3xl font-bold text-blue-500">{sessions.length}</p>
-              <p className="text-gray-500">מפגשים</p>
+              <p className="text-zinc-400">מפגשים</p>
             </div>
             <div className="card text-center">
               <p className="text-3xl font-bold text-green-500">{speakers.length}</p>
-              <p className="text-gray-500">דוברים</p>
+              <p className="text-zinc-400">דוברים</p>
             </div>
           </div>
         </div>
@@ -638,28 +664,28 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'hover:bg-gray-100'}`}
+                className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
                 data-testid="view-toggle-list"
               >
                 <List size={20} />
               </button>
               <button
                 onClick={() => setViewMode('timeline')}
-                className={`p-2 rounded-lg ${viewMode === 'timeline' ? 'bg-orange-500 text-white' : 'hover:bg-gray-100'}`}
+                className={`p-2 rounded-lg ${viewMode === 'timeline' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
                 data-testid="view-toggle-timeline"
               >
                 <Clock size={20} />
               </button>
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'hover:bg-gray-100'}`}
+                className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
                 data-testid="view-toggle-grid"
               >
                 <Grid3X3 size={20} />
               </button>
               <button
                 onClick={() => setViewMode('calendar')}
-                className={`p-2 rounded-lg ${viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'hover:bg-gray-100'}`}
+                className={`p-2 rounded-lg ${viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
                 data-testid="view-toggle-calendar"
               >
                 <CalendarDays size={20} />
@@ -688,24 +714,24 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
 
           {/* Conflicts Panel */}
           {showConflictPanel && (
-            <div className="card mb-6 border-red-200 bg-red-50" data-testid="conflicts-panel">
-              <h3 className="font-bold text-red-800 mb-2">התנגשויות שזוהו</h3>
+            <div className="card mb-6 border-red-500/30 bg-red-500/10" data-testid="conflicts-panel">
+              <h3 className="font-bold text-red-400 mb-2">התנגשויות שזוהו</h3>
               <p data-testid="conflicts-count">{conflicts.length} התנגשויות</p>
               <div className="space-y-2 mt-2">
                 {conflicts.map((c, i) => (
-                  <div key={i} className="p-2 bg-white rounded border border-red-200">
+                  <div key={i} className="p-2 bg-[#1a1d27] rounded border border-red-200">
                     <p className="text-sm">{c.message}</p>
                   </div>
                 ))}
                 {conflicts.length === 0 && (
-                  <p className="text-green-600">אין התנגשויות!</p>
+                  <p className="text-emerald-400">אין התנגשויות!</p>
                 )}
               </div>
             </div>
           )}
 
           {/* Live Update Indicator */}
-          <div className="flex items-center gap-2 mb-4 text-sm text-gray-500" data-testid="live-update-indicator">
+          <div className="flex items-center gap-2 mb-4 text-sm text-zinc-400" data-testid="live-update-indicator">
             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
             <span>עדכון בזמן אמת</span>
           </div>
@@ -729,12 +755,12 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                 <div key={day.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow" data-testid="program-day-card" data-date={day.date}>
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 rounded text-sm mb-2" data-testid="day-number-badge">
+                      <span className="inline-block px-2 py-1 bg-orange-500/20 text-orange-400 rounded text-sm mb-2" data-testid="day-number-badge">
                         יום {index + 1}
                       </span>
                       <h3 className="font-bold">{day.theme || formatDate(day.date).split(',')[0]}</h3>
-                      <p className="text-sm text-gray-500">{new Date(day.date).toLocaleDateString('he-IL')}</p>
-                      {day.description && <p className="text-sm text-gray-600 mt-2">{day.description}</p>}
+                      <p className="text-sm text-zinc-400">{new Date(day.date).toLocaleDateString('he-IL')}</p>
+                      {day.description && <p className="text-sm text-zinc-400 mt-2">{day.description}</p>}
                     </div>
                     <div className="flex gap-1">
                       <button
@@ -743,14 +769,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                           setDayForm({ date: day.date, theme: day.theme || '', description: day.description || '' })
                           setShowDayModal(true)
                         }}
-                        className="p-1 hover:bg-gray-100 rounded"
+                        className="p-1 hover:bg-white/5 rounded"
                         data-testid="edit-day-button"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => { setDeleteTarget({ type: 'day', id: day.id, name: day.theme || `יום ${index + 1}` }); setShowDeleteConfirm(true) }}
-                        className="p-1 hover:bg-red-50 rounded text-red-500"
+                        className="p-1 hover:bg-red-500/10 rounded text-red-500"
                         data-testid="delete-day-button"
                       >
                         <Trash2 size={16} />
@@ -795,22 +821,22 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                           setTrackForm({ name: track.name, description: track.description || '', color: track.color, icon: track.icon || '' })
                           setShowTrackModal(true)
                         }}
-                        className="p-1 hover:bg-gray-100 rounded"
+                        className="p-1 hover:bg-white/5 rounded"
                         data-testid="edit-track-button"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => { setDeleteTarget({ type: 'track', id: track.id, name: track.name }); setShowDeleteConfirm(true) }}
-                        className="p-1 hover:bg-red-50 rounded text-red-500"
+                        className="p-1 hover:bg-red-500/10 rounded text-red-500"
                         data-testid="delete-track-button"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
-                  {track.description && <p className="text-sm text-gray-600 mt-2">{track.description}</p>}
-                  <p className="text-sm text-gray-500 mt-2" data-testid="track-sessions-count">
+                  {track.description && <p className="text-sm text-zinc-400 mt-2">{track.description}</p>}
+                  <p className="text-sm text-zinc-400 mt-2" data-testid="track-sessions-count">
                     {sessions.filter(s => s.track_id === track.id).length} מפגשים
                   </p>
                 </div>
@@ -850,28 +876,28 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                           })
                           setShowRoomModal(true)
                         }}
-                        className="p-1 hover:bg-gray-100 rounded"
+                        className="p-1 hover:bg-white/5 rounded"
                         data-testid="edit-room-button"
                       >
                         <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => { setDeleteTarget({ type: 'room', id: room.id, name: room.name }); setShowDeleteConfirm(true) }}
-                        className="p-1 hover:bg-red-50 rounded text-red-500"
+                        className="p-1 hover:bg-red-500/10 rounded text-red-500"
                         data-testid="delete-room-button"
                       >
                         <Trash2 size={16} />
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-500 mt-2" data-testid="room-capacity">
+                  <div className="flex items-center gap-2 text-sm text-zinc-400 mt-2" data-testid="room-capacity">
                     <Users size={14} />
                     {room.capacity || '---'} מקומות
                   </div>
                   {room.equipment && room.equipment.length > 0 && (
                     <div className="flex gap-1 mt-2" data-testid="room-equipment">
                       {room.equipment.map(eq => (
-                        <span key={eq} className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        <span key={eq} className="text-xs bg-white/5 px-2 py-1 rounded">
                           {eq === 'projector' && <Monitor size={12} className="inline" />}
                           {eq === 'microphone' && <Mic size={12} className="inline" />}
                           {eq === 'livestream' && <Video size={12} className="inline" />}
@@ -881,13 +907,13 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                     </div>
                   )}
                   {room.backup_room_id && (
-                    <div className="flex items-center gap-1 text-xs text-green-600 mt-2" data-testid="backup-room-indicator">
+                    <div className="flex items-center gap-1 text-xs text-emerald-400 mt-2" data-testid="backup-room-indicator">
                       <Shield size={12} />
                       חדר גיבוי מוגדר
                     </div>
                   )}
                   <div className="mt-2" data-testid="room-availability-indicator">
-                    <span className="text-xs text-green-600">זמין</span>
+                    <span className="text-xs text-emerald-400">זמין</span>
                   </div>
                 </div>
               ))}
@@ -930,14 +956,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                         {speaker.photo_url ? (
                           <img src={speaker.photo_url} alt={speaker.name} className="w-full h-full rounded-full object-cover" />
                         ) : (
-                          <User size={24} className="text-gray-400" />
+                          <User size={24} className="text-zinc-500" />
                         )}
                       </div>
                       <div className="flex-1">
                         <div className="flex justify-between items-start">
                           <div>
                             <h3 className="font-bold">{speaker.name}</h3>
-                            {speaker.title && <p className="text-sm text-gray-600">{speaker.title}</p>}
+                            {speaker.title && <p className="text-sm text-zinc-400">{speaker.title}</p>}
                           </div>
                           <div className="flex gap-1">
                             <button
@@ -953,14 +979,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                                 })
                                 setShowSpeakerModal(true)
                               }}
-                              className="p-1 hover:bg-gray-100 rounded"
+                              className="p-1 hover:bg-white/5 rounded"
                               data-testid="edit-speaker-button"
                             >
                               <Edit2 size={16} />
                             </button>
                             <button
                               onClick={() => { setDeleteTarget({ type: 'speaker', id: speaker.id, name: speaker.name }); setShowDeleteConfirm(true) }}
-                              className="p-1 hover:bg-red-50 rounded text-red-500"
+                              className="p-1 hover:bg-red-500/10 rounded text-red-500"
                               data-testid="delete-speaker-button"
                             >
                               <Trash2 size={16} />
@@ -968,17 +994,17 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                           </div>
                         </div>
                         <div className="flex gap-2 mt-2">
-                          <span className={`text-xs px-2 py-1 rounded ${speaker.is_confirmed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`} data-testid="speaker-status">
+                          <span className={`text-xs px-2 py-1 rounded ${speaker.is_confirmed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`} data-testid="speaker-status">
                             {speaker.is_confirmed ? 'מאושר' : 'ממתין לאישור'}
                           </span>
                         </div>
                         {speaker.backup_speaker_id && (
-                          <div className="flex items-center gap-1 text-xs text-green-600 mt-2" data-testid="backup-speaker-indicator">
+                          <div className="flex items-center gap-1 text-xs text-emerald-400 mt-2" data-testid="backup-speaker-indicator">
                             <Shield size={12} />
                             דובר גיבוי מוגדר
                           </div>
                         )}
-                        <p className="text-sm text-gray-500 mt-2" data-testid="speaker-sessions-count">
+                        <p className="text-sm text-zinc-400 mt-2" data-testid="speaker-sessions-count">
                           {sessions.filter(s => s.session_speakers?.some(ss => ss.speaker_id === speaker.id)).length} מפגשים
                         </p>
                       </div>
@@ -1006,15 +1032,15 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               {timeBlocks.map(block => (
                 <div key={block.id} className="border rounded-lg p-3 flex items-center justify-between" data-testid="time-block-card">
                   <div className="flex items-center gap-3">
-                    <span className="text-gray-500" data-testid="block-type-icon">{getBlockTypeIcon(block.block_type)}</span>
+                    <span className="text-zinc-400" data-testid="block-type-icon">{getBlockTypeIcon(block.block_type)}</span>
                     <div>
                       <h4 className="font-medium">{block.title}</h4>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-zinc-400">
                         {new Date(block.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} -
                         {new Date(block.end_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    <span className="text-xs bg-gray-100 px-2 py-1 rounded">{getBlockTypeLabel(block.block_type)}</span>
+                    <span className="text-xs bg-white/5 px-2 py-1 rounded">{getBlockTypeLabel(block.block_type)}</span>
                   </div>
                   <div className="flex gap-1">
                     <button
@@ -1030,13 +1056,13 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                         })
                         setShowBlockModal(true)
                       }}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-white/5 rounded"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => { setDeleteTarget({ type: 'block', id: block.id, name: block.title }); setShowDeleteConfirm(true) }}
-                      className="p-1 hover:bg-red-50 rounded text-red-500"
+                      className="p-1 hover:bg-red-500/10 rounded text-red-500"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -1113,7 +1139,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                           )}
                           <h3 className="font-bold">{session.title}</h3>
                         </div>
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                        <div className="flex flex-wrap gap-4 text-sm text-zinc-400">
                           <span data-testid="session-duration">
                             <Clock size={14} className="inline mr-1" />
                             {new Date(session.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })} -
@@ -1135,7 +1161,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                         {session.session_speakers && session.session_speakers.length > 0 && (
                           <div className="flex gap-2 mt-2" data-testid="session-speakers">
                             {session.session_speakers.map(ss => (
-                              <span key={ss.id} className="text-xs bg-gray-100 px-2 py-1 rounded flex items-center gap-1">
+                              <span key={ss.id} className="text-xs bg-white/5 px-2 py-1 rounded flex items-center gap-1">
                                 <User size={12} />
                                 {ss.speaker?.name || 'דובר'}
                               </span>
@@ -1159,14 +1185,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                             })
                             setShowSessionModal(true)
                           }}
-                          className="p-1 hover:bg-gray-100 rounded"
+                          className="p-1 hover:bg-white/5 rounded"
                           data-testid="edit-session-button"
                         >
                           <Edit2 size={16} />
                         </button>
                         <button
                           onClick={() => { setDeleteTarget({ type: 'session', id: session.id, name: session.title }); setShowDeleteConfirm(true) }}
-                          className="p-1 hover:bg-red-50 rounded text-red-500"
+                          className="p-1 hover:bg-red-500/10 rounded text-red-500"
                           data-testid="delete-session-button"
                         >
                           <Trash2 size={16} />
@@ -1177,7 +1203,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                 ))}
 
                 {filteredSessions.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
+                  <div className="text-center py-8 text-zinc-400">
                     <Calendar className="mx-auto mb-2" size={32} />
                     <p>אין מפגשים עדיין</p>
                   </div>
@@ -1188,7 +1214,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
             {/* Timeline View */}
             {viewMode === 'timeline' && (
               <div data-testid="timeline-view">
-                <div className="relative border-r-2 border-orange-200 pr-4">
+                <div className="relative border-r-2 border-orange-500/30 pr-4">
                   {filteredSessions.map((session) => (
                     <div
                       key={session.id}
@@ -1198,7 +1224,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                     >
                       <div className="absolute -right-2 top-0 w-4 h-4 rounded-full bg-orange-500"></div>
                       <div className="mr-4 border rounded-lg p-3 hover:shadow-md transition-shadow">
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-zinc-400">
                           {new Date(session.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                         <h4 className="font-bold">{session.title}</h4>
@@ -1225,7 +1251,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                       {filteredSessions.filter(s => s.track_id === track.id).map(session => (
                         <div key={session.id} className="border rounded p-2 text-sm">
                           <p className="font-medium">{session.title}</p>
-                          <p className="text-gray-500 text-xs">
+                          <p className="text-zinc-400 text-xs">
                             {new Date(session.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
                           </p>
                         </div>
@@ -1241,7 +1267,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               <div data-testid="calendar-view">
                 <div className="grid grid-cols-7 gap-1 mb-4">
                   {['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ש'].map(day => (
-                    <div key={day} className="text-center font-bold text-gray-500 p-2">{day}</div>
+                    <div key={day} className="text-center font-bold text-zinc-400 p-2">{day}</div>
                   ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
@@ -1297,7 +1323,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
             {contingencies.map(contingency => (
               <div
                 key={contingency.id}
-                className={`border rounded-lg p-4 ${contingency.status === 'activated' ? 'border-red-500 bg-red-50 active' : ''}`}
+                className={`border rounded-lg p-4 ${contingency.status === 'activated' ? 'border-red-500 bg-red-500/10 active' : 'border-white/10'}`}
                 data-testid="contingency-card"
               >
                 <div className="flex justify-between items-start mb-2">
@@ -1305,7 +1331,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                     <span className={`px-2 py-1 rounded text-xs ${getRiskLevelColor(contingency.risk_level)}`} data-testid="risk-level-indicator">
                       {getRiskLevelLabel(contingency.risk_level)}
                     </span>
-                    <span className="text-sm text-gray-500">{getContingencyTypeLabel(contingency.contingency_type)}</span>
+                    <span className="text-sm text-zinc-400">{getContingencyTypeLabel(contingency.contingency_type)}</span>
                   </div>
                   <div className="flex gap-1">
                     <button
@@ -1321,29 +1347,29 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                         })
                         setShowContingencyModal(true)
                       }}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-white/5 rounded"
                     >
                       <Edit2 size={16} />
                     </button>
                     <button
                       onClick={() => { setDeleteTarget({ type: 'contingency', id: contingency.id, name: contingency.description }); setShowDeleteConfirm(true) }}
-                      className="p-1 hover:bg-red-50 rounded text-red-500"
+                      className="p-1 hover:bg-red-500/10 rounded text-red-500"
                     >
                       <Trash2 size={16} />
                     </button>
                   </div>
                 </div>
                 <p className="font-medium mb-2">{contingency.description}</p>
-                <p className="text-sm text-gray-600 mb-3"><strong>תכנית פעולה:</strong> {contingency.action_plan}</p>
+                <p className="text-sm text-zinc-400 mb-3"><strong>תכנית פעולה:</strong> {contingency.action_plan}</p>
 
                 {contingency.backup_speaker_id && (
-                  <div className="flex items-center gap-1 text-sm text-green-600 mb-2" data-testid="linked-speaker">
+                  <div className="flex items-center gap-1 text-sm text-emerald-400 mb-2" data-testid="linked-speaker">
                     <User size={14} />
                     דובר גיבוי: {contingency.backup_speaker?.name}
                   </div>
                 )}
                 {contingency.backup_room_id && (
-                  <div className="flex items-center gap-1 text-sm text-green-600 mb-2" data-testid="linked-room">
+                  <div className="flex items-center gap-1 text-sm text-emerald-400 mb-2" data-testid="linked-room">
                     <Building2 size={14} />
                     חדר גיבוי: {contingency.backup_room?.name}
                   </div>
@@ -1351,9 +1377,10 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
 
                 {contingency.status !== 'activated' && (
                   <button
-                    className="btn-secondary w-full mt-2 text-red-600 border-red-300"
+                    className="btn-secondary w-full mt-2 text-red-400 border-red-500/30"
                     data-testid="activate-contingency-button"
                     onClick={() => {
+                      // Show impact analysis modal before activation
                       showToast('מציג ניתוח השפעה...', 'warning')
                     }}
                   >
@@ -1387,14 +1414,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               <div key={change.id} className="border rounded-lg p-4" data-testid="change-log-entry">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-sm text-gray-500" data-testid="change-timestamp">
+                    <span className="text-sm text-zinc-400" data-testid="change-timestamp">
                       {new Date(change.created_at).toLocaleString('he-IL')}
                     </span>
                     <span className="mx-2">|</span>
                     <span className="font-medium" data-testid="change-type">{change.change_type}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded ${change.notification_sent ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`} data-testid="notification-status">
+                    <span className={`text-xs px-2 py-1 rounded ${change.notification_sent ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`} data-testid="notification-status">
                       {change.notification_sent ? 'נשלח' : 'ממתין'}
                     </span>
                     {!change.notification_sent && (
@@ -1409,28 +1436,32 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                 </div>
                 <div className="grid grid-cols-2 gap-4 mt-2 text-sm">
                   <div data-testid="change-old-value">
-                    <span className="text-gray-500">ערך קודם:</span>
+                    <span className="text-zinc-400">ערך קודם:</span>
                     <span className="mr-2">{JSON.stringify(change.old_value)}</span>
                   </div>
                   <div data-testid="change-new-value">
-                    <span className="text-gray-500">ערך חדש:</span>
+                    <span className="text-zinc-400">ערך חדש:</span>
                     <span className="mr-2">{JSON.stringify(change.new_value)}</span>
                   </div>
                 </div>
                 {change.reason && (
-                  <p className="text-sm text-gray-600 mt-2">סיבה: {change.reason}</p>
+                  <p className="text-sm text-zinc-400 mt-2">סיבה: {change.reason}</p>
                 )}
               </div>
             ))}
 
             {scheduleChanges.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
+              <div className="text-center py-8 text-zinc-400">
                 <Clock className="mx-auto mb-2" size={32} />
                 <p>אין שינויים עדיין</p>
               </div>
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'settings' && event && (
+        <EventSettingsPanel event={event} />
       )}
 
       {/* Modals */}
@@ -1440,7 +1471,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-md" data-testid="program-day-modal">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingDay ? 'עריכת יום' : 'יום חדש'}</h3>
-              <button onClick={() => setShowDayModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowDayModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -1494,7 +1525,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-md" data-testid="track-modal">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingTrack ? 'עריכת מסלול' : 'מסלול חדש'}</h3>
-              <button onClick={() => setShowTrackModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowTrackModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -1551,7 +1582,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-md" data-testid="room-modal">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingRoom ? 'עריכת חדר' : 'חדר חדש'}</h3>
-              <button onClick={() => setShowRoomModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowRoomModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -1643,7 +1674,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-md" data-testid="speaker-modal">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingSpeaker ? 'עריכת דובר' : 'דובר חדש'}</h3>
-              <button onClick={() => setShowSpeakerModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowSpeakerModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -1730,7 +1761,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-lg" data-testid="session-modal">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingSession ? 'עריכת מפגש' : 'מפגש חדש'}</h3>
-              <button onClick={() => setShowSessionModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowSessionModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -1837,7 +1868,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-md" data-testid="contingency-modal">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingContingency ? 'עריכת תכנית חירום' : 'תכנית חירום חדשה'}</h3>
-              <button onClick={() => setShowContingencyModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowContingencyModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -1971,7 +2002,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           <div className="glass-modal w-full max-w-md">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-xl font-bold">{editingBlock ? 'עריכת בלוק זמן' : 'בלוק זמן חדש'}</h3>
-              <button onClick={() => setShowBlockModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowBlockModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -2057,11 +2088,6 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
         </div>
       )}
 
-      {/* Settings Tab */}
-      {activeTab === 'settings' && (
-        <EventSettingsPanel event={event} />
-      )}
-
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && deleteTarget && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -2069,7 +2095,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
             <div className="p-6 text-center">
               <AlertTriangle className="mx-auto mb-4 text-red-500" size={48} />
               <h3 className="text-xl font-bold mb-2">אישור מחיקה</h3>
-              <p className="text-gray-600 mb-4">האם למחוק את &quot;{deleteTarget.name}&quot;?</p>
+              <p className="text-zinc-400 mb-4">האם למחוק את "{deleteTarget.name}"?</p>
               <div className="flex gap-2 justify-center">
                 <button onClick={() => setShowDeleteConfirm(false)} className="btn-secondary">ביטול</button>
                 <button onClick={confirmDelete} className="btn-primary bg-red-500 hover:bg-red-600" data-testid="confirm-delete-button">

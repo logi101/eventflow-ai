@@ -1,0 +1,1 @@
+export { ReminderSettingsPage } from './ReminderSettingsPage'

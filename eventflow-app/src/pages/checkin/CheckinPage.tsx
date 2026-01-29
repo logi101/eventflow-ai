@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Calendar, Users, User, ScanLine, UserCheck, CheckCircle, XCircle, Loader2 } from 'lucide-react'
+import { ScanLine, CheckCircle, XCircle, UserCheck, Search, Loader2, Users, Clock, Star, Calendar, User } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { CheckinParticipant, SimpleEvent } from '../../types'
 
@@ -135,226 +135,279 @@ export function CheckinPage() {
   const checkInPercentage = stats.total > 0 ? Math.round((stats.checkedIn / stats.total) * 100) : 0
 
   return (
-    <div className="p-8" data-testid="checkin-panel">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold" data-testid="checkin-title">צ'ק-אין</h1>
-        <button
-          className={`btn-${scanMode ? 'secondary' : 'primary'} flex items-center gap-2`}
-          onClick={() => setScanMode(!scanMode)}
-          data-testid="toggle-scan-mode"
-        >
-          <ScanLine className="w-4 h-4" />
-          {scanMode ? 'חזרה לרשימה' : 'מצב סריקה'}
-        </button>
+    <div className="p-8 relative z-10" data-testid="checkin-panel">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-20 w-96 h-96 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-40 right-20 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Event Selector */}
-      <div className="mb-6">
-        <select
-          className="input w-64"
-          value={selectedEventId}
-          onChange={(e) => setSelectedEventId(e.target.value)}
-          data-testid="checkin-event-select"
-        >
-          <option value="">בחר אירוע...</option>
-          {events.map(e => (
-            <option key={e.id} value={e.id}>{e.name}</option>
-          ))}
-        </select>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" data-testid="checkin-stats">
-        <div className="card bg-blue-50">
-          <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-          <p className="text-gray-600">סך הכל משתתפים</p>
-        </div>
-        <div className="card bg-green-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-2xl font-bold text-green-600">{stats.checkedIn}</p>
-              <p className="text-gray-600">נרשמו</p>
-            </div>
-            <div className="text-3xl font-bold text-green-500">{checkInPercentage}%</div>
+      <div className="relative p-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <p className="text-cyan-400/80 text-sm font-medium mb-1">כניסת משתתפים</p>
+            <h1 className="text-3xl font-bold text-white" data-testid="checkin-title">צ'ק-אין</h1>
+            <p className="text-zinc-400 mt-1">ניהול הגעה וסריקת QR</p>
           </div>
-          <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all duration-500"
-              style={{ width: `${checkInPercentage}%` }}
-            />
-          </div>
+          <button
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
+              scanMode
+                ? 'bg-[#1a1d27] border border-white/5 text-zinc-300 border border-white/10 hover:bg-white/5'
+                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5'
+            }`}
+            onClick={() => setScanMode(!scanMode)}
+            data-testid="toggle-scan-mode"
+          >
+            <ScanLine className="w-4 h-4" />
+            {scanMode ? 'חזרה לרשימה' : 'מצב סריקה'}
+          </button>
         </div>
-        <div className="card bg-orange-50">
-          <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
-          <p className="text-gray-600">ממתינים</p>
-        </div>
-        <div className="card bg-purple-50">
-          <p className="text-2xl font-bold text-purple-600">{stats.vip}</p>
-          <p className="text-gray-600">VIP</p>
-        </div>
-      </div>
 
-      {/* Check-in Result Toast */}
-      {checkInResult && (
-        <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-lg ${
-          checkInResult.success ? 'bg-green-500' : 'bg-red-500'
-        } text-white flex items-center gap-3`} data-testid="checkin-result">
-          {checkInResult.success ? <CheckCircle className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-          <span className="text-lg font-medium">{checkInResult.message}</span>
+        {/* Event Selector */}
+        <div className="mb-6">
+          <select
+            className="w-64 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+            value={selectedEventId}
+            onChange={(e) => setSelectedEventId(e.target.value)}
+            data-testid="checkin-event-select"
+          >
+            <option value="">בחר אירוע...</option>
+            {events.map(e => (
+              <option key={e.id} value={e.id}>{e.name}</option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {scanMode ? (
-        /* Scan Mode */
-        <div className="max-w-md mx-auto" data-testid="scan-mode">
-          <div className="card text-center">
-            <ScanLine className="w-24 h-24 mx-auto mb-4 text-blue-500" />
-            <p className="text-lg mb-4">סרוק QR קוד או הזן ידנית</p>
-
-            <div className="flex gap-2 mb-4">
-              <input
-                type="text"
-                className="input flex-1 text-center font-mono text-lg"
-                placeholder="EF-XXXXXXXX"
-                value={manualCode}
-                onChange={(e) => setManualCode(e.target.value.toUpperCase())}
-                onKeyDown={(e) => e.key === 'Enter' && handleManualCheckIn()}
-                data-testid="manual-code-input"
-              />
-              <button
-                className="btn-primary"
-                onClick={handleManualCheckIn}
-                data-testid="manual-checkin-btn"
-              >
-                <UserCheck className="w-5 h-5" />
-              </button>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6" data-testid="checkin-stats">
+          <div className="group relative premium-stats-card orange hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500/20 to-cyan-500/15 rounded-xl flex items-center justify-center">
+                <Users className="w-5 h-5 text-blue-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.total}</p>
             </div>
-
-            <p className="text-sm text-gray-500">
-              הזן את הקוד שמופיע על גבי הברקוד של המשתתף
-            </p>
-          </div>
-        </div>
-      ) : (
-        /* List Mode */
-        <>
-          {/* Search and Filter */}
-          <div className="flex flex-wrap gap-4 mb-6">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-              <input
-                type="text"
-                className="input w-full pr-10"
-                placeholder="חיפוש לפי שם, טלפון או קוד..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                data-testid="checkin-search"
-              />
-            </div>
-            <select
-              className="input w-40"
-              value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value as 'all' | 'checked_in' | 'not_checked_in')}
-              data-testid="checkin-filter"
-            >
-              <option value="all">הכל</option>
-              <option value="checked_in">נרשמו</option>
-              <option value="not_checked_in">ממתינים</option>
-            </select>
+            <p className="text-zinc-400 text-sm">סך הכל משתתפים</p>
           </div>
 
-          {/* Participants List */}
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-            </div>
-          ) : !selectedEventId ? (
-            <div className="text-center py-12 text-gray-500">
-              <Calendar className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg">בחר אירוע להתחלה</p>
-            </div>
-          ) : filteredParticipants.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-              <p className="text-lg">אין משתתפים</p>
-            </div>
-          ) : (
-            <div className="grid gap-3" data-testid="checkin-list">
-              {filteredParticipants.map(participant => (
-                <div
-                  key={participant.id}
-                  className={`card hover:shadow-md transition-all flex items-center justify-between ${
-                    participant.status === 'checked_in' ? 'border-r-4 border-green-500 bg-green-50' : ''
-                  } ${participant.is_vip ? 'ring-2 ring-purple-300' : ''}`}
-                  data-testid="checkin-participant-card"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                      participant.status === 'checked_in'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}>
-                      {participant.status === 'checked_in' ? (
-                        <CheckCircle className="w-6 h-6" />
-                      ) : (
-                        <User className="w-6 h-6" />
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-semibold">
-                          {participant.first_name} {participant.last_name}
-                        </p>
-                        {participant.is_vip && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
-                            VIP
-                          </span>
-                        )}
-                        {participant.has_companion && (
-                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                            +מלווה
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-4 text-sm text-gray-500">
-                        <span>{participant.phone}</span>
-                        <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">
-                          {participant.qr_code}
-                        </span>
-                      </div>
-                      {participant.checked_in_at && (
-                        <p className="text-xs text-green-600">
-                          נרשם ב-{new Date(participant.checked_in_at).toLocaleTimeString('he-IL')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {participant.status === 'checked_in' ? (
-                      <button
-                        className="btn-secondary text-sm"
-                        onClick={() => undoCheckIn(participant.id)}
-                        title="בטל צ'ק-אין"
-                      >
-                        ביטול
-                      </button>
-                    ) : (
-                      <button
-                        className="btn-primary flex items-center gap-2"
-                        onClick={() => checkInParticipant(participant.id)}
-                        data-testid="checkin-btn"
-                      >
-                        <UserCheck className="w-4 h-4" />
-                        צ'ק-אין
-                      </button>
-                    )}
-                  </div>
+          <div className="group relative premium-stats-card orange hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-green-400 to-emerald-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-emerald-500/20 to-green-500/15 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
                 </div>
-              ))}
+                <p className="text-2xl font-bold text-white">{stats.checkedIn}</p>
+              </div>
+              <div className="text-2xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">{checkInPercentage}%</div>
             </div>
-          )}
-        </>
-      )}
+            <p className="text-zinc-400 text-sm mb-2">נרשמו</p>
+            <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-500"
+                style={{ width: `${checkInPercentage}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="group relative premium-stats-card orange hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-orange-400 to-amber-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-orange-500/20 to-amber-500/15 rounded-xl flex items-center justify-center">
+                <Clock className="w-5 h-5 text-orange-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.pending}</p>
+            </div>
+            <p className="text-zinc-400 text-sm">ממתינים</p>
+          </div>
+
+          <div className="group relative premium-stats-card orange hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-purple-400 to-violet-400 rounded-b-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-violet-500/15 rounded-xl flex items-center justify-center">
+                <Star className="w-5 h-5 text-purple-400" />
+              </div>
+              <p className="text-2xl font-bold text-white">{stats.vip}</p>
+            </div>
+            <p className="text-zinc-400 text-sm">VIP</p>
+          </div>
+        </div>
+
+        {/* Check-in Result Toast */}
+        {checkInResult && (
+          <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl ${
+            checkInResult.success ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-red-500 to-rose-500'
+          } text-white flex items-center gap-3`} data-testid="checkin-result">
+            {checkInResult.success ? <CheckCircle className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
+            <span className="text-lg font-medium">{checkInResult.message}</span>
+          </div>
+        )}
+
+        {scanMode ? (
+          /* Scan Mode */
+          <div className="max-w-md mx-auto" data-testid="scan-mode">
+            <div className="bg-[#1a1d27] border border-white/5 rounded-2xl p-8 border border-white/10 shadow-xl text-center">
+              <div className="w-24 h-24 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <ScanLine className="w-12 h-12 text-cyan-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">סריקת QR קוד</h3>
+              <p className="text-zinc-400 mb-6">סרוק את הברקוד או הזן ידנית</p>
+
+              <div className="flex gap-2 mb-4">
+                <input
+                  type="text"
+                  className="flex-1 px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-center font-mono text-lg focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+                  placeholder="EF-XXXXXXXX"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => e.key === 'Enter' && handleManualCheckIn()}
+                  data-testid="manual-code-input"
+                />
+                <button
+                  className="px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
+                  onClick={handleManualCheckIn}
+                  data-testid="manual-checkin-btn"
+                >
+                  <UserCheck className="w-5 h-5" />
+                </button>
+              </div>
+
+              <p className="text-sm text-zinc-500">
+                הזן את הקוד שמופיע על גבי הברקוד של המשתתף
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* List Mode */
+          <>
+            {/* Search and Filter */}
+            <div className="flex flex-wrap gap-4 mb-6">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-5 h-5" />
+                <input
+                  type="text"
+                  className="w-full pr-10 pl-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+                  placeholder="חיפוש לפי שם, טלפון או קוד..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  data-testid="checkin-search"
+                />
+              </div>
+              <select
+                className="w-40 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as 'all' | 'checked_in' | 'not_checked_in')}
+                data-testid="checkin-filter"
+              >
+                <option value="all">הכל</option>
+                <option value="checked_in">נרשמו</option>
+                <option value="not_checked_in">ממתינים</option>
+              </select>
+            </div>
+
+            {/* Participants List */}
+            {loading ? (
+              <div className="flex justify-center py-12">
+                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                </div>
+              </div>
+            ) : !selectedEventId ? (
+              <div className="bg-[#1a1d27] border border-white/5 rounded-2xl p-12 border border-white/10 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Calendar className="w-10 h-10 text-zinc-500" />
+                </div>
+                <p className="text-lg text-zinc-400">בחר אירוע להתחלה</p>
+              </div>
+            ) : filteredParticipants.length === 0 ? (
+              <div className="bg-[#1a1d27] border border-white/5 rounded-2xl p-12 border border-white/10 text-center">
+                <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Users className="w-10 h-10 text-zinc-500" />
+                </div>
+                <p className="text-lg text-zinc-400">אין משתתפים</p>
+              </div>
+            ) : (
+              <div className="grid gap-3" data-testid="checkin-list">
+                {filteredParticipants.map(participant => (
+                  <div
+                    key={participant.id}
+                    className={`group bg-[#1a1d27] rounded-2xl p-4 border transition-all duration-300 flex items-center justify-between ${
+                      participant.status === 'checked_in'
+                        ? 'border-emerald-500/30 bg-gradient-to-l from-emerald-500/10 to-[#1a1d27]'
+                        : 'border-white/10 hover:shadow-lg hover:-translate-y-0.5'
+                    } ${participant.is_vip ? 'ring-2 ring-purple-500/30' : ''}`}
+                    data-testid="checkin-participant-card"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300 ${
+                        participant.status === 'checked_in'
+                          ? 'bg-gradient-to-br from-green-400 to-emerald-500 text-white shadow-lg shadow-green-500/30'
+                          : 'bg-white/5 text-zinc-400 group-hover:bg-orange-500/10 group-hover:text-orange-400'
+                      }`}>
+                        {participant.status === 'checked_in' ? (
+                          <CheckCircle className="w-6 h-6" />
+                        ) : (
+                          <User className="w-6 h-6" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-white">
+                            {participant.first_name} {participant.last_name}
+                          </p>
+                          {participant.is_vip && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-500/20 text-purple-400">
+                              VIP
+                            </span>
+                          )}
+                          {participant.has_companion && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400">
+                              +מלווה
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-zinc-400">
+                          <span>{participant.phone}</span>
+                          <span className="font-mono text-xs bg-white/5 px-2 py-0.5 rounded-lg">
+                            {participant.qr_code}
+                          </span>
+                        </div>
+                        {participant.checked_in_at && (
+                          <p className="text-xs text-emerald-400 mt-1">
+                            נרשם ב-{new Date(participant.checked_in_at).toLocaleTimeString('he-IL')}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {participant.status === 'checked_in' ? (
+                        <button
+                          className="px-4 py-2 bg-[#1a1d27]/80 text-zinc-400 text-sm rounded-xl border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300"
+                          onClick={() => undoCheckIn(participant.id)}
+                          title="בטל צ'ק-אין"
+                        >
+                          ביטול
+                        </button>
+                      ) : (
+                        <button
+                          className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl font-medium shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
+                          onClick={() => checkInParticipant(participant.id)}
+                          data-testid="checkin-btn"
+                        >
+                          <UserCheck className="w-4 h-4" />
+                          צ'ק-אין
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   )
 }

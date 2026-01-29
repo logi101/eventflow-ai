@@ -1,11 +1,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
-// EventFlow - Guests Page
+// EventFlow - Guests Page (extracted from App.tsx)
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect, useRef } from 'react'
-import { UserPlus, Edit2, Trash2, Upload, Download, Search, Users, Star, Phone, Mail, X, Loader2 } from 'lucide-react'
-import * as XLSX from 'xlsx'
+import { Users, Edit2, Trash2, X, Loader2, Upload, Download, Search, UserPlus, Star, Phone, Mail } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import * as XLSX from 'xlsx'
 import type { Participant, ParticipantFormData, ParticipantStatus } from '../../types'
 import { getParticipantStatusColor, getParticipantStatusLabel, normalizePhone } from '../../utils'
 
@@ -206,6 +206,7 @@ export function GuestsPage() {
     }
   }
 
+  // Excel Import
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -256,6 +257,7 @@ export function GuestsPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // Excel Export
   function handleExport() {
     const exportData = filteredParticipants.map(p => ({
       'שם פרטי': p.first_name,
@@ -276,6 +278,7 @@ export function GuestsPage() {
     XLSX.writeFile(wb, `אורחים_${new Date().toLocaleDateString('he-IL')}.xlsx`)
   }
 
+  // Filter participants
   const filteredParticipants = participants.filter(p => {
     const matchesStatus = statusFilter === 'all' || p.status === statusFilter
     const matchesSearch = searchTerm === '' ||
@@ -286,6 +289,7 @@ export function GuestsPage() {
     return matchesStatus && matchesSearch
   })
 
+  // Stats
   const stats = {
     total: participants.length,
     confirmed: participants.filter(p => p.status === 'confirmed').length,
@@ -295,207 +299,234 @@ export function GuestsPage() {
   }
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold" data-testid="guests-title">אורחים</h1>
-        <div className="flex gap-2">
-          <input
-            type="file"
-            ref={fileInputRef}
-            className="hidden"
-            accept=".xlsx,.xls,.csv"
-            onChange={handleImport}
-          />
-          <button
-            className="btn-secondary flex items-center gap-2"
-            onClick={() => fileInputRef.current?.click()}
-            data-testid="import-excel-btn"
-          >
-            <Upload size={18} />
-            ייבוא Excel
-          </button>
-          <button
-            className="btn-secondary flex items-center gap-2"
-            onClick={handleExport}
-            data-testid="export-excel-btn"
-            disabled={participants.length === 0}
-          >
-            <Download size={18} />
-            ייצוא Excel
-          </button>
-          <button
-            className="btn-primary flex items-center gap-2"
-            data-testid="add-guest-btn"
-            onClick={openCreateModal}
-          >
-            <UserPlus size={20} />
-            הוסף אורח
-          </button>
-        </div>
+    <div className="p-8 relative z-10">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-1/4 w-72 h-72 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 left-1/4 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-5 gap-4 mb-6">
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-primary-600">{stats.total}</p>
-          <p className="text-sm text-gray-500">סה"כ</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-green-600">{stats.confirmed}</p>
-          <p className="text-sm text-gray-500">אישרו</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-yellow-600">{stats.invited}</p>
-          <p className="text-sm text-gray-500">הוזמנו</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-red-600">{stats.declined}</p>
-          <p className="text-sm text-gray-500">סירבו</p>
-        </div>
-        <div className="card text-center">
-          <p className="text-3xl font-bold text-purple-600">{stats.withCompanion}</p>
-          <p className="text-sm text-gray-500">עם מלווה</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-4 mb-6 flex-wrap items-center">
-        <select
-          className="input w-48"
-          value={selectedEventId}
-          onChange={e => setSelectedEventId(e.target.value)}
-        >
-          <option value="all">כל האירועים</option>
-          {events.map(event => (
-            <option key={event.id} value={event.id}>{event.name}</option>
-          ))}
-        </select>
-
-        <div className="flex gap-2">
-          {(['all', 'invited', 'confirmed', 'declined', 'maybe', 'checked_in'] as const).map(status => (
+      <div className="relative p-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white" data-testid="guests-title">אורחים</h1>
+            <p className="text-zinc-400 mt-1">{stats.total} אורחים רשומים</p>
+          </div>
+          <div className="flex gap-3">
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept=".xlsx,.xls,.csv"
+              onChange={handleImport}
+            />
             <button
-              key={status}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                statusFilter === status
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-              onClick={() => setStatusFilter(status)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
+              onClick={() => fileInputRef.current?.click()}
+              data-testid="import-excel-btn"
             >
-              {status === 'all' ? 'הכל' : getParticipantStatusLabel(status)}
+              <Upload size={18} />
+              ייבוא Excel
             </button>
-          ))}
-        </div>
-
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            className="input pr-10"
-            placeholder="חיפוש..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Participants List */}
-      <div className="space-y-3" data-testid="guests-list">
-        {loading ? (
-          <div className="text-center py-12">
-            <Loader2 className="animate-spin mx-auto mb-4" size={32} />
-            <p className="text-gray-500">טוען אורחים...</p>
-          </div>
-        ) : filteredParticipants.length === 0 ? (
-          <div className="card text-center py-12">
-            <Users className="mx-auto mb-4 text-gray-400" size={48} />
-            <p className="text-gray-500 text-lg">אין אורחים עדיין</p>
-            <p className="text-gray-400 text-sm mt-2">לחץ על "הוסף אורח" או ייבא מ-Excel</p>
-          </div>
-        ) : (
-          filteredParticipants.map(participant => (
-            <div
-              key={participant.id}
-              className="card hover:shadow-md transition-shadow"
-              data-testid={`guest-card-${participant.id}`}
+            <button
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
+              onClick={handleExport}
+              data-testid="export-excel-btn"
+              disabled={participants.length === 0}
             >
-              <div className="flex justify-between items-center">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 font-bold text-lg">
-                    {participant.first_name[0]}{participant.last_name[0]}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-bold text-lg">
-                        {participant.first_name} {participant.last_name}
-                      </h3>
-                      {participant.is_vip && (
-                        <Star className="text-yellow-500 fill-yellow-500" size={16} />
-                      )}
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getParticipantStatusColor(participant.status)}`}>
-                        {getParticipantStatusLabel(participant.status)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
-                      <span className="flex items-center gap-1">
-                        <Phone size={14} />
-                        {participant.phone}
-                      </span>
-                      {participant.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail size={14} />
-                          {participant.email}
-                        </span>
-                      )}
-                      {participant.has_companion && (
-                        <span className="text-purple-600">
-                          + מלווה: {participant.companion_name || 'ללא שם'}
-                        </span>
-                      )}
-                    </div>
-                    {participant.events && selectedEventId === 'all' && (
-                      <p className="text-xs text-gray-400 mt-1">{participant.events.name}</p>
-                    )}
-                  </div>
-                </div>
+              <Download size={18} />
+              ייצוא Excel
+            </button>
+            <button
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all duration-300"
+              data-testid="add-guest-btn"
+              onClick={openCreateModal}
+            >
+              <UserPlus size={20} />
+              הוסף אורח
+            </button>
+          </div>
+        </div>
 
-                <div className="flex gap-2">
-                  <button
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    onClick={() => openEditModal(participant)}
-                    title="עריכה"
-                  >
-                    <Edit2 size={18} className="text-gray-600" />
-                  </button>
-                  <button
-                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                    onClick={() => handleDelete(participant)}
-                    title="מחיקה"
-                  >
-                    <Trash2 size={18} className="text-red-600" />
-                  </button>
+        {/* Stats Cards */}
+        <div className="grid grid-cols-5 gap-4 mb-8">
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden text-center">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-blue-400 to-cyan-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-3xl font-bold text-white group-hover:text-blue-600 transition-colors">{stats.total}</p>
+            <p className="text-sm text-zinc-400 font-medium mt-1">סה"כ</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden text-center">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-emerald-400 to-green-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-3xl font-bold text-emerald-600">{stats.confirmed}</p>
+            <p className="text-sm text-zinc-400 font-medium mt-1">אישרו</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden text-center">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-amber-400 to-yellow-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-3xl font-bold text-amber-600">{stats.invited}</p>
+            <p className="text-sm text-zinc-400 font-medium mt-1">הוזמנו</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden text-center">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-red-400 to-rose-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-3xl font-bold text-red-400">{stats.declined}</p>
+            <p className="text-sm text-zinc-400 font-medium mt-1">סירבו</p>
+          </div>
+          <div className="group relative premium-stats-card orange hover:bg-[#1a1d27] hover:shadow-xl hover:-translate-y-1 transition-all duration-500 overflow-hidden text-center">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-purple-400 to-violet-400 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <p className="text-3xl font-bold text-purple-600">{stats.withCompanion}</p>
+            <p className="text-sm text-zinc-400 font-medium mt-1">עם מלווה</p>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div className="bg-[#1a1d27]/60 backdrop-blur-sm rounded-2xl p-4 border border-white/10 mb-6">
+          <div className="flex gap-4 flex-wrap items-center">
+            {/* Event Filter */}
+            <select
+              className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+              value={selectedEventId}
+              onChange={e => setSelectedEventId(e.target.value)}
+            >
+              <option value="all">כל האירועים</option>
+              {events.map(event => (
+                <option key={event.id} value={event.id}>{event.name}</option>
+              ))}
+            </select>
+
+            {/* Status Filter */}
+            <div className="flex gap-2 bg-[#1a1d27]/80 rounded-xl p-1 border border-white/10/50">
+              {(['all', 'invited', 'confirmed', 'declined', 'maybe', 'checked_in'] as const).map(status => (
+                <button
+                  key={status}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    statusFilter === status
+                      ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-sm'
+                      : 'text-zinc-400 hover:bg-white/5'
+                  }`}
+                  onClick={() => setStatusFilter(status)}
+                >
+                  {status === 'all' ? 'הכל' : getParticipantStatusLabel(status)}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+              <input
+                type="text"
+                className="w-full px-4 py-2.5 pr-10 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
+                placeholder="חיפוש..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Participants List */}
+        <div className="space-y-3" data-testid="guests-list">
+          {loading ? (
+            <div className="text-center py-16">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-blue-400/20 blur-2xl rounded-full animate-pulse" />
+                <Loader2 className="relative animate-spin text-blue-500 mb-4" size={40} />
+              </div>
+              <p className="text-zinc-400 font-medium">טוען אורחים...</p>
+            </div>
+          ) : filteredParticipants.length === 0 ? (
+            <div className="bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 text-center py-16">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-blue-400/20 blur-2xl rounded-full" />
+                <Users className="relative mx-auto mb-4 text-gray-300" size={56} />
+              </div>
+              <p className="text-zinc-300 text-lg font-semibold">אין אורחים עדיין</p>
+              <p className="text-zinc-500 text-sm mt-2">לחץ על "הוסף אורח" או ייבא מ-Excel</p>
+            </div>
+          ) : (
+            filteredParticipants.map(participant => (
+              <div
+                key={participant.id}
+                className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300"
+                data-testid={`guest-card-${participant.id}`}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20 group-hover:scale-105 group-hover:rotate-2 transition-all duration-300">
+                      {participant.first_name[0]}{participant.last_name[0]}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-lg text-white group-hover:text-blue-600 transition-colors">
+                          {participant.first_name} {participant.last_name}
+                        </h3>
+                        {participant.is_vip && (
+                          <Star className="text-yellow-500 fill-yellow-500" size={16} />
+                        )}
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${getParticipantStatusColor(participant.status)}`}>
+                          {getParticipantStatusLabel(participant.status)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-zinc-400 mt-1.5">
+                        <span className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md">
+                          <Phone size={14} className="text-zinc-500" />
+                          {participant.phone}
+                        </span>
+                        {participant.email && (
+                          <span className="flex items-center gap-1.5 bg-white/5 px-2 py-0.5 rounded-md">
+                            <Mail size={14} className="text-zinc-500" />
+                            {participant.email}
+                          </span>
+                        )}
+                        {participant.has_companion && (
+                          <span className="text-purple-400 bg-purple-500/20 px-2 py-0.5 rounded-md font-medium">
+                            + מלווה: {participant.companion_name || 'ללא שם'}
+                          </span>
+                        )}
+                      </div>
+                      {participant.events && selectedEventId === 'all' && (
+                        <p className="text-xs text-zinc-500 mt-1.5 bg-white/5 inline-block px-2 py-0.5 rounded-md">{participant.events.name}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                      onClick={() => openEditModal(participant)}
+                      title="עריכה"
+                    >
+                      <Edit2 size={18} className="text-zinc-400" />
+                    </button>
+                    <button
+                      className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                      onClick={() => handleDelete(participant)}
+                      title="מחיקה"
+                    >
+                      <Trash2 size={18} className="text-red-500" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
 
       {/* Create/Edit Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-[#1a1d27]">
               <h2 className="text-2xl font-bold">
                 {editingParticipant ? 'עריכת אורח' : 'אורח חדש'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
 
             <div className="p-6 space-y-4">
+              {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">שם פרטי *</label>
@@ -539,6 +570,7 @@ export function GuestsPage() {
                 </div>
               </div>
 
+              {/* Status */}
               <div>
                 <label className="block text-sm font-medium mb-2">סטטוס</label>
                 <select
@@ -555,13 +587,14 @@ export function GuestsPage() {
                 </select>
               </div>
 
+              {/* VIP */}
               <div className="flex items-center gap-4">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formData.is_vip}
                     onChange={e => setFormData({ ...formData, is_vip: e.target.checked })}
-                    className="w-5 h-5 rounded border-gray-300"
+                    className="w-5 h-5 rounded border-white/20"
                   />
                   <span className="flex items-center gap-1">
                     <Star size={16} className="text-yellow-500" />
@@ -583,19 +616,20 @@ export function GuestsPage() {
                 </div>
               )}
 
+              {/* Companion */}
               <div className="border-t pt-4">
                 <label className="flex items-center gap-2 cursor-pointer mb-4">
                   <input
                     type="checkbox"
                     checked={formData.has_companion}
                     onChange={e => setFormData({ ...formData, has_companion: e.target.checked })}
-                    className="w-5 h-5 rounded border-gray-300"
+                    className="w-5 h-5 rounded border-white/20"
                   />
                   <span>מגיע עם מלווה</span>
                 </label>
 
                 {formData.has_companion && (
-                  <div className="grid grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg">
+                  <div className="grid grid-cols-2 gap-4 bg-white/5 p-4 rounded-lg">
                     <div>
                       <label className="block text-sm font-medium mb-2">שם המלווה</label>
                       <input
@@ -618,6 +652,7 @@ export function GuestsPage() {
                 )}
               </div>
 
+              {/* Additional Info */}
               <div className="border-t pt-4">
                 <div>
                   <label className="block text-sm font-medium mb-2">הגבלות תזונה (מופרד בפסיקים)</label>
@@ -647,7 +682,7 @@ export function GuestsPage() {
                       type="checkbox"
                       checked={formData.needs_transportation}
                       onChange={e => setFormData({ ...formData, needs_transportation: e.target.checked })}
-                      className="w-5 h-5 rounded border-gray-300"
+                      className="w-5 h-5 rounded border-white/20"
                     />
                     <span>צריך הסעה</span>
                   </label>
@@ -666,6 +701,7 @@ export function GuestsPage() {
                 )}
               </div>
 
+              {/* Notes */}
               <div>
                 <label className="block text-sm font-medium mb-2">הערות</label>
                 <textarea
@@ -676,15 +712,15 @@ export function GuestsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 bg-white">
+            <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 bg-[#1a1d27] rounded-b-2xl">
               <button
-                className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+                className="px-6 py-2.5 border border-white/10 rounded-xl hover:bg-white/5 transition-colors font-medium"
                 onClick={() => setShowModal(false)}
               >
                 ביטול
               </button>
               <button
-                className="btn-primary flex items-center gap-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -695,8 +731,7 @@ export function GuestsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }
-
-export default GuestsPage

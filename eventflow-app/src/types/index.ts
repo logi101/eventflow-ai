@@ -450,10 +450,12 @@ export interface ScheduleChange {
   id: string
   schedule_id: string
   change_type: string
-  old_value: unknown
-  new_value: unknown
+  old_value: Record<string, unknown> | null
+  new_value: Record<string, unknown> | null
   reason: string | null
+  changed_by: string | null
   notification_sent: boolean
+  notification_sent_at: string | null
   created_at: string
 }
 

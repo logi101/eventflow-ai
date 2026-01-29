@@ -16,19 +16,6 @@ export function ReportsPage() {
     budget: number | null
   } | null>(null)
 
-  useEffect(() => {
-    fetchOverallStats()
-    fetchEvents()
-  }, [])
-
-  useEffect(() => {
-    if (selectedEventId) {
-      fetchEventStats()
-    } else {
-      setEventStats(null)
-    }
-  }, [selectedEventId])
-
   async function fetchOverallStats() {
     setLoading(true)
 
@@ -51,18 +38,18 @@ export function ReportsPage() {
       supabase.from('feedback_responses').select('id', { count: 'exact', head: true })
     ])
 
-    const eventsData = eventsRes.data || []
+    const events = eventsRes.data || []
     const participants = participantsRes.data || []
     const checklistItems = checklistRes.data || []
 
     setStats({
-      totalEvents: eventsData.length,
-      activeEvents: eventsData.filter(e => e.status === 'active').length,
-      completedEvents: eventsData.filter(e => e.status === 'completed').length,
+      totalEvents: events.length,
+      activeEvents: events.filter(e => e.status === 'active').length,
+      completedEvents: events.filter(e => e.status === 'completed').length,
       totalParticipants: participants.length,
       checkedInParticipants: participants.filter(p => p.status === 'checked_in').length,
       totalVendors: vendorsRes.count || 0,
-      totalBudget: eventsData.reduce((sum, e) => sum + (e.budget || 0), 0),
+      totalBudget: events.reduce((sum, e) => sum + (e.budget || 0), 0),
       totalChecklistItems: checklistItems.length,
       completedChecklistItems: checklistItems.filter(c => c.is_completed).length,
       totalMessages: messagesRes.count || 0,
@@ -109,6 +96,19 @@ export function ReportsPage() {
       budget: eventRes.data?.budget || null
     })
   }
+
+  useEffect(() => {
+    fetchOverallStats()
+    fetchEvents()
+  }, [])
+
+  useEffect(() => {
+    if (selectedEventId) {
+      fetchEventStats()
+    } else {
+      setEventStats(null)
+    }
+  }, [selectedEventId])
 
   async function exportReport() {
     if (!stats) return
@@ -176,7 +176,7 @@ export function ReportsPage() {
 
       {loading ? (
         <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+          <Loader2 className="w-8 h-8 animate-spin text-zinc-500" />
         </div>
       ) : stats && (
         <>
@@ -208,7 +208,7 @@ export function ReportsPage() {
               <div className="mt-2">
                 <div className="h-2 bg-purple-400 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-white rounded-full"
+                    className="h-full bg-[#1a1d27] rounded-full"
                     style={{ width: `${checkinPercentage}%` }}
                   />
                 </div>
@@ -240,7 +240,7 @@ export function ReportsPage() {
               <div className="mt-2">
                 <div className="h-2 bg-orange-400 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-white rounded-full"
+                    className="h-full bg-[#1a1d27] rounded-full"
                     style={{ width: `${checklistPercentage}%` }}
                   />
                 </div>
@@ -258,7 +258,7 @@ export function ReportsPage() {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">הודעות נשלחו</span>
+                  <span className="text-zinc-400">הודעות נשלחו</span>
                   <span className="font-bold">{stats.totalMessages}</span>
                 </div>
               </div>
@@ -271,11 +271,11 @@ export function ReportsPage() {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">סקרים פעילים</span>
+                  <span className="text-zinc-400">סקרים פעילים</span>
                   <span className="font-bold">{stats.totalSurveys}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">תשובות התקבלו</span>
+                  <span className="text-zinc-400">תשובות התקבלו</span>
                   <span className="font-bold">{stats.totalResponses}</span>
                 </div>
               </div>
@@ -288,12 +288,12 @@ export function ReportsPage() {
               </h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">נרשמו</span>
-                  <span className="font-bold text-green-600">{stats.checkedInParticipants}</span>
+                  <span className="text-zinc-400">נרשמו</span>
+                  <span className="font-bold text-emerald-400">{stats.checkedInParticipants}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-600">ממתינים</span>
-                  <span className="font-bold text-orange-600">{stats.totalParticipants - stats.checkedInParticipants}</span>
+                  <span className="text-zinc-400">ממתינים</span>
+                  <span className="font-bold text-orange-400">{stats.totalParticipants - stats.checkedInParticipants}</span>
                 </div>
               </div>
             </div>
@@ -321,9 +321,9 @@ export function ReportsPage() {
 
             {eventStats && (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-white/5 p-4 rounded-lg">
                   <p className="text-2xl font-bold text-blue-600">{eventStats.participants.total}</p>
-                  <p className="text-gray-600">משתתפים</p>
+                  <p className="text-zinc-400">משתתפים</p>
                   <div className="mt-2 text-xs space-y-1">
                     {Object.entries(eventStats.participants.byStatus).map(([status, count]) => (
                       <div key={status} className="flex justify-between">
@@ -333,32 +333,32 @@ export function ReportsPage() {
                     ))}
                   </div>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <p className="text-2xl font-bold text-emerald-400">
                     {eventStats.checklist.total > 0
                       ? Math.round((eventStats.checklist.completed / eventStats.checklist.total) * 100)
                       : 0}%
                   </p>
-                  <p className="text-gray-600">צ'קליסט הושלם</p>
-                  <p className="text-sm text-gray-500 mt-1">
+                  <p className="text-zinc-400">צ'קליסט הושלם</p>
+                  <p className="text-sm text-zinc-400 mt-1">
                     {eventStats.checklist.completed}/{eventStats.checklist.total} משימות
                   </p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-white/5 p-4 rounded-lg">
                   <p className="text-2xl font-bold text-purple-600">{eventStats.vendors}</p>
-                  <p className="text-gray-600">ספקים מקושרים</p>
+                  <p className="text-zinc-400">ספקים מקושרים</p>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <p className="text-2xl font-bold text-orange-600">
+                <div className="bg-white/5 p-4 rounded-lg">
+                  <p className="text-2xl font-bold text-orange-400">
                     {eventStats.budget ? `₪${eventStats.budget.toLocaleString()}` : 'לא הוגדר'}
                   </p>
-                  <p className="text-gray-600">תקציב</p>
+                  <p className="text-zinc-400">תקציב</p>
                 </div>
               </div>
             )}
 
             {!selectedEventId && (
-              <p className="text-gray-500 text-center py-4">בחר אירוע לצפייה בדוח מפורט</p>
+              <p className="text-zinc-400 text-center py-4">בחר אירוע לצפייה בדוח מפורט</p>
             )}
           </div>
         </>

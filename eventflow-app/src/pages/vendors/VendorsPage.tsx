@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Edit2, Trash2, Users, Phone, Mail, Globe, MapPin, Truck, X, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, MapPin, X, Loader2, Search, Phone, Mail, Globe, Truck, Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import type { Vendor, VendorCategory, VendorStatus, VendorFormData } from '../../types'
-import { normalizePhone, getVendorStatusColor, getVendorStatusLabel, renderStars } from '../../utils'
+import type { Vendor, VendorCategory, VendorFormData, VendorStatus } from '../../types'
+import { getVendorStatusColor, getVendorStatusLabel, normalizePhone, renderStars } from '../../utils'
 
 export function VendorsPage() {
   const [vendors, setVendors] = useState<Vendor[]>([])
@@ -198,183 +198,201 @@ export function VendorsPage() {
   }))
 
   return (
-    <div className="p-8">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold" data-testid="vendors-title">ספקים</h1>
-        <button
-          className="btn-primary flex items-center gap-2"
-          data-testid="add-vendor-btn"
-          onClick={openCreateModal}
-        >
-          <Plus size={20} />
-          הוסף ספק
-        </button>
+    <div className="p-8 relative z-10">
+      {/* Decorative Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 left-1/4 w-72 h-72 bg-orange-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/3 right-1/4 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Category Cards */}
-      <div className="grid grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
-        <button
-          className={`p-3 rounded-lg text-center transition-all ${
-            categoryFilter === 'all'
-              ? 'bg-primary-600 text-white'
-              : 'bg-white hover:bg-gray-50 border'
-          }`}
-          onClick={() => setCategoryFilter('all')}
-        >
-          <p className="text-2xl">📋</p>
-          <p className="text-xs font-medium mt-1">הכל ({vendors.length})</p>
-        </button>
-        {categoryStats.slice(0, 7).map(cat => (
+      <div className="relative p-8">
+        {/* Header */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-white" data-testid="vendors-title">ספקים</h1>
+            <p className="text-zinc-400 mt-1">{vendors.length} ספקים במערכת</p>
+          </div>
           <button
-            key={cat.id}
-            className={`p-3 rounded-lg text-center transition-all ${
-              categoryFilter === cat.id
-                ? 'bg-primary-600 text-white'
-                : 'bg-white hover:bg-gray-50 border'
-            }`}
-            onClick={() => setCategoryFilter(cat.id)}
-            data-testid="category-filter"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all duration-300"
+            data-testid="add-vendor-btn"
+            onClick={openCreateModal}
           >
-            <p className="text-2xl">{cat.icon}</p>
-            <p className="text-xs font-medium mt-1 truncate">{cat.name} ({cat.count})</p>
+            <Plus size={20} />
+            הוסף ספק
           </button>
-        ))}
-      </div>
+        </div>
 
-      {/* Filters Row */}
-      <div className="flex gap-4 mb-6 flex-wrap items-center">
-        {/* Status Filter */}
-        <div className="flex gap-2">
-          {(['all', 'pending', 'approved', 'confirmed'] as const).map(status => (
+        {/* Category Cards */}
+        <div className="grid grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
+          <button
+            className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${
+              categoryFilter === 'all'
+                ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
+                : 'bg-[#1a1d27] border border-white/5 border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
+            }`}
+            onClick={() => setCategoryFilter('all')}
+          >
+            <p className="text-2xl mb-1">📋</p>
+            <p className="text-xs font-medium">הכל ({vendors.length})</p>
+          </button>
+          {categoryStats.slice(0, 7).map(cat => (
             <button
-              key={status}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                statusFilter === status
-                  ? 'bg-primary-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              key={cat.id}
+              className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${
+                categoryFilter === cat.id
+                  ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
+                  : 'bg-[#1a1d27] border border-white/5 border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
               }`}
-              onClick={() => setStatusFilter(status)}
+              onClick={() => setCategoryFilter(cat.id)}
+              data-testid="category-filter"
             >
-              {status === 'all' ? 'הכל' : getVendorStatusLabel(status)}
+              <p className="text-2xl mb-1">{cat.icon}</p>
+              <p className="text-xs font-medium truncate">{cat.name} ({cat.count})</p>
             </button>
           ))}
         </div>
 
-        {/* Search */}
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input
-            type="text"
-            className="input pr-10"
-            placeholder="חיפוש ספק..."
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
+        {/* Filters Row */}
+        <div className="bg-[#1a1d27]/60 backdrop-blur-sm rounded-2xl p-4 border border-white/10 mb-6">
+          <div className="flex gap-4 flex-wrap items-center">
+            {/* Status Filter */}
+            <div className="flex gap-2 bg-[#1a1d27]/80 rounded-xl p-1 border border-white/10/50">
+              {(['all', 'pending', 'approved', 'confirmed'] as const).map(status => (
+                <button
+                  key={status}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                    statusFilter === status
+                      ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm'
+                      : 'text-zinc-400 hover:bg-white/5'
+                  }`}
+                  onClick={() => setStatusFilter(status)}
+                >
+                  {status === 'all' ? 'הכל' : getVendorStatusLabel(status)}
+                </button>
+              ))}
+            </div>
+
+            {/* Search */}
+            <div className="relative flex-1 max-w-xs">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
+              <input
+                type="text"
+                className="w-full px-4 py-2.5 pr-10 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 transition-all"
+                placeholder="חיפוש ספק..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
-      </div>
 
-      {/* Vendors Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" data-testid="vendors-list">
-        {loading ? (
-          <div className="col-span-full text-center py-12">
-            <Loader2 className="animate-spin mx-auto mb-4" size={32} />
-            <p className="text-gray-500">טוען ספקים...</p>
-          </div>
-        ) : filteredVendors.length === 0 ? (
-          <div className="col-span-full card text-center py-12">
-            <Truck className="mx-auto mb-4 text-gray-400" size={48} />
-            <p className="text-gray-500 text-lg">אין ספקים עדיין</p>
-            <p className="text-gray-400 text-sm mt-2">לחץ על "הוסף ספק" להוספת הספק הראשון</p>
-          </div>
-        ) : (
-          filteredVendors.map(vendor => (
-            <div
-              key={vendor.id}
-              className="card hover:shadow-lg transition-shadow"
-              data-testid={`vendor-card-${vendor.id}`}
-            >
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center text-2xl">
-                    {vendor.vendor_categories?.icon || '📦'}
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">{vendor.name}</h3>
-                    <p className="text-sm text-gray-500">
-                      {vendor.vendor_categories?.name || 'ללא קטגוריה'}
-                    </p>
-                  </div>
-                </div>
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getVendorStatusColor(vendor.status)}`}>
-                  {getVendorStatusLabel(vendor.status)}
-                </span>
+        {/* Vendors Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" data-testid="vendors-list">
+          {loading ? (
+            <div className="col-span-full text-center py-16">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-full animate-pulse" />
+                <Loader2 className="relative animate-spin text-orange-500 mb-4" size={40} />
               </div>
-
-              {vendor.rating && (
-                <div className="mb-3">
-                  {renderStars(vendor.rating)}
-                  <span className="text-sm text-gray-500 mr-2">({vendor.rating})</span>
-                </div>
-              )}
-
-              <div className="space-y-2 text-sm text-gray-600">
-                {vendor.contact_name && (
-                  <div className="flex items-center gap-2">
-                    <Users size={14} />
-                    {vendor.contact_name}
-                  </div>
-                )}
-                {vendor.phone && (
-                  <div className="flex items-center gap-2">
-                    <Phone size={14} />
-                    {vendor.phone}
-                  </div>
-                )}
-                {vendor.email && (
-                  <div className="flex items-center gap-2">
-                    <Mail size={14} />
-                    {vendor.email}
-                  </div>
-                )}
-                {vendor.city && (
-                  <div className="flex items-center gap-2">
-                    <MapPin size={14} />
-                    {vendor.city}
-                  </div>
-                )}
-                {vendor.website && (
-                  <div className="flex items-center gap-2">
-                    <Globe size={14} />
-                    <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline truncate">
-                      {vendor.website.replace(/^https?:\/\//, '')}
-                    </a>
-                  </div>
-                )}
+              <p className="text-zinc-400 font-medium">טוען ספקים...</p>
+            </div>
+          ) : filteredVendors.length === 0 ? (
+            <div className="col-span-full bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 text-center py-16">
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-full" />
+                <Truck className="relative mx-auto mb-4 text-gray-300" size={56} />
               </div>
+              <p className="text-zinc-300 text-lg font-semibold">אין ספקים עדיין</p>
+              <p className="text-zinc-500 text-sm mt-2">לחץ על "הוסף ספק" להוספת הספק הראשון</p>
+            </div>
+          ) : (
+            filteredVendors.map(vendor => (
+              <div
+                key={vendor.id}
+                className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                data-testid={`vendor-card-${vendor.id}`}
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-14 h-14 bg-gradient-to-br from-orange-500/20 to-amber-500/15 rounded-xl flex items-center justify-center text-2xl shadow-sm group-hover:scale-105 group-hover:rotate-3 transition-all duration-300">
+                      {vendor.vendor_categories?.icon || '📦'}
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg text-white group-hover:text-orange-400 transition-colors">{vendor.name}</h3>
+                      <p className="text-sm text-zinc-400">
+                        {vendor.vendor_categories?.name || 'ללא קטגוריה'}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${getVendorStatusColor(vendor.status)}`}>
+                    {getVendorStatusLabel(vendor.status)}
+                  </span>
+                </div>
 
-              {vendor.description && (
-                <p className="text-sm text-gray-500 mt-3 line-clamp-2">{vendor.description}</p>
-              )}
+                {vendor.rating && (
+                  <div className="mb-3 bg-amber-500/10 px-3 py-1.5 rounded-lg inline-block">
+                    {renderStars(vendor.rating)}
+                    <span className="text-sm text-amber-400 mr-2 font-medium">({vendor.rating})</span>
+                  </div>
+                )}
 
-              <div className="flex justify-between items-center mt-4 pt-4 border-t">
-                <span className="text-xs text-gray-400">
-                  {vendor.events_count} אירועים
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                    onClick={() => openEditModal(vendor)}
-                    title="עריכה"
-                  >
-                    <Edit2 size={16} className="text-gray-600" />
-                  </button>
-                  <button
-                    className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                    onClick={() => handleDelete(vendor)}
-                    title="מחיקה"
-                  >
-                    <Trash2 size={16} className="text-red-600" />
+                <div className="space-y-2 text-sm text-zinc-400">
+                  {vendor.contact_name && (
+                    <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-md">
+                      <Users size={14} className="text-zinc-500" />
+                      {vendor.contact_name}
+                    </div>
+                  )}
+                  {vendor.phone && (
+                    <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-md">
+                      <Phone size={14} className="text-zinc-500" />
+                      {vendor.phone}
+                    </div>
+                  )}
+                  {vendor.email && (
+                    <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-md">
+                      <Mail size={14} className="text-zinc-500" />
+                      {vendor.email}
+                    </div>
+                  )}
+                  {vendor.city && (
+                    <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-md">
+                      <MapPin size={14} className="text-zinc-500" />
+                      {vendor.city}
+                    </div>
+                  )}
+                  {vendor.website && (
+                    <div className="flex items-center gap-2 bg-white/5 px-2.5 py-1 rounded-md">
+                      <Globe size={14} className="text-zinc-500" />
+                      <a href={vendor.website} target="_blank" rel="noopener noreferrer" className="text-orange-400 hover:underline truncate">
+                        {vendor.website.replace(/^https?:\/\//, '')}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {vendor.description && (
+                  <p className="text-sm text-zinc-400 mt-3 line-clamp-2">{vendor.description}</p>
+                )}
+
+                <div className="flex justify-between items-center mt-4 pt-4 border-t border-white/10">
+                  <span className="text-xs text-zinc-500 bg-white/5 px-2 py-1 rounded-md">
+                    {vendor.events_count} אירועים
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                      onClick={() => openEditModal(vendor)}
+                      title="עריכה"
+                    >
+                      <Edit2 size={16} className="text-zinc-400" />
+                    </button>
+                    <button
+                      className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                      onClick={() => handleDelete(vendor)}
+                      title="מחיקה"
+                    >
+                      <Trash2 size={16} className="text-red-500" />
                   </button>
                 </div>
               </div>
@@ -387,11 +405,11 @@ export function VendorsPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="glass-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-[#1a1d27]">
               <h2 className="text-2xl font-bold">
                 {editingVendor ? 'עריכת ספק' : 'ספק חדש'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
                 <X size={24} />
               </button>
             </div>
@@ -555,15 +573,15 @@ export function VendorsPage() {
               </div>
             </div>
 
-            <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 bg-white">
+            <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 bg-[#1a1d27] rounded-b-2xl">
               <button
-                className="px-6 py-2 border rounded-lg hover:bg-gray-50"
+                className="px-6 py-2.5 border border-white/10 rounded-xl hover:bg-white/5 transition-colors font-medium"
                 onClick={() => setShowModal(false)}
               >
                 ביטול
               </button>
               <button
-                className="btn-primary flex items-center gap-2"
+                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -574,6 +592,7 @@ export function VendorsPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   )
 }

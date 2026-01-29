@@ -227,17 +227,18 @@ export function useSendMessage() {
         throw new Error(result.error || 'Failed to send message')
       }
 
-      // Update message status to sent
+      // Update message status to delivered
       await supabase
         .from('messages')
         .update({
-          status: 'sent',
+          status: 'delivered',
           sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
           external_id: result.id
         })
         .eq('id', messageRecord.id)
 
-      return { ...messageRecord, status: 'sent' }
+      return { ...messageRecord, status: 'delivered' }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: messagesKeys.all })
@@ -307,8 +308,9 @@ export function useRetryMessage() {
       await supabase
         .from('messages')
         .update({
-          status: 'sent',
+          status: 'delivered',
           sent_at: new Date().toISOString(),
+          delivered_at: new Date().toISOString(),
           external_id: result.id
         })
         .eq('id', messageId)

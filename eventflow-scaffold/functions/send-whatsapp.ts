@@ -268,7 +268,7 @@ serve(async (req) => {
           .update({
             status: 'sent',
             sent_at: new Date().toISOString(),
-            external_message_id: greenApiResult.idMessage,
+            external_id: greenApiResult.idMessage,
           })
           .eq('id', message_id)
       } else {

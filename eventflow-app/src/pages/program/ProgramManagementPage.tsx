@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle } from 'lucide-react'
+import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useEvent } from '../../contexts/EventContext'
 import * as XLSX from 'xlsx'
@@ -244,7 +244,7 @@ export function ProgramManagementPage() {
       }
 
       // Use Edge Function for insert to avoid Client-Side RLS issues
-      const { data: insertData, error: insertError } = await supabase.functions.invoke('bulk-insert', {
+      const { error: insertError } = await supabase.functions.invoke('bulk-insert', {
         body: {
           table: 'schedules',
           rows: schedulesToInsert,
@@ -303,19 +303,27 @@ export function ProgramManagementPage() {
         return
       }
 
-      const { data: insertedParticipants, error } = await supabase
-        .from('participants')
-        .insert(participantsToInsert)
-        .select()
-
-      if (error) {
-        console.error('Import error:', error)
-        alert('שגיאה בייבוא: ' + error.message)
-      } else {
-        // Auto-assign participants to tracks
-        if (insertedParticipants) {
-          await autoAssignToTracks(insertedParticipants)
+      // Use Edge Function for insert to avoid Client-Side RLS issues
+      const { data: insertResponse, error: insertError } = await supabase.functions.invoke('bulk-insert', {
+        body: {
+          table: 'participants',
+          rows: participantsToInsert,
+          eventId: selectedEventId
+        },
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
         }
+      })
+
+      if (insertError) {
+        console.error('Import error:', insertError)
+        alert('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
+      } else {
+        // Auto-assign participants to tracks using the inserted data
+        if (insertResponse?.data) {
+          await autoAssignToTracks(insertResponse.data)
+        }
+
         alert(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!`)
         loadEventData()
       }
@@ -349,7 +357,21 @@ export function ProgramManagementPage() {
     }
 
     if (assignmentsToCreate.length > 0) {
-      await supabase.from('participant_schedules').insert(assignmentsToCreate)
+      // Use Edge Function for assignment insert too
+      const { error } = await supabase.functions.invoke('bulk-insert', {
+        body: {
+          table: 'participant_schedules',
+          rows: assignmentsToCreate,
+          eventId: selectedEventId
+        },
+        headers: {
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      })
+
+      if (error) {
+        console.error('Failed to auto-assign:', error)
+      }
     }
   }
 
@@ -801,9 +823,31 @@ export function ProgramManagementPage() {
               <ClipboardList className="w-5 h-5 inline ml-2 text-blue-600" />
               ייבוא תוכניה מאקסל
             </h2>
-            <p className="text-zinc-400 mb-4">
-              יבא קובץ אקסל עם פריטי התוכניה: כותרת, שעות, מיקום, טראק, מרצה
-            </p>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-zinc-400">
+                יבא קובץ אקסל עם פריטי התוכניה: כותרת, שעות, מיקום, טראק, מרצה
+              </p>
+              {schedules.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (window.confirm('האם אתה בטוח שברצונך למחוק את כל התוכניה? פעולה זו אינה הפיכה.')) {
+                      setLoading(true)
+                      const { error } = await supabase.functions.invoke('clear-event-data', {
+                        body: { eventId: selectedEventId, target: 'schedule' },
+                        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
+                      })
+                      if (error) alert('שגיאה במחיקה')
+                      else loadEventData()
+                      setLoading(false)
+                    }
+                  }}
+                  className="text-red-500 hover:text-red-600 text-sm flex items-center gap-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  נקה תוכניה
+                </button>
+              )}
+            </div>
 
             <div className="space-y-4">
               <button
@@ -857,11 +901,33 @@ export function ProgramManagementPage() {
           <div className="card">
             <h2 className="text-xl font-bold mb-4">
               <Users className="w-5 h-5 inline ml-2 text-emerald-400" />
-              ייבוא משתתפים עם שיוך
+              ייבוא משתתפים מאקסל
             </h2>
-            <p className="text-zinc-400 mb-4">
-              יבא קובץ אקסל עם משתתפים: שם, טלפון, טראק - השיוך יתבצע אוטומטית
-            </p>
+            <div className="flex justify-between items-center mb-4">
+              <p className="text-zinc-400">
+                יבא קובץ אקסל עם פרטי משתתפים: שם, טלפון, אימייל, טראק
+              </p>
+              {participants.length > 0 && (
+                <button
+                  onClick={async () => {
+                    if (window.confirm('האם אתה בטוח שברצונך למחוק את כל המשתתפים? פעולה זו אינה הפיכה.')) {
+                      setLoading(true)
+                      const { error } = await supabase.functions.invoke('clear-event-data', {
+                        body: { eventId: selectedEventId, target: 'participants' },
+                        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
+                      })
+                      if (error) alert('שגיאה במחיקה')
+                      else loadEventData()
+                      setLoading(false)
+                    }
+                  }}
+                  className="text-red-500 hover:text-red-600 text-sm flex items-center gap-1"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  נקה משתתפים
+                </button>
+              )}
+            </div>
 
             <div className="space-y-4">
               <button

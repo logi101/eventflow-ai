@@ -32,9 +32,6 @@ import {
 } from './pages'
 import { UserManagementPage } from './pages/admin/UserManagementPage'
 
-// Modules
-import { EventsPage } from '@/modules/events'
-
 // ═══════════════════════════════════════════════════════════════════════════
 // Main App Layout (with Sidebar)
 // ═══════════════════════════════════════════════════════════════════════════
@@ -48,8 +45,8 @@ function AppLayout() {
           {/* Home - Event Selection */}
           <Route path="/" element={<HomePage />} />
 
-          {/* Event Creation/Editing */}
-          <Route path="/events/new" element={<EventsPage />} />
+          {/* Event Detail/Editing */}
+          <Route path="/events/new" element={<Navigate to="/" replace />} />
           <Route path="/events/:eventId" element={<EventDetailPage />} />
           <Route path="/events/:eventId/program" element={<EventDetailPage initialTab="program" />} />
           <Route path="/event/edit" element={<EventDetailPage />} />

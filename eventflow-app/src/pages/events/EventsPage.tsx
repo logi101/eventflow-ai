@@ -6,10 +6,12 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus, Edit2, Trash2, MapPin, Clock, X, Loader2, Calendar, RefreshCw, PlusCircle, AlertTriangle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 import type { Event, EventType, EventFormData, EventStatus } from '../../types'
 import { formatDate, formatCurrency, getStatusColor, getStatusLabel } from '../../utils'
 
 export function EventsPage() {
+  const { user, userProfile } = useAuth()
   const [events, setEvents] = useState<Event[]>([])
   const [eventTypes, setEventTypes] = useState<EventType[]>([])
   const [loading, setLoading] = useState(true)
@@ -61,6 +63,33 @@ export function EventsPage() {
         .order('start_date', { ascending: false })
 
       if (error) throw error
+
+      // Auto-mark past events as "completed"
+      const now = new Date()
+      const pastEvents = (data || []).filter(event => {
+        const endDate = event.end_date || event.start_date
+        return (
+          endDate &&
+          new Date(endDate) < now &&
+          (event.status === 'active' || event.status === 'planning')
+        )
+      })
+
+      if (pastEvents.length > 0) {
+        await Promise.all(
+          pastEvents.map(event =>
+            supabase
+              .from('events')
+              .update({ status: 'completed' })
+              .eq('id', event.id)
+          )
+        )
+        // Update local data to reflect the change
+        for (const pe of pastEvents) {
+          const found = data?.find(e => e.id === pe.id)
+          if (found) found.status = 'completed'
+        }
+      }
 
       const eventsWithStats = await Promise.all((data || []).map(async (event) => {
         const [participantsRes, checklistRes, vendorsRes] = await Promise.all([
@@ -181,7 +210,7 @@ export function EventsPage() {
       return
     }
 
-    const eventData = {
+    const eventData: Record<string, unknown> = {
       name: formData.name,
       description: formData.description || null,
       event_type_id: formData.event_type_id || null,
@@ -192,7 +221,12 @@ export function EventsPage() {
       venue_city: formData.venue_city || null,
       max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
       budget: formData.budget ? parseFloat(formData.budget) : null,
-      status: formData.status
+      status: formData.status,
+      // Only set organization_id and created_by for new events
+      ...(!editingEvent && {
+        organization_id: userProfile?.organization_id || null,
+        created_by: user?.id || null
+      })
     }
 
     // Check if editing and date changed
@@ -656,7 +690,7 @@ export function EventsPage() {
                   <option value="draft">טיוטה</option>
                   <option value="planning">בתכנון</option>
                   <option value="active">פעיל</option>
-                  <option value="completed">הושלם</option>
+                  <option value="completed">הסתיים</option>
                   <option value="cancelled">בוטל</option>
                 </select>
               </div>

@@ -81,6 +81,28 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
       if (error) throw error
 
+      // Auto-mark past events as "completed"
+      const now = new Date()
+      const pastEvents = (data || []).filter(event => {
+        const endDate = event.end_date || event.start_date
+        return (
+          endDate &&
+          new Date(endDate) < now &&
+          (event.status === 'active' || event.status === 'planning')
+        )
+      })
+      if (pastEvents.length > 0) {
+        await Promise.all(
+          pastEvents.map(event =>
+            supabase.from('events').update({ status: 'completed' }).eq('id', event.id)
+          )
+        )
+        for (const pe of pastEvents) {
+          const found = data?.find(e => e.id === pe.id)
+          if (found) found.status = 'completed'
+        }
+      }
+
       // Get participant counts for each event
       const eventsWithCounts = await Promise.all(
         (data || []).map(async (event) => {

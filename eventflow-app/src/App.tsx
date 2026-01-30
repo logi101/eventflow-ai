@@ -28,6 +28,7 @@ import {
   EventDetailPage,
   LoginPage,
   ForgotPasswordPage,
+  ResetPasswordPage,
   TestWhatsAppPage,
 } from './pages'
 import { UserManagementPage } from './pages/admin/UserManagementPage'
@@ -100,7 +101,7 @@ function AppLayout() {
 
 export default function App() {
   const location = useLocation()
-  const isAuthPage = ['/login', '/forgot-password'].includes(location.pathname)
+  const isAuthPage = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname)
 
   // Auth pages - full screen without sidebar
   if (isAuthPage) {
@@ -110,6 +111,7 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<Navigate to="/login" replace />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
         </Routes>
       </div>
     )

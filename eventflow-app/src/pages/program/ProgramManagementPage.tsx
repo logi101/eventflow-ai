@@ -361,8 +361,7 @@ export function ProgramManagementPage() {
       const { error } = await supabase.functions.invoke('bulk-insert', {
         body: {
           table: 'participant_schedules',
-          rows: assignmentsToCreate,
-          eventId: selectedEventId
+          rows: assignmentsToCreate
         },
         headers: {
           Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`

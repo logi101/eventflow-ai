@@ -42,9 +42,10 @@ import {
   X,
   ArrowUpRight,
   ArrowDownLeft,
-  Bot
+  Bot,
+  Wand2
 } from 'lucide-react'
-import { useMessages, useMessageStats, useSendMessage, useRetryMessage } from '../../hooks/useMessages'
+import { useMessages, useMessageStats, useSendMessage, useRetryMessage, useGenerateMessages } from '../../hooks/useMessages'
 import { useEvent } from '../../contexts/EventContext'
 import type {
   MessageWithRelations,
@@ -407,6 +408,19 @@ export function MessagesPage() {
     event_id: showAllMessages ? undefined : selectedEvent?.id
   })
   const { data: stats, isLoading: statsLoading } = useMessageStats(showAllMessages ? undefined : selectedEvent?.id)
+  const generateMessages = useGenerateMessages()
+
+  const handleGenerateMessages = async () => {
+    if (!selectedEvent?.id) return
+    try {
+      const result = await generateMessages.mutateAsync(selectedEvent.id)
+      if (result?.created > 0) {
+        refetch()
+      }
+    } catch (err) {
+      console.error('Failed to generate messages:', err)
+    }
+  }
 
   // Table columns definition
   const columns = useMemo<ColumnDef<MessageWithRelations>[]>(() => [
@@ -581,6 +595,21 @@ export function MessagesPage() {
                   <span>הצג הכל</span>
                 </>
               )}
+            </button>
+          )}
+          {selectedEvent && !showAllMessages && messages.length === 0 && !isLoading && (
+            <button
+              onClick={handleGenerateMessages}
+              disabled={generateMessages.isPending}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 relative z-10"
+              title="יצירת הודעות מתוזמנות לכל המשתתפים"
+            >
+              {generateMessages.isPending ? (
+                <Loader2 size={18} className="animate-spin" />
+              ) : (
+                <Wand2 size={18} />
+              )}
+              צור הודעות
             </button>
           )}
           <button

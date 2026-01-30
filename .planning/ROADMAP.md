@@ -95,43 +95,53 @@ Plans:
 
 ---
 
-## Phase 4: Manager Controls
+## Phase 4: Manager Controls — COMPLETE (audit-only)
 
 **Goal:** Managers can control follow-up reminders and preview messages
 
 **Requirements:** CTRL-01, CTRL-02, CTRL-03, CTRL-04
 
+**Status:** All 4 requirements pre-existing. Audit verified + 1 bug fixed (follow-up defaults true→false).
+
 **Success Criteria:**
-1. Event settings UI has toggles for follow_up_3mo and follow_up_6mo
-2. Database events.settings JSONB stores these flags
-3. Manager can see preview of activation message before enabling event
-4. Test reminder button sends a single test message to manager's phone
+1. [x] Event settings UI has toggles for follow_up_3mo and follow_up_6mo
+2. [x] Database events.settings JSONB stores these flags
+3. [x] Manager can see preview of activation message before enabling event
+4. [x] Test reminder button sends a single test message to manager's phone
 
 **Build Order:**
-1. Add follow-up toggles to event settings schema
-2. Update EventDetailPage to show follow-up controls
-3. Add message preview component
-4. Add test reminder button with Edge Function call
+1. ~~Add follow-up toggles to event settings schema~~ (pre-existing)
+2. ~~Update EventDetailPage to show follow-up controls~~ (pre-existing)
+3. ~~Add message preview component~~ (pre-existing)
+4. ~~Add test reminder button with Edge Function call~~ (pre-existing)
 
 ---
 
-## Phase 5: Reliability & Production Readiness
+## Phase 5: Reliability & Production Readiness — COMPLETE
 
 **Goal:** Ensure reminders are reliable, don't duplicate, and handle failures
 
 **Requirements:** REL-01, REL-02, REL-03, REL-04
 
+**Plans:** 2 plans
+
+Plans:
+- [x] 05-01-PLAN.md — Database safety net (unique constraint + retry columns)
+- [x] 05-02-PLAN.md — Rate limit handling + basic retry in send-reminder
+
+**Status:** Unique partial index prevents duplicate messages. retry_count + last_retry_at columns added. send-reminder v14 deployed with 2.1s throttle and one-retry for transient failures.
+
 **Success Criteria:**
-1. Same participant never receives same reminder type twice for same event
-2. Failed messages logged with timestamp, error message, and retry count
-3. Transient failures (network, rate limit) trigger automatic retry
-4. System respects 30 msgs/min rate limit per organization
+1. [x] Same participant never receives same reminder type twice for same event
+2. [x] Failed messages logged with timestamp, error message, and retry count
+3. [x] Transient failures (network, rate limit) trigger automatic retry
+4. [x] System respects 30 msgs/min rate limit per organization
 
 **Build Order:**
-1. Add unique constraint on messages (participant_id, event_id, type)
-2. Add retry_count and last_error columns to messages table
-3. Implement retry logic in send-reminder with exponential backoff
-4. Add rate limiting check before sending batch
+1. ~~Add unique constraint on messages (participant_id, event_id, type)~~ (05-01)
+2. ~~Add retry_count and last_retry_at columns to messages table~~ (05-01)
+3. ~~Implement retry logic in send-reminder~~ (05-02)
+4. ~~Add rate limiting throttle before sending~~ (05-02)
 
 ---
 

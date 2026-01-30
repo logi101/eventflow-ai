@@ -2,6 +2,7 @@
 // Edge Function לשליחת תזכורות אוטומטיות - מופעל על ידי Cron Job
 // Phase 3: Dynamic template system with fallback to hardcoded builders
 // Phase 4 v9: Fixed test mode — phone normalization, sendWhatsApp helper, correct columns
+// Phase 5 v14: Throttle (2.1s between sends), one retry for transient failures, retry_count tracking
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -987,24 +988,54 @@ async function sendWhatsApp(
   message: string,
   messageId?: string
 ): Promise<{ success: boolean; error?: string }> {
-  try {
-    const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-      },
-      body: JSON.stringify({
-        organization_id: organizationId,
-        phone,
-        message,
-        message_id: messageId,
-      }),
-    })
+  // Phase 5: Throttle — 2.1s between sends (~28 msgs/min, safely under 30/min limit)
+  await new Promise(r => setTimeout(r, 2100))
 
-    const result = await response.json()
-    return result
-  } catch (error) {
-    return { success: false, error: error.message }
+  const doSend = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/send-whatsapp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+        },
+        body: JSON.stringify({
+          organization_id: organizationId,
+          phone,
+          message,
+          message_id: messageId,
+        }),
+      })
+
+      const result = await response.json()
+      return result
+    } catch (error) {
+      return { success: false, error: error.message }
+    }
   }
+
+  let result = await doSend()
+
+  // Phase 5: One retry for transient failures (network, rate limit, timeout)
+  if (!result.success) {
+    const err = (result.error || '').toLowerCase()
+    const isTransient = err.includes('rate') || err.includes('timeout') || err.includes('network') || err.includes('fetch') || err.includes('429')
+
+    if (isTransient) {
+      // Wait 3s before retry
+      await new Promise(r => setTimeout(r, 3000))
+
+      // Track retry in database
+      if (messageId) {
+        await supabase.from('messages').update({
+          retry_count: 1,
+          last_retry_at: new Date().toISOString(),
+        }).eq('id', messageId)
+      }
+
+      result = await doSend()
+    }
+  }
+
+  return result
 }

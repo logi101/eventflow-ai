@@ -457,8 +457,9 @@ export function GuestsPage() {
             filteredParticipants.map(participant => (
               <div
                 key={participant.id}
-                className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300"
+                className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                 data-testid={`guest-card-${participant.id}`}
+                onClick={() => openEditModal(participant)}
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
@@ -500,20 +501,22 @@ export function GuestsPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  <div className="flex gap-2" onClick={(e) => e.stopPropagation()}>
                     <button
-                      className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 rounded-xl transition-all duration-200 hover:scale-105"
                       onClick={() => openEditModal(participant)}
                       title="עריכה"
                     >
-                      <Edit2 size={18} className="text-zinc-400" />
+                      <Edit2 size={16} className="text-blue-400" />
+                      <span className="text-sm text-blue-400 font-medium">עריכה</span>
                     </button>
                     <button
-                      className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-all duration-200 hover:scale-105"
                       onClick={() => handleDelete(participant)}
                       title="מחיקה"
                     >
-                      <Trash2 size={18} className="text-red-500" />
+                      <Trash2 size={16} className="text-red-400" />
+                      <span className="text-sm text-red-400 font-medium">מחיקה</span>
                     </button>
                   </div>
                 </div>

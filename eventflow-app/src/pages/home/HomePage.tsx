@@ -14,7 +14,8 @@ import {
   Search,
   Loader2,
   Sparkles,
-  ChevronLeft
+  ChevronLeft,
+  Power
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -127,6 +128,21 @@ export function HomePage() {
   const handleSelectEvent = (event: typeof allEvents[0]) => {
     setSelectedEvent(event)
     navigate('/event/dashboard')
+  }
+
+  const handleActivateEvent = async (e: React.MouseEvent, eventId: string) => {
+    e.stopPropagation()
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'active' })
+        .eq('id', eventId)
+      if (error) throw error
+      await refreshEvents()
+    } catch (err) {
+      console.error('Error activating event:', err)
+      alert('שגיאה בהפעלת האירוע')
+    }
   }
 
   const filteredEvents = allEvents.filter(event => {
@@ -283,7 +299,11 @@ export function HomePage() {
               <button
                 key={event.id}
                 onClick={() => handleSelectEvent(event)}
-                className="bg-white rounded-2xl border border-gray-200 p-6 text-right transition-all hover:shadow-xl hover:-translate-y-1 hover:border-primary-300 group"
+                className={`bg-white rounded-2xl border-2 p-6 text-right transition-all hover:shadow-xl hover:-translate-y-1 group ${
+                  event.status === 'active'
+                    ? 'border-green-400 hover:border-green-500'
+                    : 'border-red-400 hover:border-red-500'
+                }`}
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
@@ -347,6 +367,22 @@ export function HomePage() {
                     <span className="text-sm text-gray-500">פעילויות</span>
                   </div>
                 </div>
+
+                {/* Activate Button */}
+                {event.status !== 'active' && (
+                  <div
+                    className="mt-4 pt-4 border-t border-gray-100"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={(e) => handleActivateEvent(e, event.id)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium text-sm hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                    >
+                      <Power size={16} />
+                      הפעל אירוע
+                    </button>
+                  </div>
+                )}
               </button>
             ))}
           </div>

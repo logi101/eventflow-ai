@@ -6,12 +6,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 // ============================================================================
 
 function getCorsHeaders(origin: string | null): Record<string, string> {
-  // Allow all for now or restrict to specific origins
-  return {
-    'Access-Control-Allow-Origin': origin || '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  }
+    // Allow all for now or restrict to specific origins
+    return {
+        'Access-Control-Allow-Origin': '*', // Allow all origins for simplicity in this dev/demo environment
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+        'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+    }
 }
 
 // ============================================================================
@@ -19,25 +19,25 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 // ============================================================================
 
 serve(async (req) => {
-  // Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: getCorsHeaders(req.headers.get('origin')) })
-  }
-
-  try {
-    const { rows, eventDate, eventId } = await req.json()
-
-    if (!rows || !Array.isArray(rows) || rows.length === 0) {
-      throw new Error('No rows provided for parsing')
+    // Handle CORS preflight
+    if (req.method === 'OPTIONS') {
+        return new Response(null, { status: 204, headers: getCorsHeaders(req.headers.get('origin')) })
     }
 
-    const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
-    if (!geminiApiKey) {
-      throw new Error('GEMINI_API_KEY not configured')
-    }
+    try {
+        const { rows, eventDate, eventId } = await req.json()
 
-    // Construct the prompt
-    const prompt = `
+        if (!rows || !Array.isArray(rows) || rows.length === 0) {
+            throw new Error('No rows provided for parsing')
+        }
+
+        const geminiApiKey = Deno.env.get('GEMINI_API_KEY')
+        if (!geminiApiKey) {
+            throw new Error('GEMINI_API_KEY not configured')
+        }
+
+        // Construct the prompt
+        const prompt = `
     You are an AI assistant that parses raw schedule data into a structured JSON format.
     
     Target Schema (Array of Objects):
@@ -69,61 +69,61 @@ serve(async (req) => {
 
     Input Data (JSON):
     ${JSON.stringify(rows.slice(0, 50))} 
-    ` 
-    // Limiting to 50 rows for safety in this version, or standard context limits
+    `
+        // Limiting to 50 rows for safety in this version, or standard context limits
 
-    const response = await fetch(
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': geminiApiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.1,
-            responseMimeType: 'application/json'
-          }
-        }),
-      }
-    )
+        const response = await fetch(
+            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-goog-api-key': geminiApiKey,
+                },
+                body: JSON.stringify({
+                    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: 0.1,
+                        responseMimeType: 'application/json'
+                    }
+                }),
+            }
+        )
 
-    if (!response.ok) {
-        const errText = await response.text()
-        throw new Error(`Gemini API Error: ${response.status} - ${errText}`)
+        if (!response.ok) {
+            const errText = await response.text()
+            throw new Error(`Gemini API Error: ${response.status} - ${errText}`)
+        }
+
+        const result = await response.json()
+        const content = result.candidates?.[0]?.content?.parts?.[0]?.text
+
+        if (!content) {
+            throw new Error('No content returned from Gemini')
+        }
+
+        let parsedData
+        try {
+            parsedData = JSON.parse(content)
+        } catch (e) {
+            console.error('JSON parse error', content)
+            throw new Error('Failed to parse Gemini output as JSON')
+        }
+
+        // Optional: Insert directly into Supabase here if eventId is provided? 
+        // Or just return the data to client for preview/confirmation. 
+        // Returning to client is safer for UX (preview before commit).
+
+        return new Response(
+            JSON.stringify({ success: true, data: parsedData }),
+            { headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+        )
+
+    } catch (error) {
+        console.error('Error in parse-schedule:', error)
+        return new Response(
+            JSON.stringify({ success: false, error: error.message }),
+            { status: 500, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+        )
     }
-
-    const result = await response.json()
-    const content = result.candidates?.[0]?.content?.parts?.[0]?.text
-
-    if (!content) {
-        throw new Error('No content returned from Gemini')
-    }
-
-    let parsedData
-    try {
-        parsedData = JSON.parse(content)
-    } catch (e) {
-        console.error('JSON parse error', content)
-        throw new Error('Failed to parse Gemini output as JSON')
-    }
-
-    // Optional: Insert directly into Supabase here if eventId is provided? 
-    // Or just return the data to client for preview/confirmation. 
-    // Returning to client is safer for UX (preview before commit).
-
-    return new Response(
-      JSON.stringify({ success: true, data: parsedData }),
-      { headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
-    )
-
-  } catch (error) {
-    console.error('Error in parse-schedule:', error)
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      { status: 500, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
-    )
-  }
 })

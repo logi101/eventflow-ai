@@ -3,7 +3,7 @@
 // Shows all events as cards for selection
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Calendar,
@@ -17,14 +17,112 @@ import {
   ChevronLeft
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
+import { useAuth } from '../../contexts/AuthContext'
+import { EventForm } from '../../modules/events/components/EventForm'
+import type { EventFormData } from '../../modules/events/types'
+import { supabase } from '../../lib/supabase'
 
 type FilterStatus = 'all' | 'active' | 'planning' | 'draft' | 'completed'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { allEvents, setSelectedEvent, loading } = useEvent()
+  const { allEvents, setSelectedEvent, loading, refreshEvents } = useEvent()
+  const { user, userProfile } = useAuth()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
+
+  // Create event modal state
+  const [showCreateModal, setShowCreateModal] = useState(false)
+  const [eventTypes, setEventTypes] = useState<{ id: string; name: string; name_en: string; icon: string }[]>([])
+  const [saving, setSaving] = useState(false)
+  const [formData, setFormData] = useState<EventFormData>({
+    name: '',
+    description: '',
+    event_type_id: '',
+    start_date: '',
+    end_date: '',
+    venue_name: '',
+    venue_address: '',
+    venue_city: '',
+    max_participants: '',
+    budget: '',
+    status: 'draft'
+  })
+
+  useEffect(() => {
+    supabase
+      .from('event_types')
+      .select('*')
+      .eq('is_active', true)
+      .order('sort_order')
+      .then(({ data }) => {
+        if (data) setEventTypes(data)
+      })
+  }, [])
+
+  function openCreateModal() {
+    setFormData({
+      name: '',
+      description: '',
+      event_type_id: eventTypes[0]?.id || '',
+      start_date: '',
+      end_date: '',
+      venue_name: '',
+      venue_address: '',
+      venue_city: '',
+      max_participants: '',
+      budget: '',
+      status: 'draft'
+    })
+    setShowCreateModal(true)
+  }
+
+  async function handleSaveEvent() {
+    if (!formData.name || !formData.start_date) {
+      alert('נא למלא שם אירוע ותאריך')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const eventData = {
+        name: formData.name,
+        description: formData.description || null,
+        event_type_id: formData.event_type_id || null,
+        start_date: formData.start_date,
+        end_date: formData.end_date || null,
+        venue_name: formData.venue_name || null,
+        venue_address: formData.venue_address || null,
+        venue_city: formData.venue_city || null,
+        max_participants: formData.max_participants ? parseInt(formData.max_participants) : null,
+        budget: formData.budget ? parseFloat(formData.budget) : null,
+        status: formData.status,
+        organization_id: userProfile?.organization_id || null,
+        created_by: user?.id || null
+      }
+
+      const { data, error } = await supabase
+        .from('events')
+        .insert(eventData)
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setShowCreateModal(false)
+      await refreshEvents()
+      // Auto-select the newly created event and navigate to its dashboard
+      if (data) {
+        setSelectedEvent(data)
+        navigate('/event/dashboard')
+      }
+    } catch (error) {
+      console.error('Error saving event:', error)
+      alert('שגיאה בשמירת האירוע')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   const handleSelectEvent = (event: typeof allEvents[0]) => {
     setSelectedEvent(event)
@@ -43,7 +141,7 @@ export function HomePage() {
       case 'active': return 'פעיל'
       case 'planning': return 'בתכנון'
       case 'draft': return 'טיוטה'
-      case 'completed': return 'הושלם'
+      case 'completed': return 'הסתיים'
       case 'cancelled': return 'בוטל'
       default: return status
     }
@@ -74,7 +172,7 @@ export function HomePage() {
     { value: 'active', label: 'פעיל' },
     { value: 'planning', label: 'בתכנון' },
     { value: 'draft', label: 'טיוטה' },
-    { value: 'completed', label: 'הושלם' },
+    { value: 'completed', label: 'הסתיים' },
   ]
 
   if (loading) {
@@ -111,7 +209,7 @@ export function HomePage() {
               </p>
             </div>
             <button
-              onClick={() => navigate('/events/new')}
+              onClick={openCreateModal}
               className="inline-flex items-center gap-2 px-5 py-3 rounded-xl text-white font-medium transition-all hover:-translate-y-0.5 hover:shadow-lg"
               style={{
                 background: 'var(--ef-terracotta)',
@@ -170,7 +268,7 @@ export function HomePage() {
             </p>
             {!search && filterStatus === 'all' && (
               <button
-                onClick={() => navigate('/events/new')}
+                onClick={openCreateModal}
                 className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-white font-medium"
                 style={{ background: 'var(--ef-terracotta)' }}
               >
@@ -254,6 +352,18 @@ export function HomePage() {
           </div>
         )}
       </div>
+
+      {/* Create Event Modal */}
+      <EventForm
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSave={handleSaveEvent}
+        event={null}
+        eventTypes={eventTypes}
+        formData={formData}
+        setFormData={setFormData}
+        saving={saving}
+      />
     </div>
   )
 }

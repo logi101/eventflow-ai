@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useEvent } from '../../contexts/EventContext'
 import * as XLSX from 'xlsx'
 import type { Schedule, Participant, ParticipantStatus } from '../../types'
 
@@ -43,9 +44,10 @@ interface UpcomingReminder {
 }
 
 export function ProgramManagementPage() {
+  const { selectedEvent, allEvents, selectEventById } = useEvent()
   const [activeTab, setActiveTab] = useState<'import' | 'assign' | 'reminders'>('import')
   const [events, setEvents] = useState<{ id: string; name: string; start_date: string }[]>([])
-  const [selectedEventId, setSelectedEventId] = useState<string>('')
+  const [selectedEventId, setSelectedEventId] = useState<string>(selectedEvent?.id || '')
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [participants, setParticipants] = useState<Participant[]>([])
   const [assignments, setAssignments] = useState<ParticipantSchedule[]>([])
@@ -60,6 +62,13 @@ export function ProgramManagementPage() {
     loadEvents()
   }, [])
 
+  // Sync selectedEventId from EventContext when it loads after mount
+  useEffect(() => {
+    if (selectedEvent && !selectedEventId) {
+      setSelectedEventId(selectedEvent.id)
+    }
+  }, [selectedEvent, selectedEventId])
+
   // Load event-specific data when event changes
   useEffect(() => {
     if (selectedEventId) {
@@ -68,15 +77,36 @@ export function ProgramManagementPage() {
   }, [selectedEventId])
 
   async function loadEvents() {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('events')
       .select('id, name, start_date')
       .order('start_date', { ascending: false })
 
+    if (error) {
+      console.error('Failed to load events:', error)
+      // Fallback to EventContext's allEvents
+      if (allEvents.length > 0) {
+        const contextEvents = allEvents.map(e => ({ id: e.id, name: e.name, start_date: e.start_date }))
+        setEvents(contextEvents)
+        if (!selectedEventId && selectedEvent) {
+          setSelectedEventId(selectedEvent.id)
+        } else if (!selectedEventId && contextEvents.length > 0) {
+          setSelectedEventId(contextEvents[0].id)
+        }
+      }
+      setLoading(false)
+      return
+    }
+
     if (data) {
       setEvents(data)
-      if (data.length > 0) {
-        setSelectedEventId(data[0].id)
+      // Prefer context's selected event, fallback to first in list
+      if (!selectedEventId) {
+        if (selectedEvent) {
+          setSelectedEventId(selectedEvent.id)
+        } else if (data.length > 0) {
+          setSelectedEventId(data[0].id)
+        }
       }
     }
     setLoading(false)
@@ -606,7 +636,12 @@ export function ProgramManagementPage() {
         </div>
         <select
           value={selectedEventId}
-          onChange={(e) => setSelectedEventId(e.target.value)}
+          onChange={(e) => {
+            setSelectedEventId(e.target.value)
+            if (e.target.value) {
+              selectEventById(e.target.value)
+            }
+          }}
           className="input min-w-[250px]"
           data-testid="event-selector"
         >
@@ -616,6 +651,20 @@ export function ProgramManagementPage() {
           ))}
         </select>
       </div>
+
+      {/* No event warnings */}
+      {!selectedEventId && events.length > 0 && (
+        <div className="mb-4 p-3 rounded-lg border border-orange-500/30 bg-orange-500/10 text-orange-400 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span>יש לבחור אירוע כדי להפעיל את כפתורי הייבוא</span>
+        </div>
+      )}
+      {!selectedEventId && events.length === 0 && !loading && (
+        <div className="mb-4 p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-red-400 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+          <span>לא נמצאו אירועים. יש ליצור אירוע חדש קודם</span>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-5 gap-4 mb-6">
@@ -710,13 +759,20 @@ export function ProgramManagementPage() {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={handleScheduleImport}
-                className="hidden"
+                tabIndex={-1}
+                style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}
               />
-
               <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={!selectedEventId || importing}
-                className="btn-primary w-full"
+                type="button"
+                onClick={() => {
+                  if (!selectedEventId) {
+                    alert('יש לבחור אירוע לפני ייבוא תוכניה')
+                    return
+                  }
+                  if (importing) return
+                  fileInputRef.current?.click()
+                }}
+                className={`btn-primary w-full${!selectedEventId || importing ? ' opacity-50 cursor-not-allowed' : ''}`}
               >
                 {importing ? (
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />
@@ -761,13 +817,20 @@ export function ProgramManagementPage() {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={handleParticipantsImport}
-                className="hidden"
+                tabIndex={-1}
+                style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}
               />
-
               <button
-                onClick={() => participantsFileRef.current?.click()}
-                disabled={!selectedEventId || importing}
-                className="btn-primary w-full"
+                type="button"
+                onClick={() => {
+                  if (!selectedEventId) {
+                    alert('יש לבחור אירוע לפני ייבוא משתתפים')
+                    return
+                  }
+                  if (importing) return
+                  participantsFileRef.current?.click()
+                }}
+                className={`btn-primary w-full${!selectedEventId || importing ? ' opacity-50 cursor-not-allowed' : ''}`}
               >
                 {importing ? (
                   <Loader2 className="w-4 h-4 ml-2 animate-spin" />

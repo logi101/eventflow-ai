@@ -181,7 +181,7 @@ export function EventForm({
               <option value="draft">טיוטה</option>
               <option value="planning">בתכנון</option>
               <option value="active">פעיל</option>
-              <option value="completed">הושלם</option>
+              <option value="completed">הסתיים</option>
               <option value="cancelled">בוטל</option>
             </select>
           </div>

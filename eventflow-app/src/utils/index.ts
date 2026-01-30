@@ -54,7 +54,7 @@ export const getStatusLabel = (status: EventStatus) => {
     draft: 'טיוטה',
     planning: 'בתכנון',
     active: 'פעיל',
-    completed: 'הושלם',
+    completed: 'הסתיים',
     cancelled: 'בוטל'
   }
   return labels[status] || status

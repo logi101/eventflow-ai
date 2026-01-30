@@ -379,6 +379,18 @@ select.input {
   transform: translateY(0) scale(0.98);
 }
 
+.btn-primary:disabled,
+.btn-primary[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-primary:disabled::before {
+  display: none;
+}
+
 .btn-secondary {
   background: var(--bg-elevated);
   border: 1px solid var(--border-subtle);
@@ -398,6 +410,14 @@ select.input {
   border-color: var(--accent-orange);
   transform: translateY(-2px);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.btn-secondary:disabled,
+.btn-secondary[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

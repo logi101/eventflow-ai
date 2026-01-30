@@ -2,7 +2,6 @@
 // ALL messages go to Gemini AI for real conversations.
 // Only /help is handled locally.
 
-import { createClient } from '@supabase/supabase-js'
 import type {
   ChatRequest,
   ChatResponse,
@@ -13,15 +12,7 @@ import type {
   SkillType
 } from '../types/chat'
 import { SLASH_COMMANDS } from '../hooks/usePageContext'
-
-// ============================================================================
-// Supabase Client
-// ============================================================================
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
-
-const supabase = createClient(supabaseUrl, supabaseAnonKey)
+import { supabase } from '../lib/supabase'
 
 // ============================================================================
 // Slash Command to Natural Language Mapping
@@ -226,36 +217,54 @@ class GeminiService {
         historyLength: conversationHistory.length
       })
 
-      const { data, error } = await supabase.functions.invoke('ai-chat', {
-        body: {
-          message: actualMessage,
-          context: systemContext,
-          history: historyText,
-          page: context.currentPage,
-          eventId: context.eventId,
-          eventName: context.eventName
-        }
+      // Ensure fresh session before calling edge function (prevents 401 Invalid JWT)
+      await supabase.auth.getSession()
+
+      const invokeBody = {
+        message: actualMessage,
+        context: systemContext,
+        history: historyText,
+        page: context.currentPage,
+        eventId: context.eventId,
+        eventName: context.eventName
+      }
+
+      let { data, error } = await supabase.functions.invoke('ai-chat', {
+        body: invokeBody
       })
+
+      // Retry once on 401 after refreshing session
+      if (error && String(error).includes('401')) {
+        console.warn('[EventFlow AI] Got 401, refreshing session and retrying...')
+        await supabase.auth.refreshSession()
+        const retry = await supabase.functions.invoke('ai-chat', {
+          body: invokeBody
+        })
+        data = retry.data
+        error = retry.error
+      }
 
       if (error) {
         console.error('[EventFlow AI] Edge function error:', error)
-        // Try to extract detailed error from FunctionsHttpError
         let errorDetail = 'שגיאה לא ידועה'
         try {
+          // FunctionsHttpError in Supabase JS v2 has a context.json() method
           if (error && typeof error === 'object' && 'context' in error) {
-            const ctx = (error as { context: { json: () => Promise<unknown> } }).context
-            if (ctx && typeof ctx.json === 'function') {
-              const errorBody = await ctx.json()
+            const ctx = (error as Record<string, unknown>).context
+            if (ctx && typeof ctx === 'object' && 'json' in ctx && typeof (ctx as Record<string, unknown>).json === 'function') {
+              const errorBody = await (ctx as { json: () => Promise<unknown> }).json()
               console.error('[EventFlow AI] Error body:', errorBody)
               errorDetail = (errorBody as Record<string, string>).error || JSON.stringify(errorBody)
             } else {
               errorDetail = (error as Record<string, unknown>).message as string || JSON.stringify(error)
             }
+          } else if (error instanceof Error) {
+            errorDetail = error.message
           } else {
-            errorDetail = (error as Record<string, unknown>).message as string || String(error)
+            errorDetail = String(error)
           }
         } catch {
-          errorDetail = String(error)
+          errorDetail = error instanceof Error ? error.message : String(error)
         }
         return {
           content: `אירעה שגיאה בתקשורת עם העוזר:\n\n**${errorDetail}**\n\nנסה שוב או בדוק את הגדרות המערכת.`,

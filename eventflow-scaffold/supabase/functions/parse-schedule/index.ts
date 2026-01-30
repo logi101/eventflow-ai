@@ -65,8 +65,10 @@ serve(async (req) => {
     3. If 'start_time' or 'end_time' are just times (e.g. "09:00"), combine with Base Event Date (${eventDate}).
     4. Auto-detect "is_break" for lunch, coffee, registration, networking.
     5. Clean up names and text, BUT DO NOT TRANSLATE.
-    6. CRITICAL: PRESERVE ORIGINAL LANGUAGE (Hebrew/English) for Title, Description, Speaker, etc. NEVER translate Hebrew to English.
-    7. Return ONLY a JSON array. No code blocks, no markdown.
+    6. CRITICAL: PRESERVE ORIGINAL LANGUAGE (Hebrew/English).
+    7. AUTO-REPAIR ENCODING: If text looks like gibberish (e.g., "×©×œ×•×™" or "Ã—Ã©"), it is likely UTF-8 read as Latin-1. YOU MUST RESTORE THE ORIGINAL HEBREW.
+       Example: "×©×œ×•×™" -> "שלו"
+    8. Return ONLY a JSON array. No code blocks, no markdown.
  
     Input Data (JSON):
     ${JSON.stringify(rows.slice(0, 50))} 

@@ -2,17 +2,17 @@
 
 ## Current Position
 
-Phase: 2 (Reminder Types Implementation) — COMPLETE
-Plan: 02-04 verified
-Status: Phase 2 complete, all 8 reminder types working
-Last activity: 2026-01-30 - Completed quick task 001: iOS PWA Push Notifications (full stack: frontend on Firebase, backend on Supabase)
+Phase: 3 (Dynamic Template System) — COMPLETE
+Plan: 03-02 verified
+Status: Phase 3 complete, dynamic template system deployed and working
+Last activity: 2026-01-30 - Phase 3 verified: template engine wired to all 8 handlers, source synced from Supabase v13
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-01-28)
 
 **Core value:** Participants receive the right message at the right time automatically
-**Current focus:** Phase 2 complete. Next: Phase 3 - Dynamic Templates
+**Current focus:** Phase 3 complete. Next: Phase 4 - Manager Controls
 
 ## Accumulated Context
 
@@ -26,16 +26,21 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - Both `message_type` and `subject` populated for backward compatibility
 - Follow-up reminders default to false (opt-in by manager)
 - Follow-up date windows are 4 days wide for cron timing tolerance
+- Template engine uses org-specific lookup first, then system fallback
+- Variable substitution via regex with empty string fallback for missing values
+- Hardcoded message builders kept as emergency fallback
 
 ### Blockers
 (None currently)
 
 ### Technical Notes
-- Edge Function send-reminder deployed as v6 with all 8 handlers
+- Edge Function send-reminder deployed as v13 with template engine + all 8 handlers
 - All 8 cron jobs active and verified
 - Deduplication uses `message_type` column (enum-based)
 - Settings flags in events.settings JSONB control per-event reminder behavior
-- message_templates table exists but not yet wired to send-reminder (Phase 3)
+- message_templates table wired to send-reminder via getMessageTemplate()
+- substituteVariables() handles {{var}} replacement with empty string fallback
+- Test mode available: `body.mode === 'test'` sends single message to manager's phone
 - push_subscriptions table created with RLS (3 policies)
 - send-push-notification Edge Function deployed (RFC 8291 encryption, --no-verify-jwt)
 - VAPID keys set as Supabase secrets
@@ -43,6 +48,7 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 ### Completed Phases
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
 - Phase 2: Reminder Types Implementation (4/4 plans complete)
+- Phase 3: Dynamic Template System (2/2 plans complete)
 
 ### Quick Tasks Completed
 

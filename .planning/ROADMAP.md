@@ -78,8 +78,8 @@ Plans:
 **Plans:** 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Template engine + wire into all 8 reminder handlers
-- [ ] 03-02-PLAN.md — Deploy and verify all 8 types with database templates
+- [x] 03-01-PLAN.md — Template engine + wire into all 8 reminder handlers
+- [x] 03-02-PLAN.md — Deploy and verify all 8 types with database templates
 
 **Success Criteria:**
 1. send-reminder queries message_templates by type before sending

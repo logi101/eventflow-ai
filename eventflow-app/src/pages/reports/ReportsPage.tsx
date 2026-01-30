@@ -3,12 +3,14 @@ import { Calendar, Users, CheckSquare, DollarSign, MessageCircle, FileQuestion, 
 import { supabase } from '../../lib/supabase'
 import type { Event, ReportStats } from '../../types'
 import * as XLSX from 'xlsx'
+import { useEvent } from '../../contexts/EventContext'
 
 export function ReportsPage() {
+  const { selectedEvent: contextEvent } = useEvent()
   const [stats, setStats] = useState<ReportStats | null>(null)
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedEventId, setSelectedEventId] = useState<string>('')
+  const [selectedEventId, setSelectedEventId] = useState<string>(contextEvent?.id || '')
   const [eventStats, setEventStats] = useState<{
     participants: { total: number; byStatus: Record<string, number> }
     checklist: { total: number; completed: number }
@@ -96,6 +98,13 @@ export function ReportsPage() {
       budget: eventRes.data?.budget || null
     })
   }
+
+  // Sync with EventContext when selected event changes
+  useEffect(() => {
+    if (contextEvent && selectedEventId !== contextEvent.id) {
+      setSelectedEventId(contextEvent.id)
+    }
+  }, [contextEvent])
 
   useEffect(() => {
     fetchOverallStats()

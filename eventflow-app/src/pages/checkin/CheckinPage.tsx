@@ -2,23 +2,33 @@ import { useState, useEffect } from 'react'
 import { ScanLine, CheckCircle, XCircle, UserCheck, Search, Loader2, Users, Clock, Star, Calendar, User } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { CheckinParticipant, SimpleEvent } from '../../types'
+import { useEvent } from '../../contexts/EventContext'
 
 export function CheckinPage() {
+  const { selectedEvent: contextEvent } = useEvent()
   const [participants, setParticipants] = useState<CheckinParticipant[]>([])
   const [events, setEvents] = useState<SimpleEvent[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedEventId, setSelectedEventId] = useState<string>('')
+  const [selectedEventId, setSelectedEventId] = useState<string>(contextEvent?.id || '')
   const [searchTerm, setSearchTerm] = useState('')
   const [scanMode, setScanMode] = useState(false)
   const [manualCode, setManualCode] = useState('')
   const [checkInResult, setCheckInResult] = useState<{ success: boolean; message: string; participant?: CheckinParticipant } | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'checked_in' | 'not_checked_in'>('all')
 
+  // Sync with EventContext when selected event changes
+  useEffect(() => {
+    if (contextEvent && selectedEventId !== contextEvent.id) {
+      setSelectedEventId(contextEvent.id)
+    }
+  }, [contextEvent])
+
   async function fetchEvents() {
     const { data } = await supabase.from('events').select('id, name').order('start_date', { ascending: false })
     if (data) {
       setEvents(data)
-      if (data.length > 0) {
+      // Only fallback to first event if no event selected from context
+      if (!selectedEventId && data.length > 0) {
         setSelectedEventId(data[0].id)
       }
     }

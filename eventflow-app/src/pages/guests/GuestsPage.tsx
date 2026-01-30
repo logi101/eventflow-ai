@@ -8,14 +8,16 @@ import { supabase } from '../../lib/supabase'
 import * as XLSX from 'xlsx'
 import type { Participant, ParticipantFormData, ParticipantStatus } from '../../types'
 import { getParticipantStatusColor, getParticipantStatusLabel, normalizePhone } from '../../utils'
+import { useEvent } from '../../contexts/EventContext'
 
 export function GuestsPage() {
+  const { selectedEvent } = useEvent()
   const [participants, setParticipants] = useState<Participant[]>([])
   const [events, setEvents] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null)
-  const [selectedEventId, setSelectedEventId] = useState<string>('all')
+  const [selectedEventId, setSelectedEventId] = useState<string>(selectedEvent?.id || '')
   const [statusFilter, setStatusFilter] = useState<ParticipantStatus | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
@@ -38,9 +40,15 @@ export function GuestsPage() {
     vip_notes: ''
   })
 
+  // Sync with EventContext when selected event changes
+  useEffect(() => {
+    if (selectedEvent && selectedEventId !== selectedEvent.id) {
+      setSelectedEventId(selectedEvent.id)
+    }
+  }, [selectedEvent])
+
   useEffect(() => {
     fetchEvents()
-    fetchParticipants()
   }, [])
 
   useEffect(() => {
@@ -61,18 +69,20 @@ export function GuestsPage() {
   }
 
   async function fetchParticipants() {
+    if (!selectedEventId) {
+      setParticipants([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from('participants')
         .select(`*, events (name)`)
+        .eq('event_id', selectedEventId)
         .order('created_at', { ascending: false })
 
-      if (selectedEventId !== 'all') {
-        query = query.eq('event_id', selectedEventId)
-      }
-
-      const { data, error } = await query
       if (error) throw error
       setParticipants(data || [])
     } catch (error) {
@@ -387,7 +397,7 @@ export function GuestsPage() {
               value={selectedEventId}
               onChange={e => setSelectedEventId(e.target.value)}
             >
-              <option value="all">כל האירועים</option>
+              <option value="">בחר אירוע</option>
               {events.map(event => (
                 <option key={event.id} value={event.id}>{event.name}</option>
               ))}
@@ -484,7 +494,7 @@ export function GuestsPage() {
                           </span>
                         )}
                       </div>
-                      {participant.events && selectedEventId === 'all' && (
+                      {participant.events && !selectedEventId && (
                         <p className="text-xs text-zinc-500 mt-1.5 bg-white/5 inline-block px-2 py-0.5 rounded-md">{participant.events.name}</p>
                       )}
                     </div>

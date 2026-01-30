@@ -164,27 +164,77 @@ export function ProgramManagementPage() {
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
 
-      const schedulesToInsert = rows.map((row, index) => ({
+      // 1. Try Standard/Heuristic Mapping first
+      let schedulesToInsert = rows.map((row, index) => ({
         event_id: selectedEventId,
-        title: String(row['כותרת'] || row['title'] || row['שם'] || ''),
-        description: row['תיאור'] || row['description'] || null,
-        start_time: parseExcelDateTime(row['שעת התחלה'] || row['start_time'] || row['התחלה']),
-        end_time: parseExcelDateTime(row['שעת סיום'] || row['end_time'] || row['סיום']),
-        location: row['מיקום'] || row['location'] || null,
-        room: row['חדר'] || row['room'] || null,
-        track: row['טראק'] || row['track'] || row['מסלול'] || null,
-        track_color: row['צבע'] || row['color'] || getTrackColor(row['טראק'] || row['track'] || row['מסלול']),
-        speaker_name: row['מרצה'] || row['speaker'] || row['מנחה'] || null,
-        speaker_title: row['תפקיד מרצה'] || row['speaker_title'] || null,
-        is_break: Boolean(row['הפסקה'] || row['is_break']),
-        is_mandatory: Boolean(row['חובה'] || row['mandatory']),
+        title: String(row['כותרת'] || row['title'] || row['שם'] || row['Subject'] || row['נושא'] || ''),
+        description: row['תיאור'] || row['description'] || row['Description'] || row['פירוט'] || null,
+        start_time: parseExcelDateTime(row['שעת התחלה'] || row['start_time'] || row['התחלה'] || row['Start Date'] || row['Start Time'] || row['Start']),
+        end_time: parseExcelDateTime(row['שעת סיום'] || row['end_time'] || row['סיום'] || row['End Date'] || row['End Time'] || row['End']),
+        location: row['מיקום'] || row['location'] || row['Location'] || null,
+        room: row['חדר'] || row['room'] || row['Room'] || null,
+        track: row['טראק'] || row['track'] || row['מסלול'] || row['Track'] || null,
+        track_color: row['צבע'] || row['color'] || getTrackColor(row['טראק'] || row['track'] || row['מסלול'] || row['Track']),
+        speaker_name: row['מרצה'] || row['speaker'] || row['מנחה'] || row['Speaker'] || null,
+        speaker_title: row['תפקיד מרצה'] || row['speaker_title'] || row['Title'] || null,
+        is_break: Boolean(row['הפסקה'] || row['is_break'] || row['Break']),
+        is_mandatory: Boolean(row['חובה'] || row['mandatory'] || row['Mandatory']),
         send_reminder: true,
         reminder_minutes_before: Number(row['תזכורת דקות'] || row['reminder_minutes'] || 15),
         sort_order: index
       })).filter(s => s.title && s.start_time && s.end_time)
 
+      // 2. If Standard Mapping Failed, Try AI Import
       if (schedulesToInsert.length === 0) {
-        alert('לא נמצאו פריטים תקינים בקובץ')
+        console.log('Standard import failed (0 items), attempting AI smart import...')
+
+        // We need the event date to help the AI with relative times
+        const currentEvent = events.find(e => e.id === selectedEventId)
+        const eventDateStr = currentEvent?.start_date?.split('T')[0] || new Date().toISOString().split('T')[0]
+
+        // Call the Edge Function
+        const { data: aiData, error: aiError } = await supabase.functions.invoke('parse-schedule', {
+          body: {
+            rows: rows.slice(0, 50), // Limit to 50 rows for safety
+            eventDate: eventDateStr,
+            eventId: selectedEventId
+          }
+        })
+
+        if (aiError) {
+          console.error('AI Import failed:', aiError)
+          throw new Error('AI Import failed: ' + aiError.message)
+        }
+
+        if (aiData && aiData.data && Array.isArray(aiData.data)) {
+          // Map AI result to DB schema
+          schedulesToInsert = aiData.data.map((item: any, index: number) => ({
+            event_id: selectedEventId,
+            title: item.title,
+            description: item.description,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            location: item.location,
+            room: item.room,
+            track: item.track,
+            track_color: getTrackColor(item.track),
+            speaker_name: item.speaker_name,
+            speaker_title: item.speaker_title,
+            is_break: item.is_break || false,
+            is_mandatory: item.is_mandatory || false,
+            send_reminder: true,
+            reminder_minutes_before: 15,
+            sort_order: index
+          }))
+
+          if (schedulesToInsert.length > 0) {
+            alert(`זוהו ${schedulesToInsert.length} פריטים באמצעות בינה מלאכותית!`)
+          }
+        }
+      }
+
+      if (schedulesToInsert.length === 0) {
+        alert('לא נמצאו פריטים תקינים בקובץ (גם לאחר ניסיון זיהוי חכם)')
         setImporting(false)
         return
       }
@@ -200,9 +250,9 @@ export function ProgramManagementPage() {
         alert(`יובאו ${schedulesToInsert.length} פריטים בהצלחה!`)
         loadEventData()
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Parse error:', err)
-      alert('שגיאה בקריאת הקובץ')
+      alert('שגיאה בקריאת הקובץ: ' + (err.message || 'Unknown error'))
     }
 
     setImporting(false)
@@ -694,33 +744,30 @@ export function ProgramManagementPage() {
       <div className="flex gap-2 mb-6 border-b">
         <button
           onClick={() => setActiveTab('import')}
-          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-            activeTab === 'import'
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${activeTab === 'import'
               ? 'border-primary text-primary'
               : 'border-transparent text-zinc-400 hover:text-zinc-300'
-          }`}
+            }`}
         >
           <Upload className="w-4 h-4 inline ml-2" />
           ייבוא
         </button>
         <button
           onClick={() => setActiveTab('assign')}
-          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-            activeTab === 'assign'
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${activeTab === 'assign'
               ? 'border-primary text-primary'
               : 'border-transparent text-zinc-400 hover:text-zinc-300'
-          }`}
+            }`}
         >
           <Link2 className="w-4 h-4 inline ml-2" />
           שיוך משתתפים
         </button>
         <button
           onClick={() => setActiveTab('reminders')}
-          className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-            activeTab === 'reminders'
+          className={`px-4 py-2 font-medium border-b-2 transition-colors ${activeTab === 'reminders'
               ? 'border-primary text-primary'
               : 'border-transparent text-zinc-400 hover:text-zinc-300'
-          }`}
+            }`}
         >
           <Bell className="w-4 h-4 inline ml-2" />
           תזכורות
@@ -875,9 +922,8 @@ export function ProgramManagementPage() {
                 return (
                   <div
                     key={schedule.id}
-                    className={`p-4 rounded-lg border ${
-                      schedule.is_break ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[#1a1d27] border-white/10'
-                    }`}
+                    className={`p-4 rounded-lg border ${schedule.is_break ? 'bg-orange-500/10 border-orange-500/20' : 'bg-[#1a1d27] border-white/10'
+                      }`}
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
@@ -929,11 +975,10 @@ export function ProgramManagementPage() {
                           return (
                             <span
                               key={assignment.id}
-                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
-                                assignment.reminder_sent
+                              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${assignment.reminder_sent
                                   ? 'bg-emerald-500/20 text-emerald-400'
                                   : 'bg-blue-500/20 text-blue-400'
-                              }`}
+                                }`}
                             >
                               {participant.first_name} {participant.last_name}
                               {assignment.reminder_sent && (
@@ -1003,13 +1048,12 @@ export function ProgramManagementPage() {
                   return (
                     <div
                       key={index}
-                      className={`p-4 rounded-lg border ${
-                        reminder.minutesUntil <= 0
+                      className={`p-4 rounded-lg border ${reminder.minutesUntil <= 0
                           ? 'bg-red-500/10 border-red-500/30'
                           : reminder.minutesUntil <= 15
-                          ? 'bg-orange-500/10 border-orange-500/30'
-                          : 'bg-amber-500/10 border-amber-500/30'
-                      }`}
+                            ? 'bg-orange-500/10 border-orange-500/30'
+                            : 'bg-amber-500/10 border-amber-500/30'
+                        }`}
                     >
                       <div className="flex justify-between items-start mb-3">
                         <div>
@@ -1062,11 +1106,10 @@ export function ProgramManagementPage() {
                         {reminder.participants.map(participant => (
                           <span
                             key={participant.id}
-                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${
-                              participant.reminder_sent
+                            className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${participant.reminder_sent
                                 ? 'bg-emerald-500/20 text-emerald-400'
                                 : 'bg-[#1a1d27] text-zinc-300 border border-white/10'
-                            }`}
+                              }`}
                           >
                             {participant.first_name} {participant.last_name}
                             {participant.reminder_sent ? (

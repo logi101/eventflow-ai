@@ -198,6 +198,10 @@ export function ProgramManagementPage() {
             rows: rows.slice(0, 50), // Limit to 50 rows for safety
             eventDate: eventDateStr,
             eventId: selectedEventId
+          },
+          headers: {
+            // Force usage of Anon Key for this utility function to avoid 401s from expired user sessions
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
           }
         })
 
@@ -745,8 +749,8 @@ export function ProgramManagementPage() {
         <button
           onClick={() => setActiveTab('import')}
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${activeTab === 'import'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-zinc-400 hover:text-zinc-300'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-zinc-400 hover:text-zinc-300'
             }`}
         >
           <Upload className="w-4 h-4 inline ml-2" />
@@ -755,8 +759,8 @@ export function ProgramManagementPage() {
         <button
           onClick={() => setActiveTab('assign')}
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${activeTab === 'assign'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-zinc-400 hover:text-zinc-300'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-zinc-400 hover:text-zinc-300'
             }`}
         >
           <Link2 className="w-4 h-4 inline ml-2" />
@@ -765,8 +769,8 @@ export function ProgramManagementPage() {
         <button
           onClick={() => setActiveTab('reminders')}
           className={`px-4 py-2 font-medium border-b-2 transition-colors ${activeTab === 'reminders'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-zinc-400 hover:text-zinc-300'
+            ? 'border-primary text-primary'
+            : 'border-transparent text-zinc-400 hover:text-zinc-300'
             }`}
         >
           <Bell className="w-4 h-4 inline ml-2" />
@@ -976,8 +980,8 @@ export function ProgramManagementPage() {
                             <span
                               key={assignment.id}
                               className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${assignment.reminder_sent
-                                  ? 'bg-emerald-500/20 text-emerald-400'
-                                  : 'bg-blue-500/20 text-blue-400'
+                                ? 'bg-emerald-500/20 text-emerald-400'
+                                : 'bg-blue-500/20 text-blue-400'
                                 }`}
                             >
                               {participant.first_name} {participant.last_name}
@@ -1049,10 +1053,10 @@ export function ProgramManagementPage() {
                     <div
                       key={index}
                       className={`p-4 rounded-lg border ${reminder.minutesUntil <= 0
-                          ? 'bg-red-500/10 border-red-500/30'
-                          : reminder.minutesUntil <= 15
-                            ? 'bg-orange-500/10 border-orange-500/30'
-                            : 'bg-amber-500/10 border-amber-500/30'
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : reminder.minutesUntil <= 15
+                          ? 'bg-orange-500/10 border-orange-500/30'
+                          : 'bg-amber-500/10 border-amber-500/30'
                         }`}
                     >
                       <div className="flex justify-between items-start mb-3">
@@ -1107,8 +1111,8 @@ export function ProgramManagementPage() {
                           <span
                             key={participant.id}
                             className={`inline-flex items-center gap-1 px-2 py-1 rounded text-sm ${participant.reminder_sent
-                                ? 'bg-emerald-500/20 text-emerald-400'
-                                : 'bg-[#1a1d27] text-zinc-300 border border-white/10'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-[#1a1d27] text-zinc-300 border border-white/10'
                               }`}
                           >
                             {participant.first_name} {participant.last_name}

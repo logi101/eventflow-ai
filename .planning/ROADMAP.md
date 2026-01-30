@@ -43,10 +43,10 @@ Plans:
 **Plans:** 4 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Schema migration for new reminder types
-- [ ] 02-02-PLAN.md — Activation & week-before reminder handlers
-- [ ] 02-03-PLAN.md — Event-end & follow-up reminder handlers
-- [ ] 02-04-PLAN.md — Full integration test & verification
+- [x] 02-01-PLAN.md — Schema migration for new reminder types
+- [x] 02-02-PLAN.md — Activation & week-before reminder handlers
+- [x] 02-03-PLAN.md — Event-end & follow-up reminder handlers
+- [x] 02-04-PLAN.md — Full integration test & verification
 
 **Success Criteria:**
 1. send-reminder accepts `type` parameter for all 8 types
@@ -74,6 +74,12 @@ Plans:
 **Goal:** send-reminder fetches and uses templates from message_templates table
 
 **Requirements:** TMPL-01, TMPL-02, TMPL-03, TMPL-04
+
+**Plans:** 2 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Template engine + wire into all 8 reminder handlers
+- [ ] 03-02-PLAN.md — Deploy and verify all 8 types with database templates
 
 **Success Criteria:**
 1. send-reminder queries message_templates by type before sending
@@ -142,4 +148,4 @@ Plans:
 **Total:** 5 phases, 20 requirements, 24 success criteria
 
 ---
-*Roadmap updated: 2026-01-28*
+*Roadmap updated: 2026-01-30*

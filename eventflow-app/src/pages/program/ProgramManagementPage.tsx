@@ -243,13 +243,22 @@ export function ProgramManagementPage() {
         return
       }
 
-      const { error } = await supabase
-        .from('schedules')
-        .insert(schedulesToInsert)
+      // Use Edge Function for insert to avoid Client-Side RLS issues
+      const { data: insertData, error: insertError } = await supabase.functions.invoke('bulk-insert', {
+        body: {
+          table: 'schedules',
+          rows: schedulesToInsert,
+          eventId: selectedEventId
+        },
+        headers: {
+          // Force usage of Anon Key for this utility function to avoid 401s from expired user sessions
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
+        }
+      })
 
-      if (error) {
-        console.error('Import error:', error)
-        alert('שגיאה בייבוא: ' + error.message)
+      if (insertError) {
+        console.error('Import error:', insertError)
+        alert('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
       } else {
         alert(`יובאו ${schedulesToInsert.length} פריטים בהצלחה!`)
         loadEventData()

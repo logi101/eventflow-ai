@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, Loader2, Calendar, Clock, Star, FileQuestion, BarChart3, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { FeedbackSurvey, FeedbackResponse, SurveyFormData, SimpleEvent } from '../../types'
+import { useEvent } from '../../contexts/EventContext'
 
 export function FeedbackPage() {
+  const { selectedEvent: contextEvent } = useEvent()
   const [surveys, setSurveys] = useState<FeedbackSurvey[]>([])
   const [events, setEvents] = useState<SimpleEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -11,7 +13,7 @@ export function FeedbackPage() {
   const [editingSurvey, setEditingSurvey] = useState<FeedbackSurvey | null>(null)
   const [selectedSurvey, setSelectedSurvey] = useState<FeedbackSurvey | null>(null)
   const [responses, setResponses] = useState<FeedbackResponse[]>([])
-  const [filterEventId, setFilterEventId] = useState<string>('')
+  const [filterEventId, setFilterEventId] = useState<string>(contextEvent?.id || '')
   const [viewMode, setViewMode] = useState<'list' | 'responses' | 'analytics'>('list')
 
   const emptyForm: SurveyFormData = {
@@ -58,6 +60,13 @@ export function FeedbackPage() {
     }
     setLoading(false)
   }
+
+  // Sync with EventContext when selected event changes
+  useEffect(() => {
+    if (contextEvent && filterEventId !== contextEvent.id) {
+      setFilterEventId(contextEvent.id)
+    }
+  }, [contextEvent])
 
   useEffect(() => {
     fetchSurveys()

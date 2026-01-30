@@ -3,14 +3,16 @@ import { Plus, Edit2, Trash2, X, Loader2, Search, CheckSquare, Clock } from 'luc
 import { supabase } from '../../lib/supabase'
 import type { ChecklistItem, ChecklistFormData, TaskStatus, TaskPriority } from '../../types'
 import { getTaskStatusColor, getTaskStatusLabel, getPriorityColor, getPriorityLabel } from '../../utils'
+import { useEvent } from '../../contexts/EventContext'
 
 export function ChecklistPage() {
+  const { selectedEvent: contextEvent } = useEvent()
   const [items, setItems] = useState<ChecklistItem[]>([])
   const [events, setEvents] = useState<{ id: string; name: string; status: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingItem, setEditingItem] = useState<ChecklistItem | null>(null)
-  const [selectedEvent, setSelectedEvent] = useState<string>('all')
+  const [selectedEvent, setSelectedEvent] = useState<string>(contextEvent?.id || '')
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -26,6 +28,13 @@ export function ChecklistPage() {
     notes: ''
   })
 
+  // Sync with EventContext when selected event changes
+  useEffect(() => {
+    if (contextEvent && selectedEvent !== contextEvent.id) {
+      setSelectedEvent(contextEvent.id)
+    }
+  }, [contextEvent])
+
   async function loadData() {
     setLoading(true)
 
@@ -37,10 +46,17 @@ export function ChecklistPage() {
 
     if (eventsData) setEvents(eventsData)
 
-    // Load checklist items
+    // Load checklist items - only for selected event
+    if (!selectedEvent) {
+      setItems([])
+      setLoading(false)
+      return
+    }
+
     const { data: itemsData, error } = await supabase
       .from('checklist_items')
       .select('*, events(name)')
+      .eq('event_id', selectedEvent)
       .order('sort_order', { ascending: true })
 
     if (error) {
@@ -54,23 +70,22 @@ export function ChecklistPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [selectedEvent])
 
   const filteredItems = items.filter(item => {
-    const matchesEvent = selectedEvent === 'all' || item.event_id === selectedEvent
     const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus
     const matchesPriority = selectedPriority === 'all' || item.priority === selectedPriority
     const matchesSearch = !searchTerm ||
       item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (item.description?.toLowerCase().includes(searchTerm.toLowerCase()))
 
-    return matchesEvent && matchesStatus && matchesPriority && matchesSearch
+    return matchesStatus && matchesPriority && matchesSearch
   })
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!selectedEvent || selectedEvent === 'all') {
+    if (!selectedEvent) {
       alert('נא לבחור אירוע')
       return
     }
@@ -274,7 +289,7 @@ export function ChecklistPage() {
               onChange={(e) => setSelectedEvent(e.target.value)}
               className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all min-w-[180px]"
             >
-              <option value="all">כל האירועים</option>
+              <option value="">בחר אירוע</option>
               {events.map(event => (
                 <option key={event.id} value={event.id}>{event.name}</option>
               ))}

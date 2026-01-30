@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { Plus, Edit2, Trash2, Clock, MapPin, User, Coffee, Play, Calendar, X, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useEvent } from '../../contexts/EventContext'
 
 interface Schedule {
   id: string
@@ -58,12 +59,13 @@ const trackColors = [
 ]
 
 export function SchedulesPage() {
+  const { selectedEvent: contextEvent } = useEvent()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [events, setEvents] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [editingSchedule, setEditingSchedule] = useState<Schedule | null>(null)
-  const [selectedEvent, setSelectedEvent] = useState<string>('all')
+  const [selectedEvent, setSelectedEvent] = useState<string>(contextEvent?.id || '')
   const nowLineRef = useRef<HTMLDivElement>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [formData, setFormData] = useState<ScheduleFormData>({
@@ -83,6 +85,13 @@ export function SchedulesPage() {
     send_reminder: true,
     reminder_minutes_before: '15'
   })
+
+  // Sync with EventContext when selected event changes
+  useEffect(() => {
+    if (contextEvent && selectedEvent !== contextEvent.id) {
+      setSelectedEvent(contextEvent.id)
+    }
+  }, [contextEvent])
 
   // Update the now line every minute
   useEffect(() => {
@@ -110,10 +119,17 @@ export function SchedulesPage() {
 
     if (eventsData) setEvents(eventsData)
 
-    // Load schedules
+    // Load schedules - only for selected event
+    if (!selectedEvent) {
+      setSchedules([])
+      setLoading(false)
+      return
+    }
+
     const { data: schedulesData, error } = await supabase
       .from('schedules')
       .select('*, events(name)')
+      .eq('event_id', selectedEvent)
       .order('start_time', { ascending: true })
 
     if (error) {
@@ -127,14 +143,10 @@ export function SchedulesPage() {
 
   useEffect(() => {
     loadData()
-  }, [])
-
-  const filteredSchedules = schedules.filter(schedule => {
-    return selectedEvent === 'all' || schedule.event_id === selectedEvent
-  })
+  }, [selectedEvent])
 
   // Group schedules by date
-  const groupedSchedules = filteredSchedules.reduce((groups, schedule) => {
+  const groupedSchedules = schedules.reduce((groups, schedule) => {
     const date = new Date(schedule.start_time).toLocaleDateString('he-IL', {
       weekday: 'long',
       year: 'numeric',
@@ -167,7 +179,7 @@ export function SchedulesPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
 
-    if (!selectedEvent || selectedEvent === 'all') {
+    if (!selectedEvent) {
       alert('נא לבחור אירוע')
       return
     }
@@ -290,10 +302,10 @@ export function SchedulesPage() {
 
   // Stats
   const stats = {
-    total: filteredSchedules.length,
-    sessions: filteredSchedules.filter(s => !s.is_break).length,
-    breaks: filteredSchedules.filter(s => s.is_break).length,
-    mandatory: filteredSchedules.filter(s => s.is_mandatory).length
+    total: schedules.length,
+    sessions: schedules.filter(s => !s.is_break).length,
+    breaks: schedules.filter(s => s.is_break).length,
+    mandatory: schedules.filter(s => s.is_mandatory).length
   }
 
   if (loading) {
@@ -368,7 +380,7 @@ export function SchedulesPage() {
             onChange={(e) => setSelectedEvent(e.target.value)}
             className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all min-w-[250px]"
           >
-            <option value="all">כל האירועים</option>
+            <option value="">בחר אירוע</option>
             {events.map(event => (
               <option key={event.id} value={event.id}>{event.name}</option>
             ))}

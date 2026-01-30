@@ -250,6 +250,36 @@ export function useSendMessage() {
 // Retry Failed Message
 // ────────────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────────────
+// Generate Scheduled Messages for Event
+// ────────────────────────────────────────────────────────────────────────────
+
+export function useGenerateMessages() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (eventId: string) => {
+      const { data, error } = await supabase.rpc('generate_event_messages', {
+        p_event_id: eventId
+      })
+
+      if (error) {
+        console.error('Error generating messages:', error)
+        throw error
+      }
+
+      return data as { created: number; skipped: number; event_id: string; event_name: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messagesKeys.all })
+    }
+  })
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Retry Failed Message
+// ────────────────────────────────────────────────────────────────────────────
+
 export function useRetryMessage() {
   const queryClient = useQueryClient()
 

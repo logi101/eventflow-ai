@@ -133,11 +133,16 @@ export function HomePage() {
   const handleActivateEvent = async (e: React.MouseEvent, eventId: string) => {
     e.stopPropagation()
     try {
+      // 1. Activate the event
       const { error } = await supabase
         .from('events')
         .update({ status: 'active' })
         .eq('id', eventId)
       if (error) throw error
+
+      // 2. Auto-generate all scheduled messages for this event
+      await supabase.rpc('generate_event_messages', { p_event_id: eventId })
+
       await refreshEvents()
     } catch (err) {
       console.error('Error activating event:', err)

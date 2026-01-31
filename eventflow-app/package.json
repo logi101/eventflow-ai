@@ -12,7 +12,8 @@
     "test:ui": "playwright test --ui",
     "test:report": "playwright show-report",
     "deploy": "npm run build && firebase deploy --only hosting",
-    "deploy:preview": "npm run build && firebase hosting:channel:deploy preview"
+    "deploy:preview": "npm run build && firebase hosting:channel:deploy preview",
+    "seed:event-types": "tsx scripts/seed-event-types.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -54,6 +55,7 @@
     "globals": "^16.5.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
+    "tsx": "^4.21.0",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",

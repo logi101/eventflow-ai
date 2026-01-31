@@ -4,6 +4,7 @@ import { useRef, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trash2, Settings, Bot } from 'lucide-react'
 import { useChatContext } from '../../contexts/ChatContext'
+import { useEvent } from '../../contexts/EventContext'
 import { PAGE_WELCOME_MESSAGES } from '../../hooks/usePageContext'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
@@ -27,6 +28,7 @@ export function ChatWindow({ height }: ChatWindowProps) {
     clearMessages,
     switchAgent
   } = useChatContext()
+  const { selectedEvent } = useEvent()
 
   const { messages, isLoading, pageContext, currentAgent, settings } = state
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -78,8 +80,14 @@ export function ChatWindow({ height }: ChatWindowProps) {
           </select>
         </div>
 
-        {/* Actions */}
+        {/* Event Context Badge + Actions */}
         <div className="flex items-center gap-1">
+          {selectedEvent && (
+            <span className="flex items-center gap-1 rounded-md bg-red-500/10 px-2 py-1 text-[10px] text-red-400 border border-red-500/20">
+              <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+              {selectedEvent.name}
+            </span>
+          )}
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}

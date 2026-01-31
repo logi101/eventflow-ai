@@ -68,6 +68,15 @@ export type ActionType =
   | 'set_date'
   | 'set_participants'
   | 'suggest_create_event'
+  // New event-scoped actions
+  | 'participants_added'
+  | 'participants_listed'
+  | 'event_updated'
+  | 'checklist_completed'
+  | 'whatsapp_sent'
+  // Schedule actions
+  | 'schedule_items_added'
+  | 'schedule_item_updated'
 
 export interface ChatAction {
   id: string

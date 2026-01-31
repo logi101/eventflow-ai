@@ -2,7 +2,7 @@
 // EventFlow - Messages Page (Full Table View)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -43,10 +43,15 @@ import {
   ArrowUpRight,
   ArrowDownLeft,
   Bot,
-  Wand2
+  Wand2,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  Shield
 } from 'lucide-react'
-import { useMessages, useMessageStats, useSendMessage, useRetryMessage, useGenerateMessages } from '../../hooks/useMessages'
+import { useMessages, useMessageStats, useSendMessage, useRetryMessage, useGenerateMessages, useUpdateMessage, useDeleteMessage, useDeleteAllMessages } from '../../hooks/useMessages'
 import { useEvent } from '../../contexts/EventContext'
+import { useGracePeriod } from '../../contexts/GracePeriodContext'
 import type {
   MessageWithRelations,
   MessageStatus,
@@ -385,13 +390,260 @@ function MessageDetailModal({
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Edit Message Modal
+// ────────────────────────────────────────────────────────────────────────────
+
+function EditMessageModal({
+  message,
+  onClose,
+  onSaveWithGrace
+}: {
+  message: MessageWithRelations | null
+  onClose: () => void
+  onSaveWithGrace: (messageId: string, content: string, subject: string | null) => void
+}) {
+  const [content, setContent] = useState(message?.content || '')
+  const [subject, setSubject] = useState(message?.subject || '')
+
+  // Reset form when message changes
+  useEffect(() => {
+    if (message) {
+      setContent(message.content || '')
+      setSubject(message.subject || '')
+    }
+  }, [message])
+
+  if (!message) return null
+
+  const handleSave = () => {
+    onSaveWithGrace(message.id, content, subject || null)
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 border border-zinc-700">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Pencil size={20} />
+            עריכת הודעה
+          </h2>
+          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded">
+            <X size={20} className="text-white" />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">נושא</label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+              placeholder="נושא ההודעה (אופציונלי)"
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">תוכן ההודעה</label>
+            <textarea
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-h-[120px] text-white"
+              placeholder="תוכן ההודעה..."
+              value={content}
+              onChange={e => setContent(e.target.value)}
+            />
+          </div>
+
+          <div className="p-3 bg-amber-900/20 border border-amber-700/50 rounded-lg text-amber-300 text-sm">
+            השינוי ייכנס לתוקף בעוד 60 שניות - ניתן לבטל
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={onClose}
+              className="flex-1 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600"
+            >
+              ביטול
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={!content}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              <Pencil size={18} />
+              שמור
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Delete Confirmation Modal (Single Message)
+// ────────────────────────────────────────────────────────────────────────────
+
+function DeleteConfirmModal({
+  message,
+  onClose,
+  onConfirm,
+  isPending
+}: {
+  message: MessageWithRelations | null
+  onClose: () => void
+  onConfirm: () => void
+  isPending: boolean
+}) {
+  if (!message) return null
+
+  const recipientName = message.participants
+    ? (message.participants.full_name || `${message.participants.first_name} ${message.participants.last_name}`)
+    : message.to_phone
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-sm mx-4 border border-red-700">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-red-900/40 rounded-full">
+            <Trash2 size={24} className="text-red-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white">מחיקת הודעה</h2>
+        </div>
+
+        <p className="text-zinc-300 mb-2">
+          האם למחוק את ההודעה ל<strong className="text-white">{recipientName}</strong>?
+        </p>
+        <div className="p-3 bg-zinc-800 rounded-lg text-sm text-zinc-400 mb-4 max-h-[80px] overflow-hidden">
+          {message.content}
+        </div>
+        <p className="text-red-400 text-sm mb-4">פעולה זו אינה הפיכה</p>
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600"
+          >
+            ביטול
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={isPending}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isPending ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Trash2 size={18} />
+            )}
+            מחק
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Delete All Confirmation Modal (Admin Confirmation)
+// ────────────────────────────────────────────────────────────────────────────
+
+function DeleteAllConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isPending,
+  messageCount,
+  eventName
+}: {
+  isOpen: boolean
+  onClose: () => void
+  onConfirm: () => void
+  isPending: boolean
+  messageCount: number
+  eventName?: string
+}) {
+  const [confirmText, setConfirmText] = useState('')
+  const CONFIRM_WORD = 'מחק הכל'
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 border border-red-700">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="p-2 bg-red-900/40 rounded-full">
+            <AlertTriangle size={24} className="text-red-400" />
+          </div>
+          <h2 className="text-xl font-bold text-white">מחיקת כל ההודעות</h2>
+        </div>
+
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center gap-2 p-3 bg-red-900/30 border border-red-800 rounded-lg">
+            <Shield size={18} className="text-red-400 shrink-0" />
+            <p className="text-red-300 text-sm">
+              פעולה זו דורשת אישור מנהל - מחיקה בלתי הפיכה
+            </p>
+          </div>
+
+          <p className="text-zinc-300">
+            {eventName ? (
+              <>פעולה זו תמחק <strong className="text-white">{messageCount}</strong> הודעות מהאירוע <strong className="text-orange-400">{eventName}</strong></>
+            ) : (
+              <>פעולה זו תמחק <strong className="text-white">{messageCount}</strong> הודעות מכל האירועים</>
+            )}
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-300 mb-1">
+              הקלד "<span className="text-red-400 font-bold">{CONFIRM_WORD}</span>" לאישור
+            </label>
+            <input
+              type="text"
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 text-white"
+              placeholder={CONFIRM_WORD}
+              value={confirmText}
+              onChange={e => setConfirmText(e.target.value)}
+              dir="rtl"
+            />
+          </div>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={() => { onClose(); setConfirmText('') }}
+            className="flex-1 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600"
+          >
+            ביטול
+          </button>
+          <button
+            onClick={() => { onConfirm(); setConfirmText('') }}
+            disabled={confirmText !== CONFIRM_WORD || isPending}
+            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            {isPending ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Trash2 size={18} />
+            )}
+            מחק הכל
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Main Messages Page
 // ────────────────────────────────────────────────────────────────────────────
 
 export function MessagesPage() {
   // Get selected event from context
   const { selectedEvent } = useEvent()
-  
+  const { queueChange, pendingChanges } = useGracePeriod()
+
   // State
   const [filters, setFilters] = useState<MessageFilters>({})
   const [showAllMessages, setShowAllMessages] = useState(false)
@@ -400,6 +652,9 @@ export function MessagesPage() {
   const [globalFilter, setGlobalFilter] = useState('')
   const [showSendModal, setShowSendModal] = useState(false)
   const [selectedMessage, setSelectedMessage] = useState<MessageWithRelations | null>(null)
+  const [editingMessage, setEditingMessage] = useState<MessageWithRelations | null>(null)
+  const [deletingMessage, setDeletingMessage] = useState<MessageWithRelations | null>(null)
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
 
   // Data
@@ -409,17 +664,85 @@ export function MessagesPage() {
   })
   const { data: stats, isLoading: statsLoading } = useMessageStats(showAllMessages ? undefined : selectedEvent?.id)
   const generateMessages = useGenerateMessages()
+  const deleteMessage = useDeleteMessage()
+  const deleteAllMessages = useDeleteAllMessages()
+  const updateMessage = useUpdateMessage()
+
+  // Grace period: queue message edit
+  const handleEditWithGrace = (messageId: string, content: string, subject: string | null) => {
+    const msg = messages.find(m => m.id === messageId)
+    const recipientName = msg?.participants?.full_name || msg?.to_phone || ''
+
+    queueChange({
+      type: 'message_update',
+      eventId: msg?.event_id || '',
+      description: `עדכון הודעה ל${recipientName}`,
+      payload: { messageId, content, subject },
+      executeFn: async () => {
+        await updateMessage.mutateAsync({ id: messageId, content, subject })
+      }
+    })
+  }
+
+  const handleDeleteMessage = async () => {
+    if (!deletingMessage) return
+    const msgToDelete = deletingMessage
+    setDeletingMessage(null)
+
+    // Queue with 60s grace period
+    queueChange({
+      type: 'message_delete',
+      eventId: msgToDelete.event_id || '',
+      description: `מחיקת הודעה ל${msgToDelete.participants?.full_name || msgToDelete.to_phone || 'לא ידוע'}`,
+      payload: { messageId: msgToDelete.id },
+      executeFn: async () => {
+        await deleteMessage.mutateAsync(msgToDelete.id)
+      }
+    })
+  }
+
+  const handleDeleteAll = async () => {
+    const eventId = showAllMessages ? undefined : selectedEvent?.id
+    setShowDeleteAllModal(false)
+
+    // Queue with 60s grace period
+    queueChange({
+      type: 'message_delete_all',
+      eventId: eventId || '',
+      description: `מחיקת ${messages.length} הודעות`,
+      payload: { eventId },
+      messageImpact: {
+        messagesToCreate: 0,
+        messagesToUpdate: 0,
+        messagesToDelete: messages.length,
+        affectedParticipants: 0
+      },
+      executeFn: async () => {
+        await deleteAllMessages.mutateAsync(eventId)
+      }
+    })
+  }
 
   const handleGenerateMessages = async () => {
     if (!selectedEvent?.id) return
     try {
       const result = await generateMessages.mutateAsync(selectedEvent.id)
-      if (result?.created > 0) {
+      if (result?.created_messages > 0) {
         refetch()
       }
     } catch (err) {
       console.error('Failed to generate messages:', err)
     }
+  }
+
+  // Helper: check pending state for a message
+  const getMessagePendingState = (messageId: string): 'edit' | 'delete' | null => {
+    for (const change of pendingChanges) {
+      if (change.type === 'message_delete_all') return 'delete'
+      if (change.type === 'message_delete' && (change.payload as { messageId: string }).messageId === messageId) return 'delete'
+      if (change.type === 'message_update' && (change.payload as { messageId: string }).messageId === messageId) return 'edit'
+    }
+    return null
   }
 
   // Table columns definition
@@ -508,20 +831,56 @@ export function MessagesPage() {
     {
       id: 'actions',
       header: '',
-      cell: ({ row }) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            setSelectedMessage(row.original)
-          }}
-          className="p-1 hover:bg-zinc-700 rounded"
-          title="צפה בפרטים"
-        >
-          <Eye size={16} className="text-zinc-300" />
-        </button>
-      )
+      cell: ({ row }) => {
+        const pending = getMessagePendingState(row.original.id)
+        if (pending) {
+          return (
+            <span className={`text-xs px-2 py-1 rounded-full font-medium whitespace-nowrap ${
+              pending === 'delete'
+                ? 'bg-red-900/50 text-red-300'
+                : 'bg-amber-900/50 text-amber-300'
+            }`}>
+              {pending === 'delete' ? 'ממתין למחיקה' : 'ממתין לעדכון'}
+            </span>
+          )
+        }
+        return (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setSelectedMessage(row.original)
+              }}
+              className="p-1.5 hover:bg-zinc-700 rounded transition-colors"
+              title="צפה בפרטים"
+            >
+              <Eye size={16} className="text-zinc-400 hover:text-blue-400" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setEditingMessage(row.original)
+              }}
+              className="p-1.5 hover:bg-zinc-700 rounded transition-colors"
+              title="ערוך הודעה"
+            >
+              <Pencil size={16} className="text-zinc-400 hover:text-yellow-400" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                setDeletingMessage(row.original)
+              }}
+              className="p-1.5 hover:bg-zinc-700 rounded transition-colors"
+              title="מחק הודעה"
+            >
+              <Trash2 size={16} className="text-zinc-400 hover:text-red-400" />
+            </button>
+          </div>
+        )
+      }
     }
-  ], [])
+  ], [pendingChanges])
 
   // Table instance
   const table = useReactTable({
@@ -610,6 +969,16 @@ export function MessagesPage() {
                 <Wand2 size={18} />
               )}
               צור הודעות
+            </button>
+          )}
+          {messages.length > 0 && (
+            <button
+              onClick={() => setShowDeleteAllModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-red-900/40 text-red-300 border border-red-700 rounded-lg hover:bg-red-900/60 relative z-10"
+              title="מחק את כל ההודעות"
+            >
+              <Trash2 size={18} />
+              מחק הכל
             </button>
           )}
           <button
@@ -743,14 +1112,37 @@ export function MessagesPage() {
               ) : (
                 table.getRowModel().rows.map(row => {
                   const isIncoming = row.original.direction === 'incoming'
+                  const pendingState = getMessagePendingState(row.original.id)
+                  const isPendingDelete = pendingState === 'delete'
+                  const isPendingEdit = pendingState === 'edit'
+
                   return (
                   <tr
                     key={row.id}
-                    className={`cursor-pointer ${isIncoming ? 'bg-purple-900/20 hover:bg-purple-900/30' : 'hover:bg-zinc-700'}`}
+                    className={`cursor-pointer transition-all relative ${
+                      isPendingDelete
+                        ? 'opacity-40 bg-red-900/10'
+                        : isPendingEdit
+                          ? 'bg-amber-900/10'
+                          : isIncoming
+                            ? 'bg-purple-900/20 hover:bg-purple-900/30'
+                            : 'hover:bg-zinc-700'
+                    }`}
                     onClick={() => setSelectedMessage(row.original)}
                   >
                     {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="px-4 py-3">
+                      <td
+                        key={cell.id}
+                        className={`px-4 py-3 ${
+                          isPendingDelete ? 'line-through decoration-red-400' : ''
+                        } ${
+                          cell.column.id === row.getVisibleCells()[0]?.column.id && (isPendingDelete || isPendingEdit)
+                            ? isPendingDelete
+                              ? 'border-r-4 border-r-red-500'
+                              : 'border-r-4 border-r-amber-500'
+                            : ''
+                        }`}
+                      >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
@@ -803,12 +1195,27 @@ export function MessagesPage() {
       </div>
 
       {/* Modals */}
-      <SendMessageModal 
-        isOpen={showSendModal} 
+      <SendMessageModal
+        isOpen={showSendModal}
         onClose={() => setShowSendModal(false)}
         eventId={showAllMessages ? undefined : selectedEvent?.id}
       />
       <MessageDetailModal message={selectedMessage} onClose={() => setSelectedMessage(null)} />
+      <EditMessageModal message={editingMessage} onClose={() => setEditingMessage(null)} onSaveWithGrace={handleEditWithGrace} />
+      <DeleteConfirmModal
+        message={deletingMessage}
+        onClose={() => setDeletingMessage(null)}
+        onConfirm={handleDeleteMessage}
+        isPending={deleteMessage.isPending}
+      />
+      <DeleteAllConfirmModal
+        isOpen={showDeleteAllModal}
+        onClose={() => setShowDeleteAllModal(false)}
+        onConfirm={handleDeleteAll}
+        isPending={deleteAllMessages.isPending}
+        messageCount={messages.length}
+        eventName={!showAllMessages ? selectedEvent?.name : undefined}
+      />
     </div>
   )
 }

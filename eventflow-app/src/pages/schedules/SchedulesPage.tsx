@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef, Fragment } from 'react'
-import { Plus, Edit2, Trash2, Clock, MapPin, User, Coffee, Play, Calendar, X, Loader2 } from 'lucide-react'
+import { Plus, Edit2, Trash2, Clock, MapPin, User, Coffee, Play, Calendar, X, Loader2, AlertTriangle } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useEvent } from '../../contexts/EventContext'
+import { useGracePeriod } from '../../contexts/GracePeriodContext'
+import { computeScheduleMessageSync, executeScheduleMessageSync } from '../../utils/scheduleMessageSync'
+import type { MessageSyncPlan } from '../../utils/scheduleMessageSync'
 
 interface Schedule {
   id: string
@@ -60,6 +63,7 @@ const trackColors = [
 
 export function SchedulesPage() {
   const { selectedEvent: contextEvent } = useEvent()
+  const { queueChange, requestConfirmation, dismissConfirmation } = useGracePeriod()
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [events, setEvents] = useState<{ id: string; name: string }[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,6 +72,8 @@ export function SchedulesPage() {
   const [selectedEvent, setSelectedEvent] = useState<string>(contextEvent?.id || '')
   const nowLineRef = useRef<HTMLDivElement>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
+  const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false)
+  const [deleteAllLoading, setDeleteAllLoading] = useState(false)
   const [formData, setFormData] = useState<ScheduleFormData>({
     title: '',
     description: '',
@@ -203,40 +209,262 @@ export function SchedulesPage() {
       reminder_minutes_before: parseInt(formData.reminder_minutes_before) || 15
     }
 
-    if (editingSchedule) {
-      const { error } = await supabase
-        .from('schedules')
-        .update(scheduleData)
-        .eq('id', editingSchedule.id)
+    const isUpdate = !!editingSchedule
+    const changeType = isUpdate ? 'update' as const : 'create' as const
 
-      if (error) {
-        alert('שגיאה בעדכון הפריט')
-        return
+    // Compute message impact before saving
+    let syncPlan: MessageSyncPlan | null = null
+    try {
+      syncPlan = await computeScheduleMessageSync(
+        selectedEvent,
+        changeType,
+        {
+          id: editingSchedule?.id,
+          title: formData.title,
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+          location: formData.location || null,
+          room: formData.room || null,
+          send_reminder: formData.send_reminder,
+          reminder_minutes_before: parseInt(formData.reminder_minutes_before) || 15
+        }
+      )
+    } catch (err) {
+      console.error('Failed to compute message sync:', err)
+    }
+
+    const hasMessageImpact = syncPlan && (
+      syncPlan.impact.messagesToCreate > 0 ||
+      syncPlan.impact.messagesToUpdate > 0 ||
+      syncPlan.impact.messagesToDelete > 0
+    )
+
+    // Function that saves the schedule and queues message sync
+    const saveAndQueueSync = async () => {
+      dismissConfirmation()
+
+      if (isUpdate && editingSchedule) {
+        const { error } = await supabase
+          .from('schedules')
+          .update(scheduleData)
+          .eq('id', editingSchedule.id)
+
+        if (error) {
+          alert('שגיאה בעדכון הפריט')
+          return
+        }
+      } else {
+        const { error } = await supabase
+          .from('schedules')
+          .insert(scheduleData)
+
+        if (error) {
+          alert('שגיאה ביצירת הפריט')
+          return
+        }
       }
-    } else {
-      const { error } = await supabase
-        .from('schedules')
-        .insert(scheduleData)
 
-      if (error) {
-        alert('שגיאה ביצירת הפריט')
-        return
+      closeModal()
+      loadData()
+
+      // Queue message sync with 60s grace period
+      if (syncPlan && hasMessageImpact) {
+        const plan = syncPlan
+        queueChange({
+          type: isUpdate ? 'schedule_update' : 'schedule_create',
+          eventId: selectedEvent,
+          description: isUpdate
+            ? `עדכון הודעות עבור "${formData.title}"`
+            : `יצירת הודעות עבור "${formData.title}"`,
+          payload: { scheduleTitle: formData.title },
+          messageImpact: plan.impact,
+          executeFn: async () => {
+            await executeScheduleMessageSync(plan)
+          }
+        })
       }
     }
 
-    closeModal()
-    loadData()
+    // If there's message impact, show confirmation first
+    if (hasMessageImpact && syncPlan) {
+      const changes = []
+      const deletions = []
+
+      if (syncPlan.impact.messagesToCreate > 0) {
+        changes.push({ label: 'הודעות שייווצרו', count: syncPlan.impact.messagesToCreate })
+      }
+      if (syncPlan.impact.messagesToUpdate > 0) {
+        changes.push({ label: 'הודעות שיעודכנו', count: syncPlan.impact.messagesToUpdate })
+      }
+      if (syncPlan.impact.messagesToDelete > 0) {
+        deletions.push({ label: 'הודעות שיימחקו', count: syncPlan.impact.messagesToDelete })
+      }
+
+      requestConfirmation(
+        {
+          title: isUpdate ? 'עדכון לוז - השפעה על הודעות' : 'לוז חדש - יצירת הודעות',
+          description: `שינוי זה ישפיע על ההודעות של ${syncPlan.impact.affectedParticipants} משתתפים`,
+          changes,
+          deletions,
+          warningText: 'השינוי ייכנס לתוקף בעוד 60 שניות - ניתן לבטל במהלך הזמן הזה'
+        },
+        saveAndQueueSync,
+        () => dismissConfirmation()
+      )
+    } else {
+      // No message impact - save directly without grace period
+      if (isUpdate && editingSchedule) {
+        const { error } = await supabase
+          .from('schedules')
+          .update(scheduleData)
+          .eq('id', editingSchedule.id)
+
+        if (error) {
+          alert('שגיאה בעדכון הפריט')
+          return
+        }
+      } else {
+        const { error } = await supabase
+          .from('schedules')
+          .insert(scheduleData)
+
+        if (error) {
+          alert('שגיאה ביצירת הפריט')
+          return
+        }
+      }
+
+      closeModal()
+      loadData()
+    }
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('האם למחוק את הפריט?')) return
+    const schedule = schedules.find(s => s.id === id)
+    if (!schedule) return
 
+    // Compute message impact
+    let syncPlan: MessageSyncPlan | null = null
+    try {
+      syncPlan = await computeScheduleMessageSync(selectedEvent, 'delete', {
+        id: schedule.id,
+        title: schedule.title,
+        start_time: schedule.start_time,
+        end_time: schedule.end_time,
+        send_reminder: schedule.send_reminder,
+        reminder_minutes_before: schedule.reminder_minutes_before
+      })
+    } catch (err) {
+      console.error('Failed to compute message sync:', err)
+    }
+
+    const hasMessageImpact = syncPlan && syncPlan.impact.messagesToDelete > 0
+
+    const doDelete = async () => {
+      dismissConfirmation()
+
+      // Delete associated messages first (no FK cascade)
+      if (syncPlan && hasMessageImpact) {
+        const plan = syncPlan
+        // Delete schedule from DB
+        const { error } = await supabase
+          .from('schedules')
+          .delete()
+          .eq('id', id)
+
+        if (error) {
+          console.error('Error deleting schedule:', error)
+          alert('שגיאה במחיקת הפריט')
+          return
+        }
+
+        loadData()
+
+        // Queue message deletion with 60s grace
+        queueChange({
+          type: 'schedule_delete',
+          eventId: selectedEvent,
+          description: `מחיקת ${plan.impact.messagesToDelete} הודעות של "${schedule.title}"`,
+          payload: { scheduleId: id, scheduleTitle: schedule.title },
+          messageImpact: plan.impact,
+          executeFn: async () => {
+            await executeScheduleMessageSync(plan)
+          }
+        })
+      } else {
+        // No messages to delete - just delete the schedule
+        const { error } = await supabase
+          .from('schedules')
+          .delete()
+          .eq('id', id)
+
+        if (error) {
+          console.error('Error deleting schedule:', error)
+          alert('שגיאה במחיקת הפריט')
+        } else {
+          loadData()
+        }
+      }
+    }
+
+    if (hasMessageImpact && syncPlan) {
+      requestConfirmation(
+        {
+          title: 'מחיקת פריט מהלוז',
+          description: `מחיקת "${schedule.title}" תשפיע על ההודעות הקשורות`,
+          changes: [],
+          deletions: [{ label: 'הודעות שיימחקו', count: syncPlan.impact.messagesToDelete }],
+          warningText: 'ההודעות יימחקו בעוד 60 שניות - ניתן לבטל'
+        },
+        doDelete,
+        () => dismissConfirmation()
+      )
+    } else {
+      if (!confirm('האם למחוק את הפריט?')) return
+      doDelete()
+    }
+  }
+
+  async function handleDeleteAll() {
+    if (!selectedEvent || schedules.length === 0) return
+
+    // Compute message impact
+    let syncPlan: MessageSyncPlan | null = null
+    try {
+      syncPlan = await computeScheduleMessageSync(selectedEvent, 'delete_all')
+    } catch (err) {
+      console.error('Failed to compute message sync:', err)
+    }
+
+    setDeleteAllLoading(true)
     const { error } = await supabase
       .from('schedules')
       .delete()
-      .eq('id', id)
+      .eq('event_id', selectedEvent)
 
-    if (!error) loadData()
+    if (error) {
+      console.error('Error deleting all schedules:', error)
+      alert('שגיאה במחיקת הפריטים')
+    } else {
+      loadData()
+
+      // Queue message deletion with 60s grace
+      if (syncPlan && syncPlan.impact.messagesToDelete > 0) {
+        const plan = syncPlan
+        queueChange({
+          type: 'schedule_delete_all',
+          eventId: selectedEvent,
+          description: `מחיקת ${plan.impact.messagesToDelete} הודעות של כל פריטי הלוז`,
+          payload: { eventId: selectedEvent },
+          messageImpact: plan.impact,
+          executeFn: async () => {
+            await executeScheduleMessageSync(plan)
+          }
+        })
+      }
+    }
+    setDeleteAllLoading(false)
+    setShowDeleteAllConfirm(false)
   }
 
   function openEditModal(schedule: Schedule) {
@@ -339,14 +567,25 @@ export function SchedulesPage() {
             <h1 className="text-3xl font-bold text-white" data-testid="schedules-title">לוח זמנים</h1>
             <p className="text-zinc-400 mt-1">{stats.total} פריטים | {stats.sessions} מפגשים | {stats.breaks} הפסקות</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all duration-300"
-            data-testid="add-schedule-btn"
-          >
-            <Plus className="w-5 h-5" />
-            פריט חדש
-          </button>
+          <div className="flex gap-3">
+            {schedules.length > 0 && (
+              <button
+                onClick={() => setShowDeleteAllConfirm(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/30 rounded-xl font-medium hover:bg-red-500/20 hover:border-red-500/50 hover:-translate-y-0.5 transition-all duration-300"
+              >
+                <Trash2 className="w-5 h-5" />
+                מחק הכל
+              </button>
+            )}
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-medium shadow-lg shadow-amber-500/30 hover:shadow-xl hover:shadow-amber-500/40 hover:-translate-y-0.5 transition-all duration-300"
+              data-testid="add-schedule-btn"
+            >
+              <Plus className="w-5 h-5" />
+              פריט חדש
+            </button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -763,6 +1002,46 @@ export function SchedulesPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete All Confirmation Modal */}
+      {showDeleteAllConfirm && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="glass-modal p-6 w-full max-w-md">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mb-4">
+                <AlertTriangle className="w-8 h-8 text-red-400" />
+              </div>
+              <h2 className="text-xl font-bold text-white mb-2">מחיקת כל פריטי הלוז</h2>
+              <p className="text-zinc-400 mb-1">
+                פעולה זו תמחק <span className="text-red-400 font-bold">{schedules.length}</span> פריטים מלוח הזמנים.
+              </p>
+              <p className="text-zinc-500 text-sm mb-6">לא ניתן לבטל פעולה זו.</p>
+
+              <div className="flex gap-3 w-full">
+                <button
+                  onClick={handleDeleteAll}
+                  disabled={deleteAllLoading}
+                  className="flex-1 px-6 py-2.5 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition-all duration-300 disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {deleteAllLoading ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-4 h-4" />
+                  )}
+                  {deleteAllLoading ? 'מוחק...' : 'כן, מחק הכל'}
+                </button>
+                <button
+                  onClick={() => setShowDeleteAllConfirm(false)}
+                  disabled={deleteAllLoading}
+                  className="flex-1 px-6 py-2.5 bg-[#1a1d27] border border-white/10 text-zinc-300 rounded-xl font-medium hover:bg-white/5 hover:border-white/20 transition-all duration-300"
+                >
+                  ביטול
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

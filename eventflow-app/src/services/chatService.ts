@@ -436,13 +436,17 @@ ${context.eventName ? `אירוע נוכחי: ${context.eventName}` : ''}
   }
 
   /**
-   * Format conversation history for context
+   * Format conversation history for context (JSON format preserves multi-line content)
    */
   private formatHistory(messages: ChatMessage[]): string {
-    return messages
-      .slice(-5) // Last 5 messages for context
-      .map(m => `${m.role === 'user' ? 'משתמש' : 'עוזר'}: ${m.content}`)
-      .join('\n')
+    return JSON.stringify(
+      messages
+        .slice(-10) // Last 10 messages for COV confirmation flows
+        .map(m => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.content
+        }))
+    )
   }
 }
 

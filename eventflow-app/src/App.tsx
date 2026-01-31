@@ -8,6 +8,8 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { Sidebar } from './components/layout/Sidebar'
 import { FloatingChat } from './components/chat'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
+import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPopup'
 
 // Pages
 import { HomePage } from './pages/home/HomePage'
@@ -91,6 +93,10 @@ function AppLayout() {
 
       {/* Floating AI Chat */}
       <FloatingChat />
+
+      {/* Grace Period System */}
+      <GracePeriodBanner />
+      <GracePeriodConfirmationPopup />
     </div>
   )
 }

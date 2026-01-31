@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="he">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EventFlow AI - Architecture Status Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #16a34a; --green-bg: #f0fdf4; --green-border: #86efac;
+  --yellow: #ca8a04; --yellow-bg: #fefce8; --yellow-border: #fde047;
+  --red: #dc2626; --red-bg: #fef2f2; --red-border: #fca5a5;
+  --col1: #ede9fe; --col2: #e0f2fe; --col3: #fef9c3; --col4: #dcfce7; --col5: #fce7f3;
+  --col1h: #7c3aed; --col2h: #0284c7; --col3h: #a16207; --col4h: #15803d; --col5h: #be185d;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Inter',system-ui,sans-serif; background:#f8fafc; color:#1e293b; }
+
+/* HEADER */
+.header { background:#fff; padding:28px 24px 20px; text-align:center; border-bottom:1px solid #e2e8f0; }
+.header h1 { font-size:22px; font-weight:700; color:#0f172a; margin-bottom:4px; }
+.header .sub { font-size:13px; color:#64748b; margin-bottom:16px; }
+.legend { display:flex; justify-content:center; gap:28px; }
+.legend-item { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:500; color:#475569; }
+.legend-dot { width:12px; height:12px; border-radius:3px; }
+.legend-dot.g { background:var(--green); } .legend-dot.y { background:var(--yellow); } .legend-dot.r { background:var(--red); }
+
+/* STATS */
+.stats { display:flex; justify-content:center; gap:48px; padding:16px; background:#fff; border-bottom:1px solid #e2e8f0; }
+.stat { text-align:center; }
+.stat-num { font-size:32px; font-weight:700; }
+.stat-label { font-size:10px; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:1.5px; }
+.stat-num.g { color:var(--green); } .stat-num.y { color:var(--yellow); } .stat-num.r { color:var(--red); } .stat-num.b { color:#3b82f6; }
+
+/* DIAGRAM */
+.diagram-wrap { max-width:1280px; margin:24px auto; padding:0 16px; }
+.diagram { position:relative; display:grid; grid-template-columns:180px 210px 250px 210px 190px; gap:16px; }
+
+/* COLUMNS */
+.col { display:flex; flex-direction:column; gap:10px; }
+.col-bg { background:#fff; border-radius:12px; padding:12px 10px; box-shadow:0 1px 3px rgba(0,0,0,.06); border:1px solid #e2e8f0; display:flex; flex-direction:column; gap:10px; }
+.col-header { text-align:center; padding:10px 8px; border-radius:8px; font-weight:700; font-size:12px; letter-spacing:.5px; line-height:1.4; }
+.ch1 { background:var(--col1); color:var(--col1h); }
+.ch2 { background:var(--col2); color:var(--col2h); }
+.ch3 { background:var(--col3); color:var(--col3h); }
+.ch4 { background:var(--col4); color:var(--col4h); }
+.ch5 { background:var(--col5); color:var(--col5h); }
+.ch-sub { font-size:9px; font-weight:500; opacity:.7; display:block; margin-top:2px; }
+
+/* BOXES */
+.box { position:relative; padding:12px; border-radius:8px; border-left:4px solid; transition:transform .15s, box-shadow .15s; }
+.box:hover { transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,.08); }
+.box-title { font-size:12px; font-weight:600; color:#1e293b; margin-bottom:2px; }
+.box-desc { font-size:10px; color:#64748b; margin-bottom:6px; }
+.box-status { font-size:11px; font-weight:700; display:flex; align-items:center; gap:4px; }
+.box-icon { font-size:14px; }
+
+.box.g { background:var(--green-bg); border-left-color:var(--green); }
+.box.g .box-status { color:var(--green); }
+.box.y { background:var(--yellow-bg); border-left-color:var(--yellow); }
+.box.y .box-status { color:var(--yellow); }
+.box.r { background:var(--red-bg); border-left-color:var(--red); }
+.box.r .box-status { color:var(--red); }
+
+.spacer { flex:1; min-height:20px; }
+
+/* SVG LINES */
+svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; overflow:visible; z-index:1; }
+
+/* SECTIONS BELOW */
+.section { max-width:1280px; margin:0 auto 20px; padding:0 16px; }
+.section-title { font-size:14px; font-weight:700; color:#475569; margin-bottom:12px; padding-bottom:8px; border-bottom:2px solid #e2e8f0; }
+.flow-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:8px; }
+.flow { display:flex; align-items:center; gap:10px; padding:10px 14px; border-radius:8px; font-size:12px; border:1px solid; }
+.flow.g { background:var(--green-bg); border-color:var(--green-border); }
+.flow.y { background:var(--yellow-bg); border-color:var(--yellow-border); }
+.flow.r { background:var(--red-bg); border-color:var(--red-border); }
+.flow-arrow { font-size:16px; flex-shrink:0; }
+.flow.g .flow-arrow { color:var(--green); } .flow.y .flow-arrow { color:var(--yellow); } .flow.r .flow-arrow { color:var(--red); }
+.flow b { font-weight:600; }
+
+.feat-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:8px; }
+.feat { padding:10px 12px; border-radius:8px; font-size:12px; font-weight:600; text-align:center; border:1px solid; }
+.feat.g { background:var(--green-bg); border-color:var(--green-border); color:var(--green); }
+.feat.r { background:var(--red-bg); border-color:var(--red-border); color:var(--red); }
+
+/* FLOW LEGEND */
+.flow-legend { display:flex; justify-content:center; gap:32px; padding:12px; margin-bottom:20px; }
+.fl-item { display:flex; align-items:center; gap:8px; font-size:11px; color:#64748b; font-weight:500; }
+.fl-line { width:40px; height:3px; border-radius:2px; }
+.fl-line.g { background:var(--green); }
+.fl-line.y { background:var(--yellow); background:repeating-linear-gradient(90deg,var(--yellow) 0,var(--yellow) 6px,transparent 6px,transparent 10px); }
+.fl-line.r { background:var(--red); background:repeating-linear-gradient(90deg,var(--red) 0,var(--red) 4px,transparent 4px,transparent 8px); }
+.fl-arrow { font-size:10px; margin-left:-4px; }
+.fl-arrow.g { color:var(--green); } .fl-arrow.y { color:var(--yellow); } .fl-arrow.r { color:var(--red); }
+
+/* CHANGELOG */
+.changelog { max-width:1280px; margin:0 auto 24px; padding:0 16px; }
+.changelog h2 { font-size:14px; font-weight:700; color:#475569; margin-bottom:8px; padding-bottom:8px; border-bottom:2px solid #e2e8f0; }
+.cl-entry { display:flex; align-items:center; gap:12px; padding:8px 0; font-size:12px; border-bottom:1px solid #f1f5f9; }
+.cl-date { color:#94a3b8; font-weight:500; width:90px; flex-shrink:0; }
+.cl-badge { background:#ede9fe; color:#7c3aed; font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; }
+
+.footer { text-align:center; padding:20px; font-size:11px; color:#94a3b8; border-top:1px solid #e2e8f0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>EventFlow AI &mdash; Architecture Status Map</h1>
+  <div class="sub">To-Be Target Architecture (Full Automation &amp; Reliability) vs. Current Implementation</div>
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot g"></div>Fully Implemented</div>
+    <div class="legend-item"><div class="legend-dot y"></div>Partially Implemented</div>
+    <div class="legend-item"><div class="legend-dot r"></div>Not Implemented</div>
+  </div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="stat-num g">12</div><div class="stat-label">Implemented</div></div>
+  <div class="stat"><div class="stat-num y">5</div><div class="stat-label">Partial</div></div>
+  <div class="stat"><div class="stat-num r">3</div><div class="stat-label">Missing</div></div>
+  <div class="stat"><div class="stat-num b">70%</div><div class="stat-label">Overall</div></div>
+</div>
+
+<div class="diagram-wrap">
+<div class="diagram" id="diagram">
+
+  <!-- COL 1 -->
+  <div class="col">
+    <div class="col-bg">
+      <div class="col-header ch1">USER INTERACTION</div>
+      <div class="box g" id="b-em">
+        <div class="box-title">Event Manager</div>
+        <div class="box-desc">Chat / Dashboard</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="box y" id="b-at">
+        <div class="box-title">Attendee</div>
+        <div class="box-desc">WhatsApp / Web Form</div>
+        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 60%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COL 2 -->
+  <div class="col">
+    <div class="col-bg">
+      <div class="col-header ch2">USER INTERFACE<span class="ch-sub">Web App / PWA &mdash; React + Vite</span></div>
+      <div class="box g" id="b-sci">
+        <div class="box-title">Smart Chat Interface</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box g" id="b-ed">
+        <div class="box-title">Event Dashboard</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="spacer"></div>
+      <div class="box y" id="b-rf">
+        <div class="box-title">Registration Forms</div>
+        <div class="box-desc">Public &amp; Internal</div>
+        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 50%</div>
+      </div>
+      <div class="box y" id="b-ui">
+        <div class="box-title">Unified Inbox</div>
+        <div class="box-desc">Messages, Alerts, Vendor Replies</div>
+        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 70%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COL 3 -->
+  <div class="col">
+    <div class="col-bg">
+      <div class="col-header ch3">CORE ENGINE<span class="ch-sub">AI &amp; Logic</span></div>
+      <div class="box g" id="b-ai">
+        <div class="box-title">AI Assistant</div>
+        <div class="box-desc">Gemini API</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box g" id="b-sp">
+        <div class="box-title">Smart Planning Module</div>
+        <div class="box-desc">Via Chat Only</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box g" id="b-ta">
+        <div class="box-title">Task &amp; Automation Engine</div>
+        <div class="box-desc">Supabase Edge Functions</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box g" id="b-mb">
+        <div class="box-title">Message Batching</div>
+        <div class="box-desc">Queue Worker &amp; Throttling</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box y" id="b-rf2">
+        <div class="box-title">Retry &amp; Multi-Channel</div>
+        <div class="box-desc">Retry: Working | Multi-Channel: WhatsApp only</div>
+        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 60%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COL 4 -->
+  <div class="col">
+    <div class="col-bg">
+      <div class="col-header ch4">DATA &amp; STORAGE<span class="ch-sub">Supabase PostgreSQL</span></div>
+      <div class="box g" id="b-st">
+        <div class="box-title">pg_cron Scheduler</div>
+        <div class="box-desc">8 Cron Jobs + trigger_reminder_job</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box g" id="b-gem">
+        <div class="box-title">generate_event_messages</div>
+        <div class="box-desc">RPC on Event Activation</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box y" id="b-sct">
+        <div class="box-title">Schedule Change Trigger</div>
+        <div class="box-desc">Auto-notify on schedule changes</div>
+        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 40%</div>
+      </div>
+      <div class="box g" id="b-up">
+        <div class="box-title">User Profiles</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box g" id="b-vd">
+        <div class="box-title">Vendor Database</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box r" id="b-fm">
+        <div class="box-title">Files &amp; Media</div>
+        <div class="box-desc">Supabase Storage Bucket</div>
+        <div class="box-status"><span class="box-icon">&#x274C;</span> 10%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- COL 5 -->
+  <div class="col">
+    <div class="col-bg">
+      <div class="col-header ch5">EXTERNAL SERVICES</div>
+      <div class="box g" id="b-wa">
+        <div class="box-title">WhatsApp Gateway</div>
+        <div class="box-desc">Green API</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
+      </div>
+      <div class="box r" id="b-sms">
+        <div class="box-title">SMS Gateway</div>
+        <div class="box-desc">Twilio &mdash; Fallback</div>
+        <div class="box-status"><span class="box-icon">&#x274C;</span> 0%</div>
+      </div>
+      <div class="box r" id="b-ev">
+        <div class="box-title">External Vendors</div>
+        <div class="box-desc">Email / API</div>
+        <div class="box-status"><span class="box-icon">&#x274C;</span> 0%</div>
+      </div>
+    </div>
+  </div>
+
+  <svg class="lines" id="svg-lines"></svg>
+</div>
+</div>
+
+<div class="flow-legend">
+  <div class="fl-item"><div class="fl-line g"></div><span class="fl-arrow g">&#9654;</span> Active Connection</div>
+  <div class="fl-item"><div class="fl-line y"></div><span class="fl-arrow y">&#9654;</span> Partial / Planned</div>
+  <div class="fl-item"><div class="fl-line r"></div><span class="fl-arrow r">&#9654;</span> Not Connected</div>
+</div>
+
+<div class="section">
+  <div class="section-title">Data Flows</div>
+  <div class="flow-grid">
+    <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Setup &amp; ACTIVATE</b> &mdash; Event creation + auto-messages</span></div>
+    <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Notifications</b> &mdash; WhatsApp reminders working</span></div>
+    <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Update Schedule</b> &mdash; Full CRUD</span></div>
+    <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Auto-Generate Messages</b> &mdash; RPC + pg_cron 8 reminder types</span></div>
+    <div class="flow y"><span class="flow-arrow">&#10132;</span><span><b>Vendor Responses</b> &mdash; DB exists, no auto-comms</span></div>
+    <div class="flow y"><span class="flow-arrow">&#10132;</span><span><b>Register / RSVP</b> &mdash; Internal only, no public form</span></div>
+    <div class="flow y"><span class="flow-arrow">&#10132;</span><span><b>Respond &amp; Interact</b> &mdash; Webhook + auto-reply</span></div>
+    <div class="flow r"><span class="flow-arrow">&#10132;</span><span><b>Multi-Channel</b> &mdash; Only WhatsApp active</span></div>
+    <div class="flow r"><span class="flow-arrow">&#10132;</span><span><b>Calendar Sync</b> &mdash; Not implemented</span></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Additional Features</div>
+  <div class="feat-grid">
+    <div class="feat g">&#x2705; QR Check-in</div>
+    <div class="feat g">&#x2705; Reports &amp; Analytics</div>
+    <div class="feat g">&#x2705; Personal Schedules</div>
+    <div class="feat g">&#x2705; Checklist Management</div>
+    <div class="feat g">&#x2705; Excel Import / Export</div>
+    <div class="feat g">&#x2705; Feedback Surveys</div>
+    <div class="feat r">&#x274C; Payment Processing</div>
+    <div class="feat r">&#x274C; Automated Testing</div>
+    <div class="feat r">&#x274C; Calendar Sync</div>
+  </div>
+</div>
+
+<div class="changelog">
+  <h2>Change Log</h2>
+  <div class="cl-entry">
+    <div class="cl-date">2026-02-01</div>
+    <div>Corrected assessment: pg_cron + reminders fully working (5 phases complete). Created missing generate_event_messages RPC. Removed Redis Cache (not needed). <span class="cl-badge">FIX</span></div>
+  </div>
+  <div class="cl-entry">
+    <div class="cl-date">2026-01-31</div>
+    <div>Initial architecture status mapping <span class="cl-badge">INITIAL</span></div>
+  </div>
+</div>
+
+<div class="footer">EventFlow AI &mdash; Architecture Status Map v1.1 &mdash; Last Updated 2026-02-01</div>
+
+<script>
+function pos(id, side) {
+  var el = document.getElementById(id);
+  if (!el) return {x:0,y:0};
+  var r = el.getBoundingClientRect();
+  var d = document.getElementById('diagram').getBoundingClientRect();
+  var x = r.left - d.left, y = r.top - d.top, w = r.width, h = r.height;
+  switch(side) {
+    case 'r': return {x:x+w, y:y+h/2};
+    case 'l': return {x:x, y:y+h/2};
+    case 'b': return {x:x+w/2, y:y+h};
+    case 't': return {x:x+w/2, y:y};
+    default:  return {x:x+w/2, y:y+h/2};
+  }
+}
+
+function line(svg, from, to, color, dash, label) {
+  var ns = 'http://www.w3.org/2000/svg';
+  var id = 'm'+Math.random().toString(36).substr(2,5);
+
+  // marker
+  var defs = svg.querySelector('defs') || svg.appendChild(document.createElementNS(ns,'defs'));
+  var mk = document.createElementNS(ns,'marker');
+  mk.setAttribute('id',id);
+  mk.setAttribute('markerWidth','8'); mk.setAttribute('markerHeight','6');
+  mk.setAttribute('refX','8'); mk.setAttribute('refY','3'); mk.setAttribute('orient','auto');
+  var pg = document.createElementNS(ns,'polygon');
+  pg.setAttribute('points','0 0, 8 3, 0 6'); pg.setAttribute('fill',color);
+  mk.appendChild(pg); defs.appendChild(mk);
+
+  // curved path
+  var dx = to.x - from.x, dy = to.y - from.y;
+  var cx1, cy1, cx2, cy2;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    cx1 = from.x + dx*0.4; cy1 = from.y;
+    cx2 = from.x + dx*0.6; cy2 = to.y;
+  } else {
+    cx1 = from.x; cy1 = from.y + dy*0.4;
+    cx2 = to.x;   cy2 = from.y + dy*0.6;
+  }
+  var path = document.createElementNS(ns,'path');
+  path.setAttribute('d','M'+from.x+','+from.y+' C'+cx1+','+cy1+' '+cx2+','+cy2+' '+to.x+','+to.y);
+  path.setAttribute('stroke',color);
+  path.setAttribute('stroke-width','2');
+  path.setAttribute('fill','none');
+  path.setAttribute('marker-end','url(#'+id+')');
+  if (dash) path.setAttribute('stroke-dasharray','6,4');
+  path.setAttribute('opacity','0.7');
+  svg.appendChild(path);
+
+  if (label) {
+    var mx = (from.x+to.x)/2, my = (from.y+to.y)/2 - 8;
+    var bg = document.createElementNS(ns,'rect');
+    var tx = document.createElementNS(ns,'text');
+    tx.setAttribute('x',mx); tx.setAttribute('y',my);
+    tx.setAttribute('text-anchor','middle'); tx.setAttribute('fill',color);
+    tx.setAttribute('font-size','9'); tx.setAttribute('font-weight','600');
+    tx.setAttribute('font-family','Inter,system-ui,sans-serif');
+    tx.textContent = label;
+    // label background
+    svg.appendChild(tx);
+    var bb = tx.getBBox();
+    bg.setAttribute('x',bb.x-3); bg.setAttribute('y',bb.y-1);
+    bg.setAttribute('width',bb.width+6); bg.setAttribute('height',bb.height+2);
+    bg.setAttribute('rx','3'); bg.setAttribute('fill','#fff'); bg.setAttribute('opacity','0.9');
+    svg.insertBefore(bg, tx);
+  }
+}
+
+function draw() {
+  var svg = document.getElementById('svg-lines');
+  svg.innerHTML = '';
+  var G='#16a34a', Y='#ca8a04', R='#dc2626';
+
+  // GREEN - active connections
+  line(svg, pos('b-em','r'),  pos('b-sci','l'), G, false, 'Activate');
+  line(svg, pos('b-em','r'),  pos('b-ed','l'),  G, false);
+  line(svg, pos('b-sci','r'), pos('b-ai','l'),  G, false);
+  line(svg, pos('b-ed','r'),  pos('b-ai','l'),  G, false);
+  line(svg, pos('b-ai','b'),  pos('b-sp','t'),  G, false);
+  line(svg, pos('b-sp','b'),  pos('b-ta','t'),  G, false);
+  line(svg, pos('b-ta','b'),  pos('b-mb','t'),  G, false);
+  line(svg, pos('b-mb','r'),  pos('b-wa','l'),  G, false);
+  line(svg, pos('b-ta','r'),  pos('b-st','l'),  G, false, 'pg_cron');
+  line(svg, pos('b-st','b'),  pos('b-gem','t'), G, false);
+  line(svg, pos('b-up','l'),  pos('b-ta','r'),  G, false);
+  line(svg, pos('b-vd','l'),  pos('b-ta','r'),  G, false);
+  line(svg, pos('b-wa','l'),  pos('b-ui','r'),  G, false, 'Webhook');
+
+  // YELLOW - partial
+  line(svg, pos('b-gem','b'), pos('b-sct','t'), Y, true, 'Planned');
+  line(svg, pos('b-mb','b'),  pos('b-rf2','t'), Y, true);
+  line(svg, pos('b-at','r'),  pos('b-rf','l'),  Y, true, 'Register');
+  line(svg, pos('b-at','r'),  pos('b-ui','l'),  Y, true);
+  line(svg, pos('b-ui','r'),  pos('b-vd','l'),  Y, true, 'Vendor');
+
+  // RED - not connected
+  line(svg, pos('b-rf2','r'), pos('b-sms','l'), R, true);
+  line(svg, pos('b-rf2','r'), pos('b-ev','l'),  R, true);
+  line(svg, pos('b-fm','l'),  pos('b-ta','r'),  R, true);
+}
+
+window.addEventListener('load', function(){ setTimeout(draw, 200); });
+window.addEventListener('resize', draw);
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { MessageCircle, X, Minus, Maximize2 } from 'lucide-react'
 import { useChatContext } from '../../contexts/ChatContext'
+import { useEvent } from '../../contexts/EventContext'
 import { CHAT_SIZES } from '../../types/chat'
 import ChatWindow from './ChatWindow'
 
@@ -18,9 +19,11 @@ export function FloatingChat() {
     closeChat,
     minimizeChat
   } = useChatContext()
+  const { selectedEvent } = useEvent()
 
   const { windowState, settings, unreadCount } = state
   const containerRef = useRef<HTMLDivElement>(null)
+  const hasEventContext = !!selectedEvent
 
   // Get position classes based on settings
   const getPositionClasses = () => {
@@ -97,10 +100,14 @@ export function FloatingChat() {
             whileHover="hover"
             whileTap="tap"
             onClick={openChat}
-            className="relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-colors"
+            className={`relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-colors ${hasEventContext ? 'ring-2 ring-red-500 ring-offset-2 ring-offset-[#0f1117]' : ''}`}
             style={{
-              background: `linear-gradient(135deg, ${settings.accentColor} 0%, ${settings.accentColor}dd 100%)`,
-              boxShadow: `0 4px 20px ${settings.accentColor}40`
+              background: hasEventContext
+                ? `linear-gradient(135deg, ${settings.accentColor} 0%, #ef4444dd 100%)`
+                : `linear-gradient(135deg, ${settings.accentColor} 0%, ${settings.accentColor}dd 100%)`,
+              boxShadow: hasEventContext
+                ? `0 4px 20px rgba(239, 68, 68, 0.4)`
+                : `0 4px 20px ${settings.accentColor}40`
             }}
             data-testid="chat-open-button"
           >
@@ -127,12 +134,12 @@ export function FloatingChat() {
             initial="hidden"
             animate={windowState === 'minimized' ? 'minimized' : 'visible'}
             exit="exit"
-            className="overflow-hidden rounded-xl border shadow-2xl"
+            className={`overflow-hidden rounded-xl shadow-2xl ${hasEventContext ? 'border-2 border-red-500/70' : 'border'}`}
             style={{
               width: dimensions.width,
               height: windowState === 'minimized' ? 56 : dimensions.height,
               backgroundColor: '#0f1117',
-              borderColor: `${settings.accentColor}33`
+              ...(hasEventContext ? {} : { borderColor: `${settings.accentColor}33` })
             }}
             data-testid="chat-window"
           >
@@ -155,7 +162,14 @@ export function FloatingChat() {
                   <h3 className="text-sm font-medium text-gray-100">
                     EventFlow AI
                   </h3>
-                  <p className="text-xs text-gray-500">עוזר חכם לאירועים</p>
+                  {hasEventContext ? (
+                    <p className="text-xs text-red-400/80 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                      {selectedEvent.name}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">עוזר חכם לאירועים</p>
+                  )}
                 </div>
               </div>
 

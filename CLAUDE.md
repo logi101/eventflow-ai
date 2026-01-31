@@ -142,6 +142,14 @@ src/
 2. **No `any`** - Use `z.infer<typeof schema>` for types
 3. **RTL First** - Hebrew is the primary language
 4. **Edge Functions for Secrets** - Never expose API keys to frontend
+5. **Update Architecture Diagram** - After any change to the system (new feature, bug fix, component added/removed, status change), update `docs/ARCHITECTURE-STATUS.html`:
+   - Change component box color: green (100% working), yellow (partial), red (not implemented)
+   - Update percentage in the box
+   - Add/remove component boxes as needed
+   - Update SVG connection lines between components
+   - Update the stats counters (Implemented / Partial / Missing / Overall %)
+   - Add a changelog entry with date and description
+   - Update the footer version and date
 
 ### Patterns
 ```typescript

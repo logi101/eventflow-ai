@@ -14,8 +14,8 @@ CREATE TYPE participant_status AS ENUM ('invited', 'confirmed', 'declined', 'may
 CREATE TYPE vendor_status AS ENUM ('pending', 'quote_requested', 'quoted', 'approved', 'rejected', 'confirmed');
 CREATE TYPE task_status AS ENUM ('pending', 'in_progress', 'completed', 'blocked', 'cancelled');
 CREATE TYPE task_priority AS ENUM ('low', 'medium', 'high', 'critical');
-CREATE TYPE message_type AS ENUM ('invitation', 'reminder', 'reminder_day_before', 'reminder_morning', 'reminder_15min', 'update', 'schedule', 'thank_you', 'feedback_request', 'quote_request', 'vendor_reminder', 'custom');
-CREATE TYPE message_status AS ENUM ('pending', 'scheduled', 'sent', 'delivered', 'read', 'failed');
+CREATE TYPE message_type AS ENUM ('invitation', 'reminder', 'reminder_day_before', 'reminder_morning', 'reminder_15min', 'update', 'schedule', 'thank_you', 'feedback_request', 'quote_request', 'vendor_reminder', 'custom', 'reminder_activation', 'reminder_week_before', 'reminder_event_end', 'reminder_follow_up_3mo', 'reminder_follow_up_6mo');
+CREATE TYPE message_status AS ENUM ('pending', 'scheduled', 'sent', 'delivered', 'read', 'failed', 'cancelled');
 CREATE TYPE message_channel AS ENUM ('whatsapp', 'email', 'sms');
 CREATE TYPE invitation_type AS ENUM ('info_only', 'rsvp', 'registration', 'registration_paid');
 
@@ -103,7 +103,7 @@ CREATE TABLE events (
   registration_deadline TIMESTAMPTZ,
   budget DECIMAL(12,2),
   currency TEXT DEFAULT 'ILS',
-  settings JSONB DEFAULT '{"send_reminders": true, "reminder_day_before": true, "reminder_morning": true, "reminder_15min": true}',
+  settings JSONB DEFAULT '{"send_reminders": true, "reminder_activation": true, "reminder_week_before": true, "reminder_day_before": true, "reminder_morning": true, "reminder_15min": true, "reminder_event_end": true, "reminder_follow_up_3mo": false, "reminder_follow_up_6mo": false}',
   registration_settings JSONB DEFAULT '{"custom_fields": []}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -305,17 +305,16 @@ CREATE TABLE checklist_items (
 CREATE TABLE message_templates (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   organization_id UUID REFERENCES organizations(id),
+  event_type_id UUID REFERENCES event_types(id),
   name TEXT NOT NULL,
-  type message_type NOT NULL,
+  message_type message_type NOT NULL,
   channel message_channel DEFAULT 'whatsapp',
   subject TEXT,
-  content_template TEXT NOT NULL,
-  auto_send BOOLEAN DEFAULT FALSE,
-  auto_send_trigger TEXT,
-  auto_send_time TIME,
-  conditions JSONB DEFAULT '{}',
+  content TEXT NOT NULL,
+  variables JSONB DEFAULT '[]',
   is_active BOOLEAN DEFAULT TRUE,
   is_system BOOLEAN DEFAULT FALSE,
+  send_timing JSONB,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -323,39 +322,45 @@ CREATE TABLE message_templates (
 CREATE TABLE messages (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   event_id UUID REFERENCES events(id) ON DELETE CASCADE,
-  participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
-  vendor_id UUID REFERENCES vendors(id),
-  schedule_id UUID REFERENCES schedules(id),
-  type message_type NOT NULL,
-  channel message_channel DEFAULT 'whatsapp',
   template_id UUID REFERENCES message_templates(id),
-  recipient_name TEXT,
-  recipient_phone TEXT,
-  recipient_email TEXT,
-  is_companion BOOLEAN DEFAULT FALSE,
+  participant_id UUID REFERENCES participants(id) ON DELETE CASCADE,
+  channel message_channel NOT NULL,
+  to_phone TEXT,
+  to_phone_normalized TEXT,
+  to_email TEXT,
   subject TEXT,
   content TEXT NOT NULL,
+  variables_used JSONB DEFAULT '{}',
   status message_status DEFAULT 'pending',
-  scheduled_for TIMESTAMPTZ,
   sent_at TIMESTAMPTZ,
   delivered_at TIMESTAMPTZ,
   read_at TIMESTAMPTZ,
-  external_message_id TEXT,
+  failed_at TIMESTAMPTZ,
   error_message TEXT,
+  external_id TEXT,
+  response_content TEXT,
+  response_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  direction TEXT DEFAULT 'outgoing',
+  from_phone TEXT,
+  auto_reply BOOLEAN DEFAULT FALSE,
+  message_type message_type,
   retry_count INTEGER DEFAULT 0,
-  last_retry_at TIMESTAMPTZ,
-  metadata JSONB DEFAULT '{}',
-  created_at TIMESTAMPTZ DEFAULT NOW()
+  last_retry_at TIMESTAMPTZ
 );
 
 CREATE TABLE message_queue (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   message_id UUID NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
   scheduled_for TIMESTAMPTZ NOT NULL,
-  priority INTEGER DEFAULT 0,
-  processing_started_at TIMESTAMPTZ,
-  processed_at TIMESTAMPTZ,
-  status TEXT DEFAULT 'pending',
+  priority INTEGER DEFAULT 5,
+  attempts INTEGER DEFAULT 0,
+  max_attempts INTEGER DEFAULT 3,
+  last_attempt_at TIMESTAMPTZ,
+  next_attempt_at TIMESTAMPTZ,
+  status message_status DEFAULT 'pending',
+  error_log JSONB DEFAULT '[]',
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -533,6 +538,28 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER update_schedule_count_trigger
   AFTER INSERT OR DELETE ON participant_schedules
   FOR EACH ROW EXECUTE FUNCTION update_schedule_count();
+
+-- Generate activation messages on event activation
+-- Delegates to trigger_reminder_job('activation') for creation + sending
+CREATE OR REPLACE FUNCTION generate_event_messages(p_event_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_event RECORD;
+  v_request_id BIGINT;
+BEGIN
+  SELECT id, name, status INTO v_event FROM events WHERE id = p_event_id;
+  IF v_event IS NULL THEN
+    RETURN jsonb_build_object('error', 'Event not found', 'event_id', p_event_id);
+  END IF;
+  SELECT trigger_reminder_job('activation') INTO v_request_id;
+  RETURN jsonb_build_object('triggered', true, 'request_id', v_request_id, 'event_id', p_event_id, 'event_name', v_event.name);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION generate_event_messages(UUID) TO authenticated;
 
 -- ════════════════════════════════════════════════════════════════════════════════
 -- INDEXES

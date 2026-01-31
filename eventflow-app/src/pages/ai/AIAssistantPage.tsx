@@ -1,24 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bot, Send, Loader2, MessageCircle, UserPlus, CheckSquare, PieChart, Target, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
-import { supabase } from '../../lib/supabase'
+import { useQueryClient } from '@tanstack/react-query'
+import { Bot, Send, Loader2, MessageCircle, UserPlus, CheckSquare, PieChart, Target, CheckCircle, AlertTriangle, ExternalLink } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
-
-// AI Chat Message Types
-interface ChatMessage {
-  id: string
-  role: 'user' | 'assistant' | 'system'
-  content: string
-  timestamp: Date
-  action?: {
-    type: 'add_participant' | 'add_checklist' | 'add_schedule' | 'add_vendor' | 'update_event' | 'send_message'
-    status: 'pending' | 'completed' | 'failed'
-    data?: {
-      name?: string
-      title?: string
-      [key: string]: unknown
-    }
-  }
-}
+import { chatService } from '../../services/chatService'
+import type { ChatMessage, ChatAction, PageContext } from '../../types/chat'
 
 // AI Action Button Component
 function AIActionButton({
@@ -44,12 +29,31 @@ function AIActionButton({
   )
 }
 
+// Action status labels in Hebrew
+const ACTION_STATUS_LABELS: Record<string, string> = {
+  event_created: 'האירוע נוצר בהצלחה',
+  participants_added: 'המשתתפים נוספו בהצלחה',
+  participants_listed: 'רשימת משתתפים נטענה',
+  event_updated: 'האירוע עודכן בהצלחה',
+  checklist_added: 'פריטי הצ\'קליסט נוספו',
+  checklist_completed: 'המשימה סומנה כהושלמה',
+  vendors_assigned: 'הספקים שויכו בהצלחה',
+  vendors_found: 'נמצאו ספקים רלוונטיים',
+  events_found: 'נמצאו אירועים דומים',
+  schedule_suggested: 'הוצע לוח זמנים',
+  whatsapp_sent: 'ההודעות נשלחו בהצלחה',
+  schedule_items_added: 'פריטי הלו"ז נוספו בהצלחה',
+  schedule_item_updated: 'פריט הלו"ז עודכן',
+}
+
 export function AIAssistantPage() {
   const { selectedEvent, refreshEvents } = useEvent()
+  const queryClient = useQueryClient()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-    const messagesEndRef = useRef<HTMLDivElement>(null)
+  const [suggestions, setSuggestions] = useState<string[]>([])
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Scroll to bottom when new messages arrive
@@ -58,202 +62,79 @@ export function AIAssistantPage() {
   }, [messages])
 
   // Generate unique ID
-  const generateId = () => Math.random().toString(36).substring(7)
+  const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-  // Add a new message
-  const addMessage = (role: 'user' | 'assistant' | 'system', content: string, action?: ChatMessage['action']) => {
-    const newMessage: ChatMessage = {
+  // Build page context for chatService
+  const buildPageContext = (): PageContext => ({
+    currentPage: 'dashboard',
+    eventId: selectedEvent?.id,
+    eventName: selectedEvent?.name,
+    availableCommands: []
+  })
+
+  // Handle send message - uses real Gemini via chatService
+  const handleSend = async (overrideMessage?: string) => {
+    const messageText = overrideMessage || input.trim()
+    if (!messageText || isLoading) return
+
+    if (!overrideMessage) setInput('')
+
+    // Add user message
+    const userMessage: ChatMessage = {
       id: generateId(),
-      role,
-      content,
+      role: 'user',
+      content: messageText,
       timestamp: new Date(),
-      action
     }
-    setMessages(prev => [...prev, newMessage])
-    return newMessage
-  }
-
-  // Simulate AI response based on user input
-  const getAIResponse = async (userMessage: string): Promise<{ content: string; action?: ChatMessage['action'] }> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 1000))
-
-    const lowerMessage = userMessage.toLowerCase()
-
-    // Check for action intents
-    if (lowerMessage.includes('הוסף משתתף') || lowerMessage.includes('הוסף אורח')) {
-      // Extract name if provided
-      const nameMatch = userMessage.match(/(?:בשם|שנקרא)\s+(.+?)(?:\s|$)/i)
-      if (nameMatch && selectedEvent) {
-        return {
-          content: `אני יכול להוסיף משתתף חדש לאירוע "${selectedEvent.name}". האם תרצה שאמשיך?`,
-          action: { type: 'add_participant', status: 'pending', data: { name: nameMatch[1] } }
-        }
-      }
-      return {
-        content: selectedEvent
-          ? `בוודאי! ספר לי את פרטי המשתתף שתרצה להוסיף לאירוע "${selectedEvent.name}" - שם, טלפון ואימייל (אופציונלי).`
-          : 'כדי להוסיף משתתף, קודם יש לבחור אירוע. לחץ על אירוע מרשימת האירועים בתפריט הצדדי.'
-      }
-    }
-
-    if (lowerMessage.includes('הוסף משימה') || lowerMessage.includes('משימה חדשה') || lowerMessage.includes('צ\'קליסט')) {
-      return {
-        content: selectedEvent
-          ? `מה המשימה שתרצה להוסיף לאירוע "${selectedEvent.name}"? תאר את המשימה ואני אוסיף אותה לרשימה.`
-          : 'כדי להוסיף משימה, קודם יש לבחור אירוע.'
-      }
-    }
-
-    if (lowerMessage.includes('הוסף לוז') || lowerMessage.includes('הוסף פריט') || lowerMessage.includes('תוכניה')) {
-      return {
-        content: selectedEvent
-          ? `אשמח להוסיף פריט ללו"ז של "${selectedEvent.name}". ספר לי: מה הנושא, מתי מתחיל ומתי נגמר?`
-          : 'כדי להוסיף ללו"ז, קודם יש לבחור אירוע.'
-      }
-    }
-
-    if (lowerMessage.includes('שלח הודעה') || lowerMessage.includes('וואטסאפ') || lowerMessage.includes('whatsapp')) {
-      return {
-        content: selectedEvent
-          ? `אני יכול לעזור לשלוח הודעות WhatsApp למשתתפי "${selectedEvent.name}". מה תרצה לכתוב?`
-          : 'כדי לשלוח הודעות, קודם יש לבחור אירוע עם משתתפים.'
-      }
-    }
-
-    if (lowerMessage.includes('סטטוס') || lowerMessage.includes('מה המצב')) {
-      if (selectedEvent) {
-        return {
-          content: `📊 סטטוס האירוע "${selectedEvent.name}":\n\n` +
-            `• תאריך: ${new Date(selectedEvent.start_date).toLocaleDateString('he-IL')}\n` +
-            `• מיקום: ${selectedEvent.venue_name || 'לא הוגדר'}\n` +
-            `• משתתפים: ${selectedEvent.participants_count || 0}\n` +
-            `• סטטוס: ${selectedEvent.status === 'active' ? 'פעיל' : selectedEvent.status === 'planning' ? 'בתכנון' : selectedEvent.status}\n\n` +
-            `איך אוכל לעזור עם האירוע?`
-        }
-      }
-      return { content: 'בחר אירוע כדי לראות את הסטטוס שלו.' }
-    }
-
-    if (lowerMessage.includes('עזרה') || lowerMessage.includes('מה אתה יכול')) {
-      return {
-        content: `🤖 אני יכול לעזור לך ב:\n\n` +
-          `📋 **ניהול משתתפים**\n• הוספת משתתפים חדשים\n• עדכון פרטי משתתפים\n• יבוא רשימות מאקסל\n\n` +
-          `📅 **ניהול לו"ז**\n• הוספת פריטים ללו"ז\n• עדכון זמנים ומיקומים\n• הקצאת מרצים\n\n` +
-          `✅ **משימות**\n• יצירת משימות חדשות\n• מעקב התקדמות\n• תזכורות\n\n` +
-          `📱 **תקשורת**\n• שליחת הודעות WhatsApp\n• הכנת תבניות הודעות\n\n` +
-          `פשוט ספר לי מה אתה צריך!`
-      }
-    }
-
-    if (lowerMessage.includes('רעיונות') || lowerMessage.includes('הצע') || lowerMessage.includes('המלצות')) {
-      return {
-        content: selectedEvent
-          ? `💡 הנה כמה רעיונות לאירוע "${selectedEvent.name}":\n\n` +
-            `1. **פעילות פתיחה** - שוברת קרח לחימום האווירה\n` +
-            `2. **הפסקות networking** - זמן לקשרים בין המשתתפים\n` +
-            `3. **סיכום יומי** - דגשים עיקריים בסוף כל יום\n` +
-            `4. **תיבת שאלות** - מקום לשאלות אנונימיות\n` +
-            `5. **מתנות לזכרון** - משהו קטן לסוף האירוע\n\n` +
-            `רוצה שארחיב על אחד מהרעיונות?`
-          : 'בחר אירוע ואשמח להציע רעיונות מותאמים!'
-      }
-    }
-
-    // Default response
-    return {
-      content: selectedEvent
-        ? `אני כאן לעזור עם "${selectedEvent.name}"! אתה יכול:\n\n` +
-          `• להוסיף משתתפים או משימות\n` +
-          `• לשאול על סטטוס האירוע\n` +
-          `• לבקש רעיונות והמלצות\n` +
-          `• לנהל את הלו"ז והתוכניה\n\n` +
-          `מה תרצה לעשות?`
-        : 'שלום! 👋 אני העוזר החכם של EventFlow.\n\n' +
-          'כדי שאוכל לעזור לך בצורה הטובה ביותר, בחר אירוע מהתפריט הצדדי.\n\n' +
-          'אחרי שתבחר אירוע, אוכל לעזור לך עם:\n' +
-          '• הוספת משתתפים ומשימות\n' +
-          '• ניהול הלו"ז\n' +
-          '• שליחת הודעות\n' +
-          '• ועוד הרבה!'
-    }
-  }
-
-  // Execute action
-  const executeAction = async (action: ChatMessage['action'], messageId: string) => {
-    if (!action || !selectedEvent) return
-
-    setMessages(prev => prev.map(m =>
-      m.id === messageId
-        ? { ...m, action: { ...m.action!, status: 'pending' as const } }
-        : m
-    ))
-
-    try {
-      switch (action.type) {
-        case 'add_participant': {
-          const names = action.data?.name?.split(' ') || ['חדש', 'משתתף']
-          const { error: err1 } = await supabase.from('participants').insert({
-            event_id: selectedEvent.id,
-            first_name: names[0],
-            last_name: names.slice(1).join(' ') || '',
-            status: 'invited'
-          })
-          if (err1) throw err1
-          addMessage('assistant', `✅ המשתתף "${action.data?.name}" נוסף בהצלחה לאירוע!`)
-          refreshEvents()
-          break
-        }
-
-        case 'add_checklist': {
-          const { error: err2 } = await supabase.from('checklist_items').insert({
-            event_id: selectedEvent.id,
-            title: action.data?.title || 'משימה חדשה',
-            status: 'pending',
-            priority: 'medium'
-          })
-          if (err2) throw err2
-          addMessage('assistant', `✅ המשימה נוספה בהצלחה!`)
-          break
-        }
-      }
-
-      setMessages(prev => prev.map(m =>
-        m.id === messageId
-          ? { ...m, action: { ...m.action!, status: 'completed' as const } }
-          : m
-      ))
-    } catch (error) {
-      console.error('Action failed:', error)
-      setMessages(prev => prev.map(m =>
-        m.id === messageId
-          ? { ...m, action: { ...m.action!, status: 'failed' as const } }
-          : m
-      ))
-      addMessage('assistant', '❌ מצטער, לא הצלחתי לבצע את הפעולה. נסה שוב.')
-    }
-  }
-
-  // Handle send message
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return
-
-    const userMessage = input.trim()
-    setInput('')
-    addMessage('user', userMessage)
+    setMessages(prev => [...prev, userMessage])
     setIsLoading(true)
 
     try {
-      const response = await getAIResponse(userMessage)
-      addMessage('assistant', response.content, response.action)
+      const response = await chatService.processMessage({
+        message: messageText,
+        context: buildPageContext(),
+        agent: 'general',
+        conversationHistory: messages.slice(-10)
+      })
 
-      // If there's a pending action, ask for confirmation
-      if (response.action?.status === 'pending') {
-        // Auto-execute after a small delay for demo purposes
-        // In production, you'd want explicit user confirmation
+      // Add assistant response
+      const assistantMessage: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: response.content,
+        timestamp: new Date(),
+        actions: response.actions,
+        metadata: response.metadata,
+      }
+      setMessages(prev => [...prev, assistantMessage])
+
+      // Update suggestions from response
+      if (response.suggestions && response.suggestions.length > 0) {
+        setSuggestions(response.suggestions)
+      }
+
+      // If there are completed mutation actions, refresh events data
+      const hasMutations = response.actions?.some(a =>
+        ['event_created', 'participants_added', 'event_updated', 'checklist_added',
+         'checklist_completed', 'vendors_assigned', 'whatsapp_sent',
+         'schedule_items_added', 'schedule_item_updated'].includes(a.type)
+      )
+      if (hasMutations) {
+        refreshEvents()
+        // Invalidate messages + participant_schedules caches (AI may have created these)
+        queryClient.invalidateQueries({ queryKey: ['messages'] })
+        queryClient.invalidateQueries({ queryKey: ['participant_schedules'] })
       }
     } catch (error) {
-      addMessage('assistant', 'מצטער, משהו השתבש. נסה שוב.')
+      console.error('[AI Page] Send error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'שגיאה בלתי צפויה'
+      const errorMessage: ChatMessage = {
+        id: generateId(),
+        role: 'assistant',
+        content: `שגיאה בתקשורת עם העוזר: **${errorMsg}**\n\nבדוק את חיבור האינטרנט ונסה שוב.`,
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errorMessage])
     } finally {
       setIsLoading(false)
       inputRef.current?.focus()
@@ -262,22 +143,21 @@ export function AIAssistantPage() {
 
   // Quick action handlers
   const handleQuickAddParticipant = () => {
-    setInput('הוסף משתתף חדש')
+    setInput('הוסף משתתף חדש לאירוע')
     inputRef.current?.focus()
   }
 
   const handleQuickAddTask = () => {
-    setInput('הוסף משימה חדשה')
+    setInput('הוסף משימה חדשה לצ\'קליסט')
     inputRef.current?.focus()
   }
 
   const handleQuickStatus = () => {
-    setInput('מה הסטטוס של האירוע?')
-    handleSend()
+    handleSend('מה הסטטוס המלא של האירוע? תן לי סיכום עם כל הפרטים')
   }
 
   const handleQuickIdeas = () => {
-    setInput('הצע לי רעיונות לאירוע')
+    setInput('הצע לי רעיונות יצירתיים לאירוע')
     inputRef.current?.focus()
   }
 
@@ -285,6 +165,63 @@ export function AIAssistantPage() {
   const handleSuggestionClick = (suggestion: string) => {
     setInput(suggestion)
     inputRef.current?.focus()
+  }
+
+  // Render action badges for completed backend actions
+  const renderActions = (actions?: ChatAction[]) => {
+    if (!actions || actions.length === 0) return null
+
+    return (
+      <div className="mt-3 flex flex-wrap gap-2">
+        {actions.map((action) => {
+          const label = action.labelHebrew || ACTION_STATUS_LABELS[action.type] || action.label
+          const isCompleted = action.completed || ['event_created', 'participants_added', 'event_updated',
+            'checklist_added', 'checklist_completed', 'vendors_assigned', 'whatsapp_sent',
+            'schedule_items_added', 'schedule_item_updated'].includes(action.type)
+          const isNavigation = action.type === 'navigate' && action.targetPage
+
+          if (isNavigation) {
+            return (
+              <button
+                key={action.id}
+                onClick={() => {
+                  // Navigate via custom event
+                  const navEvent = new CustomEvent('chat-navigate', {
+                    detail: { page: action.targetPage, params: action.data as Record<string, string> }
+                  })
+                  window.dispatchEvent(navEvent)
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-500/15 text-violet-400 rounded-lg text-xs hover:bg-violet-500/25 transition-all border border-violet-500/20"
+              >
+                <ExternalLink size={12} />
+                {label}
+              </button>
+            )
+          }
+
+          if (isCompleted) {
+            return (
+              <span
+                key={action.id}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 rounded-lg text-xs border border-emerald-500/20"
+              >
+                <CheckCircle size={12} />
+                {label}
+              </span>
+            )
+          }
+
+          return (
+            <span
+              key={action.id}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-500/10 text-zinc-400 rounded-lg text-xs border border-zinc-500/20"
+            >
+              {label}
+            </span>
+          )
+        })}
+      </div>
+    )
   }
 
   return (
@@ -306,7 +243,7 @@ export function AIAssistantPage() {
 
         {/* Chat Card */}
         <div className="max-w-4xl mx-auto">
-          <div className="group relative bg-[#1a1d27] border border-white/10 rounded-2xl shadow-xl overflow-hidden" data-testid="ai-chat">
+          <div className={`group relative bg-[#1a1d27] rounded-2xl shadow-xl overflow-hidden ${selectedEvent ? 'border-2 border-red-500/80 shadow-red-500/10' : 'border border-white/10'}`} data-testid="ai-chat">
             {/* Gradient Header with Event Context */}
             <div className="relative bg-gradient-to-r from-violet-500 via-purple-500 to-indigo-500 p-6">
               <div className="flex items-center justify-between">
@@ -322,8 +259,11 @@ export function AIAssistantPage() {
 
                 {/* Event Context Badge */}
                 {selectedEvent && (
-                  <div className="bg-[#1a1d27]/30 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/20">
-                    <p className="text-white/60 text-xs mb-0.5">אירוע פעיל</p>
+                  <div className="bg-[#1a1d27]/30 backdrop-blur-sm rounded-xl px-4 py-2 border border-red-400/40">
+                    <p className="text-red-300/80 text-xs mb-0.5 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                      מחובר לאירוע
+                    </p>
                     <p className="text-white font-semibold flex items-center gap-2">
                       {selectedEvent.event_types?.icon && <span>{selectedEvent.event_types.icon}</span>}
                       {selectedEvent.name}
@@ -343,7 +283,7 @@ export function AIAssistantPage() {
                 <span className="text-xs text-zinc-500 whitespace-nowrap">פעולות מהירות:</span>
                 <AIActionButton icon={UserPlus} label="הוסף משתתף" onClick={handleQuickAddParticipant} />
                 <AIActionButton icon={CheckSquare} label="משימה חדשה" onClick={handleQuickAddTask} />
-                <AIActionButton icon={PieChart} label="סטטוס" onClick={handleQuickStatus} />
+                <AIActionButton icon={PieChart} label="סטטוס" onClick={handleQuickStatus} disabled={isLoading} />
                 <AIActionButton icon={Target} label="רעיונות" onClick={handleQuickIdeas} />
               </div>
             )}
@@ -364,7 +304,7 @@ export function AIAssistantPage() {
                   <div className="flex flex-wrap gap-2 mt-6 justify-center">
                     {(selectedEvent
                       ? ['מה הסטטוס של האירוע?', 'הוסף משתתף חדש', 'הצע רעיונות לאירוע', 'הוסף משימה לצ\'קליסט']
-                      : ['מה אתה יכול לעשות?', 'איך מתחילים?', 'עזרה']
+                      : ['עזרי לי לתכנן אירוע חדש', 'חפשי ספקים מומלצים', 'מה אתה יכול לעשות?']
                     ).map((suggestion, i) => (
                       <button
                         key={i}
@@ -392,34 +332,8 @@ export function AIAssistantPage() {
                       >
                         <div className="whitespace-pre-wrap text-sm leading-relaxed">{message.content}</div>
 
-                        {/* Action buttons for pending actions */}
-                        {message.action?.status === 'pending' && (
-                          <div className="mt-3 flex gap-2">
-                            <button
-                              onClick={() => executeAction(message.action, message.id)}
-                              className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm hover:bg-emerald-500/30 transition-all flex items-center gap-1"
-                            >
-                              <CheckCircle size={14} />
-                              אשר
-                            </button>
-                            <button
-                              onClick={() => setMessages(prev => prev.map(m =>
-                                m.id === message.id ? { ...m, action: undefined } : m
-                              ))}
-                              className="px-3 py-1.5 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 transition-all flex items-center gap-1"
-                            >
-                              <XCircle size={14} />
-                              בטל
-                            </button>
-                          </div>
-                        )}
-
-                        {message.action?.status === 'completed' && (
-                          <div className="mt-2 flex items-center gap-1 text-emerald-400 text-xs">
-                            <CheckCircle size={12} />
-                            הפעולה בוצעה בהצלחה
-                          </div>
-                        )}
+                        {/* Render action badges from Gemini function calling */}
+                        {renderActions(message.actions)}
 
                         <div className="mt-1 text-[10px] text-zinc-500">
                           {message.timestamp.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
@@ -434,6 +348,21 @@ export function AIAssistantPage() {
                         <Loader2 className="w-4 h-4 animate-spin text-violet-400" />
                         <span className="text-zinc-400 text-sm">חושב...</span>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Dynamic suggestions after response */}
+                  {!isLoading && suggestions.length > 0 && messages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 justify-center pt-2">
+                      {suggestions.slice(0, 3).map((suggestion, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleSuggestionClick(suggestion)}
+                          className="px-3 py-1.5 bg-[#1a1d27] border border-violet-500/20 rounded-full text-xs text-violet-400/80 hover:bg-violet-500/10 hover:border-violet-400 transition-all"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
                     </div>
                   )}
 

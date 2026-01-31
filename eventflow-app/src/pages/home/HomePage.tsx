@@ -301,10 +301,13 @@ export function HomePage() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredEvents.map((event) => (
-              <button
+              <div
                 key={event.id}
                 onClick={() => handleSelectEvent(event)}
-                className={`bg-white rounded-2xl border-2 p-6 text-right transition-all hover:shadow-xl hover:-translate-y-1 group ${
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleSelectEvent(event) }}
+                className={`bg-white rounded-2xl border-2 p-6 text-right transition-all hover:shadow-xl hover:-translate-y-1 group cursor-pointer ${
                   event.status === 'active'
                     ? 'border-green-400 hover:border-green-500'
                     : 'border-red-400 hover:border-red-500'
@@ -388,7 +391,7 @@ export function HomePage() {
                     </button>
                   </div>
                 )}
-              </button>
+              </div>
             ))}
           </div>
         )}

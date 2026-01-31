@@ -13,6 +13,7 @@ import type {
 } from '../types/chat'
 import { DEFAULT_CHAT_SETTINGS } from '../types/chat'
 import { getSlashCommands } from '../hooks/usePageContext'
+import { useEvent } from './EventContext'
 
 // ============================================================================
 // Initial State
@@ -210,6 +211,7 @@ interface ChatProviderProps {
 
 export function ChatProvider({ children }: ChatProviderProps) {
   const [state, dispatch] = useReducer(chatReducer, undefined, createInitialState)
+  const { selectedEvent } = useEvent()
 
   // Persist settings to localStorage
   useEffect(() => {
@@ -247,6 +249,27 @@ export function ChatProvider({ children }: ChatProviderProps) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [state.settings.shortcutKey])
+
+  // Auto-sync event context from EventProvider to chat page context
+  useEffect(() => {
+    if (selectedEvent) {
+      dispatch({
+        type: 'SET_PAGE_CONTEXT',
+        payload: {
+          eventId: selectedEvent.id,
+          eventName: selectedEvent.name,
+        }
+      })
+    } else {
+      dispatch({
+        type: 'SET_PAGE_CONTEXT',
+        payload: {
+          eventId: undefined,
+          eventName: undefined,
+        }
+      })
+    }
+  }, [selectedEvent?.id, selectedEvent?.name])
 
   // Window actions
   const openChat = useCallback(() => {

@@ -34,7 +34,7 @@ export function ReportsPage() {
       supabase.from('events').select('id, status, budget'),
       supabase.from('participants').select('id, status'),
       supabase.from('vendors').select('id', { count: 'exact', head: true }),
-      supabase.from('checklist_items').select('id, is_completed'),
+      supabase.from('checklist_items').select('id, status'),
       supabase.from('messages').select('id', { count: 'exact', head: true }),
       supabase.from('feedback_surveys').select('id', { count: 'exact', head: true }),
       supabase.from('feedback_responses').select('id', { count: 'exact', head: true })
@@ -53,7 +53,7 @@ export function ReportsPage() {
       totalVendors: vendorsRes.count || 0,
       totalBudget: events.reduce((sum, e) => sum + (e.budget || 0), 0),
       totalChecklistItems: checklistItems.length,
-      completedChecklistItems: checklistItems.filter(c => c.is_completed).length,
+      completedChecklistItems: checklistItems.filter(c => c.status === 'completed').length,
       totalMessages: messagesRes.count || 0,
       totalSurveys: surveysRes.count || 0,
       totalResponses: responsesRes.count || 0
@@ -72,7 +72,7 @@ export function ReportsPage() {
 
     const [participantsRes, checklistRes, vendorsRes, eventRes] = await Promise.all([
       supabase.from('participants').select('id, status').eq('event_id', selectedEventId),
-      supabase.from('checklist_items').select('id, is_completed').eq('event_id', selectedEventId),
+      supabase.from('checklist_items').select('id, status').eq('event_id', selectedEventId),
       supabase.from('event_vendors').select('id', { count: 'exact', head: true }).eq('event_id', selectedEventId),
       supabase.from('events').select('budget').eq('id', selectedEventId).single()
     ])
@@ -92,7 +92,7 @@ export function ReportsPage() {
       },
       checklist: {
         total: checklist.length,
-        completed: checklist.filter(c => c.is_completed).length
+        completed: checklist.filter(c => c.status === 'completed').length
       },
       vendors: vendorsRes.count || 0,
       budget: eventRes.data?.budget || null

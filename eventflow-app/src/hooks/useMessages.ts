@@ -265,10 +265,52 @@ export function useGenerateMessages() {
 
       if (error) {
         console.error('Error generating messages:', error)
+        // Graceful fallback — RPC may not exist on older deployments
+        if (error.code === '42883' || error.message?.includes('function') ) {
+          return { created_messages: 0, created_assignments: 0, skipped: 0, event_name: '' }
+        }
         throw error
       }
 
-      return data as { created: number; skipped: number; event_id: string; event_name: string }
+      return data as { created_messages: number; created_assignments: number; skipped: number; event_name: string }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messagesKeys.all })
+      queryClient.invalidateQueries({ queryKey: ['participant_schedules'] })
+    }
+  })
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Retry Failed Message
+// ────────────────────────────────────────────────────────────────────────────
+
+// ────────────────────────────────────────────────────────────────────────────
+// Update Message
+// ────────────────────────────────────────────────────────────────────────────
+
+export function useUpdateMessage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ id, content, subject }: { id: string; content: string; subject?: string | null }) => {
+      const { data, error } = await supabase
+        .from('messages')
+        .update({
+          content,
+          subject: subject ?? null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('Error updating message:', error)
+        throw error
+      }
+
+      return data
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: messagesKeys.all })
@@ -277,8 +319,64 @@ export function useGenerateMessages() {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// Retry Failed Message
+// Delete Single Message
 // ────────────────────────────────────────────────────────────────────────────
+
+export function useDeleteMessage() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (messageId: string) => {
+      const { error } = await supabase
+        .from('messages')
+        .delete()
+        .eq('id', messageId)
+
+      if (error) {
+        console.error('Error deleting message:', error)
+        throw error
+      }
+
+      return messageId
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messagesKeys.all })
+    }
+  })
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Delete All Messages (for event or all)
+// ────────────────────────────────────────────────────────────────────────────
+
+export function useDeleteAllMessages() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (eventId?: string) => {
+      let query = supabase.from('messages').delete()
+
+      if (eventId) {
+        query = query.eq('event_id', eventId)
+      } else {
+        // Delete all - need a filter that matches all rows
+        query = query.gte('created_at', '1970-01-01')
+      }
+
+      const { error } = await query
+
+      if (error) {
+        console.error('Error deleting all messages:', error)
+        throw error
+      }
+
+      return true
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: messagesKeys.all })
+    }
+  })
+}
 
 export function useRetryMessage() {
   const queryClient = useQueryClient()

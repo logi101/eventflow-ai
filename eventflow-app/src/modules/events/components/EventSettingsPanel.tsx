@@ -10,7 +10,15 @@ import { MessagePreview } from './MessagePreview'
 import { TestReminderButton } from './TestReminderButton'
 
 interface EventSettingsPanelProps {
-  event: any
+  event: {
+    id: string
+    name: string
+    organization_id: string | null
+    start_date: string
+    venue_name: string | null
+    venue_address: string | null
+    settings?: Record<string, boolean> | null
+  }
 }
 
 export function EventSettingsPanel({ event }: EventSettingsPanelProps) {

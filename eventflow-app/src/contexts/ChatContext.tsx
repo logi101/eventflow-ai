@@ -248,6 +248,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.settings.shortcutKey])
 
   // Auto-sync event context from EventProvider to chat page context
@@ -269,6 +270,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
         }
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent?.id, selectedEvent?.name])
 
   // Window actions
@@ -447,6 +449,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
 // Hook
 // ============================================================================
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useChatContext(): ChatContextValue {
   const context = useContext(ChatContext)
   if (!context) {

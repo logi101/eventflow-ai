@@ -55,6 +55,7 @@ export function TestWhatsAppPage() {
     if (selectedEventId) {
       loadEventData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEventId])
 
   async function loadEvents() {
@@ -213,8 +214,8 @@ export function TestWhatsAppPage() {
       addLog('הסתיים בהצלחה! טוען נתונים...', true)
       await loadEventData()
 
-    } catch (err: any) {
-      addLog(`שגיאה: ${err.message}`, false)
+    } catch (err: unknown) {
+      addLog(`שגיאה: ${err instanceof Error ? err.message : 'Unknown error'}`, false)
       console.error(err)
     }
 
@@ -315,9 +316,9 @@ export function TestWhatsAppPage() {
           sent_at: new Date().toISOString()
         })
 
-      } catch (err: any) {
+      } catch (err: unknown) {
         failCount++
-        addLog(`✗ נכשלה שליחה ל-${participant.first_name}: ${err.message}`, false)
+        addLog(`✗ נכשלה שליחה ל-${participant.first_name}: ${err instanceof Error ? err.message : 'Unknown error'}`, false)
       }
 
       // Small delay between messages
@@ -342,8 +343,8 @@ export function TestWhatsAppPage() {
 
       addLog('עודכנו כל שמות המשפחה ל"בדיקה"', true)
       await loadEventData()
-    } catch (err: any) {
-      addLog(`שגיאה: ${err.message}`, false)
+    } catch (err: unknown) {
+      addLog(`שגיאה: ${err instanceof Error ? err.message : 'Unknown error'}`, false)
     }
 
     setLoading(false)
@@ -363,8 +364,8 @@ export function TestWhatsAppPage() {
 
       addLog('עודכנו כל מספרי הטלפון', true)
       await loadEventData()
-    } catch (err: any) {
-      addLog(`שגיאה: ${err.message}`, false)
+    } catch (err: unknown) {
+      addLog(`שגיאה: ${err instanceof Error ? err.message : 'Unknown error'}`, false)
     }
 
     setLoading(false)

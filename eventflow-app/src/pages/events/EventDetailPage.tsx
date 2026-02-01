@@ -104,6 +104,37 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     setLoading(false)
   }
 
+  const checkForConflicts = (sessionsList: ExtendedSchedule[]) => {
+    const newConflicts: { type: string; message: string; scheduleId: string }[] = []
+
+    // Check for room conflicts
+    for (let i = 0; i < sessionsList.length; i++) {
+      for (let j = i + 1; j < sessionsList.length; j++) {
+        const s1 = sessionsList[i]
+        const s2 = sessionsList[j]
+
+        if (!s1.room_id || !s2.room_id) continue
+        if (s1.room_id !== s2.room_id) continue
+        if (s1.program_day_id !== s2.program_day_id) continue
+
+        const s1Start = new Date(s1.start_time).getTime()
+        const s1End = new Date(s1.end_time).getTime()
+        const s2Start = new Date(s2.start_time).getTime()
+        const s2End = new Date(s2.end_time).getTime()
+
+        if ((s1Start < s2End && s1End > s2Start)) {
+          newConflicts.push({
+            type: 'room',
+            message: `התנגשות חדר: "${s1.title}" ו-"${s2.title}" באותו חדר ובאותו זמן`,
+            scheduleId: s1.id
+          })
+        }
+      }
+    }
+
+    setConflicts(newConflicts)
+  }
+
   async function loadProgramData() {
     if (!eventId) return
 
@@ -143,6 +174,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     if (eventId) {
       loadEventData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId])
 
   // Load program data when switching to program tab
@@ -150,38 +182,8 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     if (activeTab === 'program' && eventId) {
       loadProgramData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, eventId])
-
-  function checkForConflicts(sessionsList: ExtendedSchedule[]) {
-    const newConflicts: { type: string; message: string; scheduleId: string }[] = []
-
-    // Check for room conflicts
-    for (let i = 0; i < sessionsList.length; i++) {
-      for (let j = i + 1; j < sessionsList.length; j++) {
-        const s1 = sessionsList[i]
-        const s2 = sessionsList[j]
-
-        if (!s1.room_id || !s2.room_id) continue
-        if (s1.room_id !== s2.room_id) continue
-        if (s1.program_day_id !== s2.program_day_id) continue
-
-        const s1Start = new Date(s1.start_time).getTime()
-        const s1End = new Date(s1.end_time).getTime()
-        const s2Start = new Date(s2.start_time).getTime()
-        const s2End = new Date(s2.end_time).getTime()
-
-        if ((s1Start < s2End && s1End > s2Start)) {
-          newConflicts.push({
-            type: 'room',
-            message: `התנגשות חדר: "${s1.title}" ו-"${s2.title}" באותו חדר ובאותו זמן`,
-            scheduleId: s1.id
-          })
-        }
-      }
-    }
-
-    setConflicts(newConflicts)
-  }
 
   // CRUD Operations for Program Days
   async function saveProgramDay() {

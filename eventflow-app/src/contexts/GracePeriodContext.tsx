@@ -125,9 +125,10 @@ export function GracePeriodProvider({ children }: { children: ReactNode }) {
 
   // Cleanup on unmount
   useEffect(() => {
+    const timers = timersRef.current
     return () => {
-      timersRef.current.forEach(timer => clearTimeout(timer))
-      timersRef.current.clear()
+      timers.forEach(timer => clearTimeout(timer))
+      timers.clear()
     }
   }, [])
 
@@ -278,6 +279,7 @@ export function GracePeriodProvider({ children }: { children: ReactNode }) {
 // Hook
 // ────────────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useGracePeriod() {
   const context = useContext(GracePeriodContext)
   if (!context) {

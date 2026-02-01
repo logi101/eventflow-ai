@@ -407,10 +407,13 @@ function EditMessageModal({
 
   // Reset form when message changes
   useEffect(() => {
-    if (message) {
-      setContent(message.content || '')
-      setSubject(message.subject || '')
-    }
+    const raf = requestAnimationFrame(() => {
+      if (message) {
+        setContent(message.content || '')
+        setSubject(message.subject || '')
+      }
+    })
+    return () => cancelAnimationFrame(raf)
   }, [message])
 
   if (!message) return null
@@ -880,7 +883,8 @@ export function MessagesPage() {
         )
       }
     }
-  ], [pendingChanges])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [pendingChanges, getMessagePendingState])
 
   // Table instance
   const table = useReactTable({

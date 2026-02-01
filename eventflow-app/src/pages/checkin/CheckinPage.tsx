@@ -18,9 +18,13 @@ export function CheckinPage() {
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
-    if (contextEvent && selectedEventId !== contextEvent.id) {
-      setSelectedEventId(contextEvent.id)
-    }
+    const raf = requestAnimationFrame(() => {
+      if (contextEvent && selectedEventId !== contextEvent.id) {
+        setSelectedEventId(contextEvent.id)
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextEvent])
 
   async function fetchEvents() {
@@ -56,12 +60,14 @@ export function CheckinPage() {
 
   useEffect(() => {
     fetchEvents()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
     if (selectedEventId) {
       fetchParticipants()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEventId])
 
   async function checkInParticipant(participantId: string) {

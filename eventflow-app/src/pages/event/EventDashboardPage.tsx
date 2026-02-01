@@ -66,7 +66,7 @@ export function EventDashboardPage() {
     max_participants: ''
   })
   const [loading, setLoading] = useState(true)
-  const [upcomingSchedules, setUpcomingSchedules] = useState<any[]>([])
+  const [upcomingSchedules, setUpcomingSchedules] = useState<{ id: string; title: string; start_time: string; location?: string; speaker_name?: string; track?: string }[]>([])
 
   useEffect(() => {
     if (!selectedEvent) {
@@ -74,6 +74,7 @@ export function EventDashboardPage() {
       return
     }
     fetchStats()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent])
 
   async function fetchStats() {

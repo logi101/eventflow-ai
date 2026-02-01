@@ -42,9 +42,13 @@ export function GuestsPage() {
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
-    if (selectedEvent && selectedEventId !== selectedEvent.id) {
-      setSelectedEventId(selectedEvent.id)
-    }
+    const raf = requestAnimationFrame(() => {
+      if (selectedEvent && selectedEventId !== selectedEvent.id) {
+        setSelectedEventId(selectedEvent.id)
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent])
 
   useEffect(() => {
@@ -53,6 +57,7 @@ export function GuestsPage() {
 
   useEffect(() => {
     fetchParticipants()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEventId])
 
   async function fetchEvents() {

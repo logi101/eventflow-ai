@@ -12,7 +12,7 @@ interface Event {
   id: string
   name: string
   description: string | null
-  status: 'draft' | 'planning' | 'active' | 'completed' | 'cancelled'
+  status: 'draft' | 'planning' | 'active' | 'completed' | 'cancelled' | 'archived'
   start_date: string
   end_date: string | null
   venue_name: string | null
@@ -59,6 +59,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       setSelectedEvent(null)
       setLoading(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.access_token])
 
   // Persist selected event ID in localStorage
@@ -74,6 +75,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     if (savedEventId && !selectedEvent) {
       selectEventById(savedEventId)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allEvents])
 
   async function refreshEvents() {
@@ -205,6 +207,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useEvent() {
   const context = useContext(EventContext)
   if (context === undefined) {

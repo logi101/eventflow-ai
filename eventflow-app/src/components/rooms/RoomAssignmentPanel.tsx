@@ -43,6 +43,7 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
 
   useEffect(() => {
     fetchParticipantsWithRooms()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId])
 
   async function fetchParticipantsWithRooms() {

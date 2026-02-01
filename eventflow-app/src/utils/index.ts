@@ -44,7 +44,8 @@ export const getStatusColor = (status: EventStatus) => {
     planning: 'bg-blue-500/20 text-blue-400',
     active: 'bg-emerald-500/20 text-emerald-400',
     completed: 'bg-purple-500/20 text-purple-400',
-    cancelled: 'bg-red-500/20 text-red-400'
+    cancelled: 'bg-red-500/20 text-red-400',
+    archived: 'bg-zinc-500/20 text-zinc-500'
   }
   return colors[status] || colors.draft
 }
@@ -55,7 +56,8 @@ export const getStatusLabel = (status: EventStatus) => {
     planning: 'בתכנון',
     active: 'פעיל',
     completed: 'הסתיים',
-    cancelled: 'בוטל'
+    cancelled: 'בוטל',
+    archived: 'בארכיון'
   }
   return labels[status] || status
 }

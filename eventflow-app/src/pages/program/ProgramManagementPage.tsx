@@ -60,6 +60,7 @@ export function ProgramManagementPage() {
   // Load initial data
   useEffect(() => {
     loadEvents()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Sync selectedEventId from EventContext when it loads after mount
@@ -74,6 +75,7 @@ export function ProgramManagementPage() {
     if (selectedEventId) {
       loadEventData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEventId])
 
   async function loadEvents() {
@@ -212,7 +214,7 @@ export function ProgramManagementPage() {
 
         if (aiData && aiData.data && Array.isArray(aiData.data)) {
           // Map AI result to DB schema
-          schedulesToInsert = aiData.data.map((item: any, index: number) => ({
+          schedulesToInsert = aiData.data.map((item: Record<string, unknown>, index: number) => ({
             event_id: selectedEventId,
             title: item.title,
             description: item.description,
@@ -263,9 +265,10 @@ export function ProgramManagementPage() {
         alert(`יובאו ${schedulesToInsert.length} פריטים בהצלחה!`)
         loadEventData()
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Parse error:', err)
-      alert('שגיאה בקריאת הקובץ: ' + (err.message || 'Unknown error'))
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      alert('שגיאה בקריאת הקובץ: ' + errorMessage)
     }
 
     setImporting(false)
@@ -862,8 +865,7 @@ export function ProgramManagementPage() {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={handleScheduleImport}
-                tabIndex={-1}
-                style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}
+                className="hidden"
               />
               <button
                 type="button"
@@ -942,8 +944,7 @@ export function ProgramManagementPage() {
                 type="file"
                 accept=".xlsx,.xls,.csv"
                 onChange={handleParticipantsImport}
-                tabIndex={-1}
-                style={{ position: 'absolute', width: 0, height: 0, opacity: 0, overflow: 'hidden', pointerEvents: 'none' }}
+                className="hidden"
               />
               <button
                 type="button"

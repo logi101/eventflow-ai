@@ -900,17 +900,48 @@ serve(async (req) => {
     // ─────────────────────────────────────────────────────────
     if (type === 'process_scheduled') {
       // 9a. Send scheduled reminders whose time has arrived
+      // Only send messages whose scheduled_for is within the last 30 minutes
+      // to avoid sending stale messages from hours ago
+      const thirtyMinAgo = new Date(now.getTime() - 30 * 60 * 1000).toISOString()
+
       const { data: scheduledMsgs } = await supabase
         .from('messages')
-        .select('id, event_id, participant_id, to_phone, content, schedule_id')
+        .select('id, event_id, participant_id, to_phone, content, schedule_id, scheduled_for')
         .eq('status', 'scheduled')
         .lte('scheduled_for', now.toISOString())
+        .gte('scheduled_for', thirtyMinAgo)
         .order('scheduled_for', { ascending: true })
         .limit(50)
+
+      // Also expire any very old scheduled messages (> 30 min past due)
+      const { data: expiredMsgs } = await supabase
+        .from('messages')
+        .select('id')
+        .eq('status', 'scheduled')
+        .lt('scheduled_for', thirtyMinAgo)
+
+      if (expiredMsgs && expiredMsgs.length > 0) {
+        const expiredIds = expiredMsgs.map((m: any) => m.id)
+        for (let i = 0; i < expiredIds.length; i += 50) {
+          const batch = expiredIds.slice(i, i + 50)
+          await supabase.from('messages').update({
+            status: 'expired',
+            error_message: 'Scheduled time passed (>30min overdue)',
+            updated_at: now.toISOString()
+          }).in('id', batch)
+        }
+        console.log(`Expired ${expiredMsgs.length} overdue scheduled messages`)
+      }
 
       if (scheduledMsgs) {
         for (const msg of scheduledMsgs) {
           results.processed++
+
+          // Mark as 'sending' immediately to prevent duplicate sends on next cron
+          await supabase.from('messages').update({
+            status: 'sending',
+            updated_at: now.toISOString()
+          }).eq('id', msg.id)
 
           // Get organization_id from event
           const { data: event } = await supabase
@@ -939,6 +970,12 @@ serve(async (req) => {
 
           if (sendResult.success) {
             results.sent++
+            // Update status to 'sent' so it won't be picked up again
+            await supabase.from('messages').update({
+              status: 'sent',
+              sent_at: now.toISOString(),
+              updated_at: now.toISOString()
+            }).eq('id', msg.id)
           } else {
             results.errors++
             await supabase.from('messages').update({

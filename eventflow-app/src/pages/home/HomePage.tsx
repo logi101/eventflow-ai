@@ -219,9 +219,12 @@ export function HomePage() {
   }
 
   const getDaysUntil = (date: string) => {
-    const days = Math.ceil(
-      (new Date(date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-    )
+    const eventDate = new Date(date)
+    const today = new Date()
+    // Compare calendar days only (strip time portion)
+    const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
+    const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const days = Math.round((eventDay.getTime() - todayDay.getTime()) / (1000 * 60 * 60 * 24))
     if (days < 0) return 'עבר'
     if (days === 0) return 'היום'
     if (days === 1) return 'מחר'

@@ -254,9 +254,12 @@ export function EventDashboardPage() {
   }
 
   const getDaysUntil = () => {
-    const days = Math.ceil(
-      (new Date(selectedEvent.start_date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-    )
+    const eventDate = new Date(selectedEvent.start_date)
+    const today = new Date()
+    // Compare calendar days only (strip time portion)
+    const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate())
+    const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate())
+    const days = Math.round((eventDay.getTime() - todayDay.getTime()) / (1000 * 60 * 60 * 24))
     if (days < 0) return { text: 'האירוע עבר', color: 'text-gray-500', bg: 'bg-gray-100' }
     if (days === 0) return { text: 'היום!', color: 'text-emerald-600', bg: 'bg-emerald-50' }
     if (days === 1) return { text: 'מחר!', color: 'text-amber-600', bg: 'bg-amber-50' }

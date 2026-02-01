@@ -2,7 +2,7 @@
 // EventFlow - Messages Page (Full Table View)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -659,7 +659,7 @@ export function MessagesPage() {
   // State
   const [filters, setFilters] = useState<MessageFilters>({})
   const [showAllMessages, setShowAllMessages] = useState(false)
-  const [sorting, setSorting] = useState<SortingState>([])
+  const [sorting, setSorting] = useState<SortingState>([{ id: 'scheduled_for', desc: false }])
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = useState('')
   const [showSendModal, setShowSendModal] = useState(false)
@@ -668,6 +668,14 @@ export function MessagesPage() {
   const [deletingMessage, setDeletingMessage] = useState<MessageWithRelations | null>(null)
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
+  const [currentTime, setCurrentTime] = useState(new Date())
+  const nowLineRef = useRef<HTMLTableRowElement>(null)
+
+  // Update current time every minute
+  useEffect(() => {
+    const interval = setInterval(() => setCurrentTime(new Date()), 60_000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Data
   const { data: messages = [], isLoading, error, refetch } = useMessages({
@@ -938,6 +946,48 @@ export function MessagesPage() {
     }
   })
 
+  // Compute the "now" line position among visible rows
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const nowLineRowIndex = useMemo(() => {
+    const rows = table.getRowModel().rows
+    const now = currentTime.getTime()
+
+    // Collect rows that have scheduled_for values
+    const scheduledRows = rows
+      .map((row, idx) => ({ idx, sf: row.original.scheduled_for }))
+      .filter(r => r.sf)
+
+    if (scheduledRows.length === 0) return -1
+
+    // Determine visual sort direction from the data
+    const firstSf = new Date(scheduledRows[0].sf!).getTime()
+    const lastSf = new Date(scheduledRows[scheduledRows.length - 1].sf!).getTime()
+    const isAscending = firstSf <= lastSf
+
+    if (isAscending) {
+      // Find first future row — now line goes before it
+      for (const { idx, sf } of scheduledRows) {
+        if (new Date(sf!).getTime() > now) return idx
+      }
+      // All in the past — line goes after the last scheduled row
+      return scheduledRows[scheduledRows.length - 1].idx + 1
+    } else {
+      // Descending: find first past row — now line goes before it
+      for (const { idx, sf } of scheduledRows) {
+        if (new Date(sf!).getTime() <= now) return idx
+      }
+      // All in the future — line goes after the last scheduled row
+      return scheduledRows[scheduledRows.length - 1].idx + 1
+    }
+  }, [table.getRowModel().rows, currentTime])
+
+  // Auto-scroll to the now line on first render
+  useEffect(() => {
+    if (nowLineRef.current) {
+      nowLineRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  }, [nowLineRowIndex])
+
   // Loading state
   if (isLoading) {
     return (
@@ -1145,43 +1195,82 @@ export function MessagesPage() {
                   </td>
                 </tr>
               ) : (
-                table.getRowModel().rows.map(row => {
+                table.getRowModel().rows.map((row, rowIndex) => {
                   const isIncoming = row.original.direction === 'incoming'
                   const pendingState = getMessagePendingState(row.original.id)
                   const isPendingDelete = pendingState === 'delete'
                   const isPendingEdit = pendingState === 'edit'
+                  const showNowLine = nowLineRowIndex === rowIndex
 
                   return (
-                  <tr
-                    key={row.id}
-                    className={`cursor-pointer transition-all relative ${
-                      isPendingDelete
-                        ? 'opacity-40 bg-red-900/10'
-                        : isPendingEdit
-                          ? 'bg-amber-900/10'
-                          : isIncoming
-                            ? 'bg-purple-900/20 hover:bg-purple-900/30'
-                            : 'hover:bg-zinc-700'
-                    }`}
-                    onClick={() => setSelectedMessage(row.original)}
-                  >
-                    {row.getVisibleCells().map(cell => (
-                      <td
-                        key={cell.id}
-                        className={`px-4 py-3 ${
-                          isPendingDelete ? 'line-through decoration-red-400' : ''
-                        } ${
-                          cell.column.id === row.getVisibleCells()[0]?.column.id && (isPendingDelete || isPendingEdit)
-                            ? isPendingDelete
-                              ? 'border-r-4 border-r-red-500'
-                              : 'border-r-4 border-r-amber-500'
-                            : ''
-                        }`}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
+                  <React.Fragment key={row.id}>
+                    {showNowLine && (
+                      <tr ref={nowLineRef} className="bg-transparent">
+                        <td colSpan={columns.length} className="p-0">
+                          <div className="relative flex items-center py-1.5">
+                            <div
+                              className="absolute -right-[2px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-500 z-10 border-2 border-red-400"
+                              style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.2)' }}
+                            />
+                            <div className="w-full flex items-center gap-3 pr-6">
+                              <span className="text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
+                                עכשיו {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className="flex-1 h-[2px] bg-gradient-to-l from-red-500 to-red-500/20 rounded-full" />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    <tr
+                      className={`cursor-pointer transition-all relative ${
+                        isPendingDelete
+                          ? 'opacity-40 bg-red-900/10'
+                          : isPendingEdit
+                            ? 'bg-amber-900/10'
+                            : isIncoming
+                              ? 'bg-purple-900/20 hover:bg-purple-900/30'
+                              : 'hover:bg-zinc-700'
+                      }`}
+                      onClick={() => setSelectedMessage(row.original)}
+                    >
+                      {row.getVisibleCells().map(cell => (
+                        <td
+                          key={cell.id}
+                          className={`px-4 py-3 ${
+                            isPendingDelete ? 'line-through decoration-red-400' : ''
+                          } ${
+                            cell.column.id === row.getVisibleCells()[0]?.column.id && (isPendingDelete || isPendingEdit)
+                              ? isPendingDelete
+                                ? 'border-r-4 border-r-red-500'
+                                : 'border-r-4 border-r-amber-500'
+                              : ''
+                          }`}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                    {/* Now line after the last row if needed */}
+                    {nowLineRowIndex === rowIndex + 1 && rowIndex === table.getRowModel().rows.length - 1 && (
+                      <tr ref={nowLineRef} className="bg-transparent">
+                        <td colSpan={columns.length} className="p-0">
+                          <div className="relative flex items-center py-1.5">
+                            <div
+                              className="absolute -right-[2px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full bg-red-500 z-10 border-2 border-red-400"
+                              style={{ boxShadow: '0 0 8px rgba(239, 68, 68, 0.5), 0 0 20px rgba(239, 68, 68, 0.2)' }}
+                            />
+                            <div className="w-full flex items-center gap-3 pr-6">
+                              <span className="text-xs font-bold text-red-400 bg-red-500/15 px-2.5 py-1 rounded-lg border border-red-500/30 shrink-0">
+                                עכשיו {currentTime.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              <div className="flex-1 h-[2px] bg-gradient-to-l from-red-500 to-red-500/20 rounded-full" />
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                   )})
               )}
             </tbody>

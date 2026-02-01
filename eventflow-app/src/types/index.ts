@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 // Event Types
-export type EventStatus = 'draft' | 'planning' | 'active' | 'completed' | 'cancelled'
+export type EventStatus = 'draft' | 'planning' | 'active' | 'completed' | 'cancelled' | 'archived'
 
 export interface EventType {
   id: string

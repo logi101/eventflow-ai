@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Plus, Edit2, Trash2, MapPin, Clock, X, Loader2, Calendar, RefreshCw, PlusCircle, AlertTriangle } from 'lucide-react'
+import { Plus, Edit2, MapPin, Clock, X, Loader2, Calendar, RefreshCw, PlusCircle, AlertTriangle, Play, Square, Archive } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 import type { Event, EventType, EventFormData, EventStatus } from '../../types'
@@ -51,6 +51,7 @@ export function EventsPage() {
       fetchEvents()
       fetchEventTypes()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id])
 
   async function fetchEvents() {
@@ -346,25 +347,55 @@ export function EventsPage() {
     setPendingEventData(null)
   }
 
-  async function handleDelete(event: Event) {
-    if (!confirm(`האם למחוק את האירוע "${event.name}"?`)) return
-
+  async function handleActivate(event: Event) {
     try {
       const { error } = await supabase
         .from('events')
-        .delete()
+        .update({ status: 'active' })
         .eq('id', event.id)
 
       if (error) throw error
       fetchEvents()
     } catch (error) {
-      console.error('Error deleting event:', error)
-      alert('שגיאה במחיקת האירוע')
+      console.error('Error activating event:', error)
+      alert('שגיאה בהפעלת האירוע')
+    }
+  }
+
+  async function handleStop(event: Event) {
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'draft' })
+        .eq('id', event.id)
+
+      if (error) throw error
+      fetchEvents()
+    } catch (error) {
+      console.error('Error stopping event:', error)
+      alert('שגיאה בעצירת האירוע')
+    }
+  }
+
+  async function handleArchive(event: Event) {
+    if (!confirm(`האם להעביר את האירוע "${event.name}" לארכיון?`)) return
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'archived' })
+        .eq('id', event.id)
+
+      if (error) throw error
+      fetchEvents()
+    } catch (error) {
+      console.error('Error archiving event:', error)
+      alert('שגיאה בהעברה לארכיון')
     }
   }
 
   const filteredEvents = filter === 'all'
-    ? events
+    ? events.filter(e => e.status !== 'archived')
     : events.filter(e => e.status === filter)
 
   return (
@@ -384,7 +415,7 @@ export function EventsPage() {
 
       {/* Filters */}
       <div className="flex gap-2 mb-6 flex-wrap" data-testid="event-filters">
-        {(['all', 'draft', 'planning', 'active', 'completed', 'cancelled'] as const).map(status => (
+        {(['all', 'draft', 'planning', 'active', 'completed', 'cancelled', 'archived'] as const).map(status => (
           <button
             key={status}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
@@ -476,6 +507,24 @@ export function EventsPage() {
 
                 {/* Actions */}
                 <div className="flex gap-2">
+                  {(event.status === 'draft' || event.status === 'planning') && (
+                    <button
+                      className="p-2 hover:bg-green-50 rounded-lg transition-colors"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleActivate(event); }}
+                      title="הפעל"
+                    >
+                      <Play size={20} className="text-green-600" />
+                    </button>
+                  )}
+                  {event.status === 'active' && (
+                    <button
+                      className="p-2 hover:bg-orange-50 rounded-lg transition-colors"
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleStop(event); }}
+                      title="עצור"
+                    >
+                      <Square size={20} className="text-orange-600" />
+                    </button>
+                  )}
                   <button
                     className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); openEditModal(event); }}
@@ -485,10 +534,10 @@ export function EventsPage() {
                   </button>
                   <button
                     className="p-2 hover:bg-red-50 rounded-lg transition-colors"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(event); }}
-                    title="מחיקה"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleArchive(event); }}
+                    title="העבר לארכיון"
                   >
-                    <Trash2 size={20} className="text-red-600" />
+                    <Archive size={20} className="text-red-600" />
                   </button>
                 </div>
               </div>
@@ -694,6 +743,7 @@ export function EventsPage() {
                   <option value="active">פעיל</option>
                   <option value="completed">הסתיים</option>
                   <option value="cancelled">בוטל</option>
+                  <option value="archived">בארכיון</option>
                 </select>
               </div>
             </div>
@@ -875,4 +925,3 @@ export function EventsPage() {
 }
 
 export default EventsPage
-

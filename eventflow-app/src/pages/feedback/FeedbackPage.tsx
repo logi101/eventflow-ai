@@ -63,14 +63,22 @@ export function FeedbackPage() {
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
-    if (contextEvent && filterEventId !== contextEvent.id) {
-      setFilterEventId(contextEvent.id)
-    }
+    const raf = requestAnimationFrame(() => {
+      if (contextEvent && filterEventId !== contextEvent.id) {
+        setFilterEventId(contextEvent.id)
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextEvent])
 
   useEffect(() => {
-    fetchSurveys()
-    fetchEvents()
+    const raf = requestAnimationFrame(() => {
+      fetchSurveys()
+      fetchEvents()
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function fetchResponses(surveyId: string) {
@@ -83,7 +91,11 @@ export function FeedbackPage() {
   }
 
   useEffect(() => {
-    fetchSurveys()
+    const raf = requestAnimationFrame(() => {
+      fetchSurveys()
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterEventId])
 
   function handleInputChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) {

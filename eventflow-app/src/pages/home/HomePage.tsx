@@ -15,7 +15,9 @@ import {
   Loader2,
   Sparkles,
   ChevronLeft,
-  Power
+  Power,
+  Square,
+  Archive
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -23,7 +25,7 @@ import { EventForm } from '../../modules/events/components/EventForm'
 import type { EventFormData } from '../../modules/events/types'
 import { supabase } from '../../lib/supabase'
 
-type FilterStatus = 'all' | 'active' | 'planning' | 'draft' | 'completed'
+type FilterStatus = 'all' | 'active' | 'planning' | 'draft' | 'completed' | 'archived'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -150,10 +152,46 @@ export function HomePage() {
     }
   }
 
+  const handleStopEvent = async (e: React.MouseEvent, eventId: string) => {
+    e.stopPropagation()
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'draft' })
+        .eq('id', eventId)
+      if (error) throw error
+
+      await refreshEvents()
+    } catch (err) {
+      console.error('Error stopping event:', err)
+      alert('שגיאה בעצירת האירוע')
+    }
+  }
+
+  const handleArchiveEvent = async (e: React.MouseEvent, event: typeof allEvents[0]) => {
+    e.stopPropagation()
+    if (!confirm(`האם להעביר את האירוע "${event.name}" לארכיון?`)) return
+
+    try {
+      const { error } = await supabase
+        .from('events')
+        .update({ status: 'archived' })
+        .eq('id', event.id)
+      if (error) throw error
+
+      await refreshEvents()
+    } catch (err) {
+      console.error('Error archiving event:', err)
+      alert('שגיאה בהעברה לארכיון')
+    }
+  }
+
   const filteredEvents = allEvents.filter(event => {
     const matchesSearch = event.name.toLowerCase().includes(search.toLowerCase()) ||
                          event.venue_name?.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = filterStatus === 'all' || event.status === filterStatus
+    const matchesStatus = filterStatus === 'all'
+      ? event.status !== 'archived'
+      : event.status === filterStatus
     return matchesSearch && matchesStatus
   })
 
@@ -164,6 +202,7 @@ export function HomePage() {
       case 'draft': return 'טיוטה'
       case 'completed': return 'הסתיים'
       case 'cancelled': return 'בוטל'
+      case 'archived': return 'בארכיון'
       default: return status
     }
   }
@@ -174,6 +213,7 @@ export function HomePage() {
       case 'planning': return 'bg-amber-50 text-amber-700 border-amber-200'
       case 'draft': return 'bg-gray-50 text-gray-600 border-gray-200'
       case 'completed': return 'bg-blue-50 text-blue-700 border-blue-200'
+      case 'archived': return 'bg-zinc-50 text-zinc-500 border-zinc-200'
       default: return 'bg-gray-50 text-gray-600 border-gray-200'
     }
   }
@@ -194,6 +234,7 @@ export function HomePage() {
     { value: 'planning', label: 'בתכנון' },
     { value: 'draft', label: 'טיוטה' },
     { value: 'completed', label: 'הסתיים' },
+    { value: 'archived', label: 'בארכיון' },
   ]
 
   if (loading) {
@@ -310,6 +351,8 @@ export function HomePage() {
                 className={`bg-white rounded-2xl border-2 p-6 text-right transition-all hover:shadow-xl hover:-translate-y-1 group cursor-pointer ${
                   event.status === 'active'
                     ? 'border-green-400 hover:border-green-500'
+                    : event.status === 'archived'
+                    ? 'border-zinc-300 hover:border-zinc-400 opacity-75'
                     : 'border-red-400 hover:border-red-500'
                 }`}
               >
@@ -376,21 +419,44 @@ export function HomePage() {
                   </div>
                 </div>
 
-                {/* Activate Button */}
-                {event.status !== 'active' && (
-                  <div
-                    className="mt-4 pt-4 border-t border-gray-100"
-                    onClick={(e) => e.stopPropagation()}
-                  >
+                {/* Action Buttons */}
+                <div
+                  className="mt-4 pt-4 border-t border-gray-100 flex gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Activate Button - show for non-active, non-archived events */}
+                  {event.status !== 'active' && event.status !== 'archived' && event.status !== 'completed' && (
                     <button
                       onClick={(e) => handleActivateEvent(e, event.id)}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 border border-red-200 rounded-xl font-medium text-sm hover:bg-green-50 hover:text-green-700 hover:border-green-300 transition-all"
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 text-green-600 border border-green-200 rounded-xl font-medium text-sm hover:bg-green-100 hover:border-green-300 transition-all"
                     >
                       <Power size={16} />
-                      הפעל אירוע
+                      הפעל
                     </button>
-                  </div>
-                )}
+                  )}
+
+                  {/* Stop Button - show for active events */}
+                  {event.status === 'active' && (
+                    <button
+                      onClick={(e) => handleStopEvent(e, event.id)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-orange-50 text-orange-600 border border-orange-200 rounded-xl font-medium text-sm hover:bg-orange-100 hover:border-orange-300 transition-all"
+                    >
+                      <Square size={16} />
+                      עצור
+                    </button>
+                  )}
+
+                  {/* Archive Button - show for all non-archived events */}
+                  {event.status !== 'archived' && (
+                    <button
+                      onClick={(e) => handleArchiveEvent(e, event)}
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl font-medium text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all"
+                    >
+                      <Archive size={16} />
+                      מחק
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>

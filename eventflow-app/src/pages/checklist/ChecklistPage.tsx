@@ -30,9 +30,13 @@ export function ChecklistPage() {
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
-    if (contextEvent && selectedEvent !== contextEvent.id) {
-      setSelectedEvent(contextEvent.id)
-    }
+    const raf = requestAnimationFrame(() => {
+      if (contextEvent && selectedEvent !== contextEvent.id) {
+        setSelectedEvent(contextEvent.id)
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextEvent])
 
   async function loadData() {
@@ -70,6 +74,7 @@ export function ChecklistPage() {
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent])
 
   const filteredItems = items.filter(item => {

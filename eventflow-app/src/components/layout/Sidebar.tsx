@@ -66,23 +66,25 @@ export function Sidebar() {
   const { selectedEvent, clearSelectedEvent } = useEvent()
   const { isSuperAdmin } = useAuth()
 
-  // Start closed (safe for mobile-first). useEffect opens on desktop.
-  const [isOpen, setIsOpen] = useState(false)
+  // Initialize based on screen size; useEffect responds to changes.
+  const [isOpen, setIsOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches)
 
-  // Initialize & respond to screen size changes
+  // Respond to screen size changes
   useEffect(() => {
     const mql = window.matchMedia('(min-width: 768px)')
     const handler = (e: MediaQueryListEvent) => setIsOpen(e.matches)
-    setIsOpen(mql.matches)
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
   }, [])
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
-    if (window.innerWidth < 768) {
-      setIsOpen(false)
-    }
+    const raf = requestAnimationFrame(() => {
+      if (!window.matchMedia('(min-width: 768px)').matches) {
+        setIsOpen(false)
+      }
+    })
+    return () => cancelAnimationFrame(raf)
   }, [location.pathname])
 
   // Close on Escape key (mobile)

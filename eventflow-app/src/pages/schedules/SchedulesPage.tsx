@@ -94,9 +94,13 @@ export function SchedulesPage() {
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
-    if (contextEvent && selectedEvent !== contextEvent.id) {
-      setSelectedEvent(contextEvent.id)
-    }
+    const raf = requestAnimationFrame(() => {
+      if (contextEvent && selectedEvent !== contextEvent.id) {
+        setSelectedEvent(contextEvent.id)
+      }
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contextEvent])
 
   // Update the now line every minute
@@ -148,7 +152,11 @@ export function SchedulesPage() {
   }
 
   useEffect(() => {
-    loadData()
+    const raf = requestAnimationFrame(() => {
+      loadData()
+    })
+    return () => cancelAnimationFrame(raf)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedEvent])
 
   // Group schedules by date
@@ -306,7 +314,9 @@ export function SchedulesPage() {
           rollbackFn: async () => {
             if (isUpdate && previousValues) {
               // Restore old values
-              const { id, events, created_at, ...restoreData } = previousValues as Schedule & { events?: unknown }
+              const { id, events: _unusedEvents, created_at: _unusedCreatedAt, ...restoreData } = previousValues as Schedule & { events?: unknown; created_at?: unknown }
+              void _unusedEvents
+              void _unusedCreatedAt
               await supabase.from('schedules').update(restoreData).eq('id', id)
             } else {
               // Delete the newly created schedule
@@ -438,7 +448,8 @@ export function SchedulesPage() {
           },
           rollbackFn: async () => {
             // Re-insert the deleted schedule with its original data
-            const { id: schedId, events, ...restoreData } = deletedScheduleData as Schedule & { events?: unknown }
+            const { id: schedId, events: _unusedEvents2, ...restoreData } = deletedScheduleData as Schedule & { events?: unknown }
+            void _unusedEvents2
             await supabase.from('schedules').insert({ ...restoreData, id: schedId })
             await supabase.from('schedule_change_log')
               .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'cancelled' })
@@ -513,7 +524,11 @@ export function SchedulesPage() {
           },
           rollbackFn: async () => {
             // Re-insert all deleted schedules
-            const insertData = allSchedulesBackup.map(({ events, ...s }) => s)
+            const insertData = allSchedulesBackup.map((schedule) => {
+              const { events: _unused, ...rest } = schedule
+              void _unused
+              return rest
+            })
             await supabase.from('schedules').insert(insertData)
             await supabase.from('schedule_change_log')
               .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'cancelled' })

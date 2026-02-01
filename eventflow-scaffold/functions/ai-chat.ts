@@ -1712,6 +1712,7 @@ async function executeAddScheduleItems(
           participants.map((p: { id: string }) => ({
             participant_id: p.id,
             schedule_id: schedule.id,
+            status: 'registered',
           }))
         )
 

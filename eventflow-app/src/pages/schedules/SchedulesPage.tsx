@@ -243,6 +243,8 @@ export function SchedulesPage() {
     const saveAndQueueSync = async () => {
       dismissConfirmation()
 
+      let savedScheduleId: string | null = null
+
       if (isUpdate && editingSchedule) {
         const { error } = await supabase
           .from('schedules')
@@ -253,23 +255,38 @@ export function SchedulesPage() {
           alert('שגיאה בעדכון הפריט')
           return
         }
+        savedScheduleId = editingSchedule.id
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('schedules')
           .insert(scheduleData)
+          .select('id')
+          .single()
 
-        if (error) {
+        if (error || !data) {
           alert('שגיאה ביצירת הפריט')
           return
         }
+        savedScheduleId = data.id
+
+        // Patch the sync plan with the actual schedule_id
+        if (syncPlan) {
+          for (const msg of syncPlan.messagesToCreate) {
+            msg.schedule_id = savedScheduleId
+          }
+        }
       }
+
+      // Save previous values for rollback (update case)
+      const previousValues = isUpdate && editingSchedule ? { ...editingSchedule } : null
 
       closeModal()
       loadData()
 
       // Queue message sync with 60s grace period
-      if (syncPlan && hasMessageImpact) {
+      if (syncPlan && hasMessageImpact && savedScheduleId) {
         const plan = syncPlan
+        const scheduleId = savedScheduleId
         queueChange({
           type: isUpdate ? 'schedule_update' : 'schedule_create',
           eventId: selectedEvent,
@@ -280,6 +297,27 @@ export function SchedulesPage() {
           messageImpact: plan.impact,
           executeFn: async () => {
             await executeScheduleMessageSync(plan)
+            // Mark change log as processed by frontend
+            await supabase.from('schedule_change_log')
+              .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'frontend' })
+              .eq('schedule_id', scheduleId)
+              .eq('processed', false)
+          },
+          rollbackFn: async () => {
+            if (isUpdate && previousValues) {
+              // Restore old values
+              const { id, events, created_at, ...restoreData } = previousValues as Schedule & { events?: unknown }
+              await supabase.from('schedules').update(restoreData).eq('id', id)
+            } else {
+              // Delete the newly created schedule
+              await supabase.from('schedules').delete().eq('id', scheduleId)
+            }
+            // Mark all log entries as cancelled
+            await supabase.from('schedule_change_log')
+              .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'cancelled' })
+              .eq('schedule_id', scheduleId)
+              .eq('processed', false)
+            loadData()
           }
         })
       }
@@ -327,6 +365,8 @@ export function SchedulesPage() {
         const { error } = await supabase
           .from('schedules')
           .insert(scheduleData)
+          .select('id')
+          .single()
 
         if (error) {
           alert('שגיאה ביצירת הפריט')
@@ -360,27 +400,29 @@ export function SchedulesPage() {
 
     const hasMessageImpact = syncPlan && syncPlan.impact.messagesToDelete > 0
 
+    // Save full schedule data for rollback before deleting
+    const deletedScheduleData = { ...schedule }
+
     const doDelete = async () => {
       dismissConfirmation()
 
-      // Delete associated messages first (no FK cascade)
+      // Delete schedule from DB
+      const { error } = await supabase
+        .from('schedules')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('Error deleting schedule:', error)
+        alert('שגיאה במחיקת הפריט')
+        return
+      }
+
+      loadData()
+
       if (syncPlan && hasMessageImpact) {
         const plan = syncPlan
-        // Delete schedule from DB
-        const { error } = await supabase
-          .from('schedules')
-          .delete()
-          .eq('id', id)
-
-        if (error) {
-          console.error('Error deleting schedule:', error)
-          alert('שגיאה במחיקת הפריט')
-          return
-        }
-
-        loadData()
-
-        // Queue message deletion with 60s grace
+        // Queue message deletion with 60s grace + rollback
         queueChange({
           type: 'schedule_delete',
           eventId: selectedEvent,
@@ -389,21 +431,22 @@ export function SchedulesPage() {
           messageImpact: plan.impact,
           executeFn: async () => {
             await executeScheduleMessageSync(plan)
+            await supabase.from('schedule_change_log')
+              .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'frontend' })
+              .eq('schedule_id', id)
+              .eq('processed', false)
+          },
+          rollbackFn: async () => {
+            // Re-insert the deleted schedule with its original data
+            const { id: schedId, events, ...restoreData } = deletedScheduleData as Schedule & { events?: unknown }
+            await supabase.from('schedules').insert({ ...restoreData, id: schedId })
+            await supabase.from('schedule_change_log')
+              .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'cancelled' })
+              .eq('schedule_id', schedId)
+              .eq('processed', false)
+            loadData()
           }
         })
-      } else {
-        // No messages to delete - just delete the schedule
-        const { error } = await supabase
-          .from('schedules')
-          .delete()
-          .eq('id', id)
-
-        if (error) {
-          console.error('Error deleting schedule:', error)
-          alert('שגיאה במחיקת הפריט')
-        } else {
-          loadData()
-        }
       }
     }
 
@@ -428,6 +471,9 @@ export function SchedulesPage() {
   async function handleDeleteAll() {
     if (!selectedEvent || schedules.length === 0) return
 
+    // Save all schedules for rollback
+    const allSchedulesBackup = schedules.map(s => ({ ...s }))
+
     // Compute message impact
     let syncPlan: MessageSyncPlan | null = null
     try {
@@ -448,9 +494,10 @@ export function SchedulesPage() {
     } else {
       loadData()
 
-      // Queue message deletion with 60s grace
+      // Queue message deletion with 60s grace + rollback
       if (syncPlan && syncPlan.impact.messagesToDelete > 0) {
         const plan = syncPlan
+        const eventId = selectedEvent
         queueChange({
           type: 'schedule_delete_all',
           eventId: selectedEvent,
@@ -459,6 +506,20 @@ export function SchedulesPage() {
           messageImpact: plan.impact,
           executeFn: async () => {
             await executeScheduleMessageSync(plan)
+            await supabase.from('schedule_change_log')
+              .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'frontend' })
+              .eq('event_id', eventId)
+              .eq('processed', false)
+          },
+          rollbackFn: async () => {
+            // Re-insert all deleted schedules
+            const insertData = allSchedulesBackup.map(({ events, ...s }) => s)
+            await supabase.from('schedules').insert(insertData)
+            await supabase.from('schedule_change_log')
+              .update({ processed: true, processed_at: new Date().toISOString(), processed_by: 'cancelled' })
+              .eq('event_id', eventId)
+              .eq('processed', false)
+            loadData()
           }
         })
       }

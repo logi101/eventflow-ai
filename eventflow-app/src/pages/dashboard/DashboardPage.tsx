@@ -6,12 +6,19 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 
 export function DashboardPage() {
+  const { session } = useAuth()
   const [stats, setStats] = useState({ events: 0, participants: 0, tasks: 0 })
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!session?.access_token) {
+      setLoading(false)
+      return
+    }
+
     async function fetchStats() {
       try {
         const [eventsRes, participantsRes, tasksRes] = await Promise.all([
@@ -32,7 +39,7 @@ export function DashboardPage() {
       }
     }
     fetchStats()
-  }, [])
+  }, [session?.access_token])
 
   return (
     <div className="p-8 relative z-10">

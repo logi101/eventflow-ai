@@ -6,6 +6,7 @@
 import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from './AuthContext'
 
 interface Event {
   id: string
@@ -44,14 +45,21 @@ interface EventContextType {
 const EventContext = createContext<EventContextType | undefined>(undefined)
 
 export function EventProvider({ children }: { children: ReactNode }) {
+  const { session } = useAuth()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [allEvents, setAllEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Load events on mount
+  // Load events when session changes (login/logout)
   useEffect(() => {
-    refreshEvents()
-  }, [])
+    if (session?.access_token) {
+      refreshEvents()
+    } else {
+      setAllEvents([])
+      setSelectedEvent(null)
+      setLoading(false)
+    }
+  }, [session?.access_token])
 
   // Persist selected event ID in localStorage
   useEffect(() => {
@@ -69,6 +77,13 @@ export function EventProvider({ children }: { children: ReactNode }) {
   }, [allEvents])
 
   async function refreshEvents() {
+    // Guard: don't fetch without an authenticated session
+    if (!session?.access_token) {
+      setAllEvents([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       const { data, error } = await supabase

@@ -15,6 +15,7 @@ const corsHeaders = {
 interface ReminderJob {
   type: 'activation' | 'week_before' | 'day_before' | 'morning' | '15_min'
        | 'event_end' | 'follow_up_3mo' | 'follow_up_6mo'
+       | 'process_scheduled' | 'process_changes'
 }
 
 function formatTime(dateStr: string): string {
@@ -589,6 +590,20 @@ serve(async (req) => {
 
             const participant = ps.participants
 
+            // Dedup: check if scheduleMessageSync already created a message for this schedule+participant
+            const { data: existingScheduleMsg } = await supabase
+              .from('messages')
+              .select('id, status')
+              .eq('schedule_id', schedule.id)
+              .eq('participant_id', participant.id)
+              .in('status', ['scheduled', 'sent', 'delivered'])
+              .maybeSingle()
+
+            if (existingScheduleMsg) {
+              // Already handled by scheduleMessageSync — skip to avoid double WhatsApp
+              continue
+            }
+
             const { data: roomInfo } = await supabase
               .from('participant_rooms')
               .select('room_number, building, floor')
@@ -874,6 +889,324 @@ serve(async (req) => {
 
             if (sendResult.success) results.sent++
             else results.errors++
+          }
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 9. PROCESS SCHEDULED — send messages when scheduled_for arrives
+    // Cron: every 2 minutes
+    // ─────────────────────────────────────────────────────────
+    if (type === 'process_scheduled') {
+      // 9a. Send scheduled reminders whose time has arrived
+      const { data: scheduledMsgs } = await supabase
+        .from('messages')
+        .select('id, event_id, participant_id, to_phone, content, schedule_id')
+        .eq('status', 'scheduled')
+        .lte('scheduled_for', now.toISOString())
+        .order('scheduled_for', { ascending: true })
+        .limit(50)
+
+      if (scheduledMsgs) {
+        for (const msg of scheduledMsgs) {
+          results.processed++
+
+          // Get organization_id from event
+          const { data: event } = await supabase
+            .from('events')
+            .select('organization_id')
+            .eq('id', msg.event_id)
+            .single()
+
+          if (!event) {
+            await supabase.from('messages').update({
+              status: 'failed',
+              error_message: 'Event not found',
+              updated_at: now.toISOString()
+            }).eq('id', msg.id)
+            results.errors++
+            continue
+          }
+
+          const sendResult = await sendWhatsApp(
+            supabase,
+            event.organization_id,
+            msg.to_phone,
+            msg.content,
+            msg.id
+          )
+
+          if (sendResult.success) {
+            results.sent++
+          } else {
+            results.errors++
+            await supabase.from('messages').update({
+              status: 'failed',
+              error_message: sendResult.error || 'Send failed',
+              updated_at: now.toISOString()
+            }).eq('id', msg.id)
+          }
+        }
+      }
+
+      // 9b. Send pending immediate notifications (schedule change alerts)
+      const tenSecondsAgo = new Date(now.getTime() - 10 * 1000).toISOString()
+      const { data: pendingMsgs } = await supabase
+        .from('messages')
+        .select('id, event_id, participant_id, to_phone, content, schedule_id')
+        .eq('status', 'pending')
+        .eq('message_type', 'update')
+        .lte('created_at', tenSecondsAgo)
+        .order('created_at', { ascending: true })
+        .limit(50)
+
+      if (pendingMsgs) {
+        for (const msg of pendingMsgs) {
+          results.processed++
+
+          const { data: event } = await supabase
+            .from('events')
+            .select('organization_id')
+            .eq('id', msg.event_id)
+            .single()
+
+          if (!event) {
+            await supabase.from('messages').update({
+              status: 'failed',
+              error_message: 'Event not found',
+              updated_at: now.toISOString()
+            }).eq('id', msg.id)
+            results.errors++
+            continue
+          }
+
+          const sendResult = await sendWhatsApp(
+            supabase,
+            event.organization_id,
+            msg.to_phone,
+            msg.content,
+            msg.id
+          )
+
+          if (sendResult.success) {
+            results.sent++
+          } else {
+            results.errors++
+            await supabase.from('messages').update({
+              status: 'failed',
+              error_message: sendResult.error || 'Send failed',
+              updated_at: now.toISOString()
+            }).eq('id', msg.id)
+          }
+        }
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // 10. PROCESS CHANGES — safety net for browser-close scenarios
+    // Cron: every 3 minutes. Only processes entries older than 90s
+    // that were NOT handled by the frontend or cancelled.
+    // ─────────────────────────────────────────────────────────
+    if (type === 'process_changes') {
+      const ninetySecondsAgo = new Date(now.getTime() - 90 * 1000).toISOString()
+
+      const { data: unprocessedChanges } = await supabase
+        .from('schedule_change_log')
+        .select('*')
+        .eq('processed', false)
+        .lte('created_at', ninetySecondsAgo)
+        .order('created_at', { ascending: true })
+        .limit(20)
+
+      if (unprocessedChanges) {
+        for (const change of unprocessedChanges) {
+          results.processed++
+
+          try {
+            if (change.change_type === 'create' && change.new_data?.send_reminder) {
+              // Check if messages already exist for this schedule (frontend may have handled it)
+              const { data: existingMsgs } = await supabase
+                .from('messages')
+                .select('id')
+                .eq('schedule_id', change.schedule_id)
+                .eq('message_type', 'reminder')
+                .in('status', ['pending', 'scheduled'])
+                .limit(1)
+
+              if (!existingMsgs || existingMsgs.length === 0) {
+                // Create messages for all participants
+                const { data: participants } = await supabase
+                  .from('participants')
+                  .select('id, full_name, first_name, last_name, phone')
+                  .eq('event_id', change.event_id)
+
+                if (participants) {
+                  const schedule = change.new_data
+                  const scheduledFor = new Date(schedule.start_time)
+                  scheduledFor.setMinutes(scheduledFor.getMinutes() - (schedule.reminder_minutes_before || 30))
+
+                  const messageBatch = participants
+                    .filter((p: any) => p.phone)
+                    .map((p: any) => {
+                      const name = p.full_name || `${p.first_name} ${p.last_name}`
+                      const time = new Date(schedule.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+                      const date = new Date(schedule.start_time).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })
+                      let content = `שלום ${name}! תזכורת: "${schedule.title}" ב${date} בשעה ${time}`
+                      if (schedule.location) content += ` | ${schedule.location}`
+                      if (schedule.room) content += ` - ${schedule.room}`
+
+                      return {
+                        event_id: change.event_id,
+                        participant_id: p.id,
+                        schedule_id: change.schedule_id,
+                        channel: 'whatsapp',
+                        to_phone: p.phone,
+                        content,
+                        status: 'scheduled',
+                        direction: 'outgoing',
+                        subject: `תזכורת: ${schedule.title}`,
+                        message_type: 'reminder',
+                        scheduled_for: scheduledFor.toISOString()
+                      }
+                    })
+
+                  // Insert one by one — skip duplicates (dedup index handles conflicts)
+                  let inserted = 0
+                  for (const msg of messageBatch) {
+                    const { error: insertErr } = await supabase.from('messages').insert(msg)
+                    if (insertErr) {
+                      if (insertErr.code === '23505') continue // duplicate — already exists
+                      console.error('Error creating message:', insertErr)
+                    } else {
+                      inserted++
+                    }
+                  }
+                  results.sent += inserted
+                }
+              }
+            }
+
+            if (change.change_type === 'update' && change.new_data) {
+              const schedule = change.new_data
+              if (schedule.send_reminder) {
+                // Update existing reminder messages with new content/time
+                const { data: existingMsgs } = await supabase
+                  .from('messages')
+                  .select('id, participant_id')
+                  .eq('schedule_id', change.schedule_id)
+                  .eq('message_type', 'reminder')
+                  .in('status', ['pending', 'scheduled'])
+
+                if (existingMsgs && existingMsgs.length > 0) {
+                  const scheduledFor = new Date(schedule.start_time)
+                  scheduledFor.setMinutes(scheduledFor.getMinutes() - (schedule.reminder_minutes_before || 30))
+
+                  const { data: participants } = await supabase
+                    .from('participants')
+                    .select('id, full_name, first_name, last_name')
+                    .eq('event_id', change.event_id)
+
+                  for (const msg of existingMsgs) {
+                    const participant = participants?.find((p: any) => p.id === msg.participant_id)
+                    if (!participant) continue
+                    const name = participant.full_name || `${participant.first_name} ${participant.last_name}`
+                    const time = new Date(schedule.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+                    const date = new Date(schedule.start_time).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })
+                    let content = `שלום ${name}! תזכורת: "${schedule.title}" ב${date} בשעה ${time}`
+                    if (schedule.location) content += ` | ${schedule.location}`
+                    if (schedule.room) content += ` - ${schedule.room}`
+
+                    await supabase.from('messages').update({
+                      content,
+                      scheduled_for: scheduledFor.toISOString(),
+                      updated_at: now.toISOString()
+                    }).eq('id', msg.id)
+                  }
+                  results.sent += existingMsgs.length
+                } else {
+                  // No existing messages but reminders enabled — create them
+                  const { data: participants } = await supabase
+                    .from('participants')
+                    .select('id, full_name, first_name, last_name, phone')
+                    .eq('event_id', change.event_id)
+
+                  if (participants) {
+                    const scheduledFor = new Date(schedule.start_time)
+                    scheduledFor.setMinutes(scheduledFor.getMinutes() - (schedule.reminder_minutes_before || 30))
+
+                    const messageBatch = participants
+                      .filter((p: any) => p.phone)
+                      .map((p: any) => {
+                        const name = p.full_name || `${p.first_name} ${p.last_name}`
+                        const time = new Date(schedule.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+                        const date = new Date(schedule.start_time).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })
+                        let content = `שלום ${name}! תזכורת: "${schedule.title}" ב${date} בשעה ${time}`
+                        if (schedule.location) content += ` | ${schedule.location}`
+                        if (schedule.room) content += ` - ${schedule.room}`
+
+                        return {
+                          event_id: change.event_id,
+                          participant_id: p.id,
+                          schedule_id: change.schedule_id,
+                          channel: 'whatsapp',
+                          to_phone: p.phone,
+                          content,
+                          status: 'scheduled',
+                          direction: 'outgoing',
+                          subject: `תזכורת: ${schedule.title}`,
+                          message_type: 'reminder',
+                          scheduled_for: scheduledFor.toISOString()
+                        }
+                      })
+
+                    let inserted = 0
+                    for (const msg of messageBatch) {
+                      const { error: insertErr } = await supabase.from('messages').insert(msg)
+                      if (insertErr) {
+                        if (insertErr.code === '23505') continue
+                        console.error('Error creating message:', insertErr)
+                      } else {
+                        inserted++
+                      }
+                    }
+                    results.sent += inserted
+                  }
+                }
+              } else {
+                // Reminders disabled — delete existing pending messages
+                await supabase
+                  .from('messages')
+                  .delete()
+                  .eq('schedule_id', change.schedule_id)
+                  .in('status', ['pending', 'scheduled'])
+                results.sent++
+              }
+            }
+
+            if (change.change_type === 'delete') {
+              // Delete all pending/scheduled messages for this schedule
+              await supabase
+                .from('messages')
+                .delete()
+                .eq('schedule_id', change.schedule_id)
+                .in('status', ['pending', 'scheduled'])
+              results.sent++
+            }
+
+            // Mark as processed by server cron
+            await supabase
+              .from('schedule_change_log')
+              .update({
+                processed: true,
+                processed_at: now.toISOString(),
+                processed_by: 'server_cron'
+              })
+              .eq('id', change.id)
+
+          } catch (changeError) {
+            console.error(`Error processing schedule change ${change.id}:`, changeError)
+            results.errors++
           }
         }
       }

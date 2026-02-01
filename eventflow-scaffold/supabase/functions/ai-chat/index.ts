@@ -94,18 +94,72 @@ const SYSTEM_PROMPT = `את שותפה אמיתית לתכנון והפקת אי
 - **ליצור טיוטת אירוע** (create_event_draft) - כשיש מספיק מידע
 - **להוסיף פריטי צ'קליסט** (add_checklist_items) - לאירוע קיים
 - **לשייך ספקים לאירוע** (assign_vendors) - לאירוע קיים
+- **להוסיף משתתפים** (add_participants) - הוספת אורחים/משתתפים לאירוע
+- **להציג רשימת משתתפים** (list_participants) - סקירת כל המשתתפים עם סטטוסים
+- **לעדכן פרטי אירוע** (update_event) - שינוי שם, מיקום, תאריכים, סטטוס ותקציב
+- **לסמן משימה כהושלמה** (complete_checklist_item) - עדכון סטטוס של פריט בצ'קליסט
+- **לשלוח WhatsApp למשתתפים** (send_whatsapp_to_participants) - שליחת הודעות למוזמנים
+- **להוסיף פריטי לו"ז** (add_schedule_items) - הוספת סשנים, הרצאות, הפסקות ופעילויות ללו"ז האירוע
+- **לעדכן/למחוק פריט לו"ז** (update_schedule_item) - שינוי או מחיקת פריט קיים בלו"ז
 
-## איך להשתמש בכלים - חשוב מאוד!
-- **תמיד השתמשי בכלים באופן יזום** - אל תשאלי אם להשתמש, פשוט השתמשי. אם המשתמש מזכיר אירוע, חפשי מיד (search_events). אם מזכיר ספק, חפשי מיד (search_vendors).
-- אם המשתמש מבקש ליצור אירוע, חפשי קודם אירועים דומים בעבר (search_events) כדי ללמוד מהניסיון.
-- חפשי ספקים רלוונטיים (search_vendors) והציעי אותם.
-- כשיש מספיק מידע (שם, תאריך, סוג), הציעי ליצור את האירוע (create_event_draft).
-- כשהמשתמש מאשר, הוסיפי צ'קליסט (add_checklist_items) ושייכי ספקים (assign_vendors).
-- **כלל חובה**: כשהמשתמש מבקש לחפש משהו, חפשי מיד בלי לשאול שאלות נוספות. הפעילי את הכלי ותני תשובה עם התוצאות.
-- גם אם אין תוצאות, הפעילי את הכלי והגיבי בהתאם (למשל: "חיפשתי במערכת ולא מצאתי אירועים דומים, אז נתחיל מאפס!").
+## איך להשתמש בכלים - שיטת COV (Chain of Verification) - חשוב מאוד!
+
+### כלים לקריאה בלבד (בצעי מיד, ללא אישור):
+הכלים הבאים **לא משנים נתונים** - הפעילי אותם מיד כשרלוונטי, בלי לשאול:
+- search_events, search_vendors, get_event_details, list_participants, suggest_schedule
+- **כלל חובה**: כשהמשתמש מזכיר אירוע - חפשי מיד (search_events). מזכיר ספק - חפשי מיד (search_vendors).
+- גם אם אין תוצאות, הפעילי את הכלי והגיבי בהתאם.
+
+### כלים לכתיבה/שינוי (שיטת COV - חובה לאמת לפני ביצוע!):
+הכלים הבאים **משנים נתונים** ודורשים אימות לפני ביצוע:
+- create_event_draft, add_checklist_items, assign_vendors, add_participants
+- update_event, complete_checklist_item, send_whatsapp_to_participants
+- add_schedule_items, update_schedule_item
+
+**תהליך COV חובה לכל פעולת כתיבה:**
+
+**שלב 1 - הבנה ואיסוף מידע:**
+- הביני מה המשתמש רוצה לעשות
+- אם חסר מידע קריטי, שאלי (למשל: שם, תאריך, שעה)
+- חפשי ברקע מידע רלוונטי (search_events, get_event_details) כדי לוודא שהפעולה הגיונית
+
+**שלב 2 - הצגת התוכנית לאישור:**
+- הציגי **בצורה מסודרת** את מה שאת מתכוונת לבצע, כולל כל הנתונים
+- לדוגמה: "אני מתכוונת להוסיף 3 פריטי לו"ז לאירוע 'כנס חדשנות 2026':"
+  - 09:00-09:30 - הרשמה וקפה
+  - 09:30-10:15 - הרצאת פתיחה, דובר: ד"ר כהן
+  - 10:15-11:00 - פאנל טכנולוגי
+- סיימי בשאלה: **"האם הנתונים נכונים? לבצע?"**
+
+**שלב 3 - אימות (Verification):**
+- ודאי שהתאריכים והשעות הגיוניים (לא חופפים, לא בעבר)
+- ודאי שהשמות נכתבו נכון (כפי שהמשתמש ציין)
+- ודאי שהאירוע קיים במערכת
+- אם משהו נראה לא הגיוני, התריעי: "שמתי לב ש..." ובקשי אישור
+
+**שלב 4 - ביצוע (קריטי! חובה להשתמש בfunction call!):**
+- רק אחרי שהמשתמש אישר (אמר "כן", "בצע", "אשר", "נכון", "קדימה", "יאללה", "👍", "✅"):
+- **חובה מוחלטת: את חייבת לבצע function call אמיתי לכלי המתאים!**
+- **אסור בשום אופן לכתוב "ביצעתי" או "הוספתי" או "עודכן" בלי שביצעת function call בפועל!**
+- **אם את רק כותבת טקסט בלי function call - הפעולה לא בוצעה! המשתמש יראה שלא קרה כלום!**
+- לדוגמה: אם המשתמש אישר הוספת לו"ז, את חייבת לקרוא ל-add_schedule_items עם הנתונים. לא לכתוב "הוספתי את הלו"ז"!
+- לדוגמה: אם המשתמש אישר הוספת משתתפים, את חייבת לקרוא ל-add_participants. לא לכתוב "המשתתפים נוספו"!
+- **כלל ברזל: אישור מהמשתמש = function call מיידי. תמיד. בלי יוצא מן הכלל.**
+- אם המשתמש מבקש שינויים, חזרי לשלב 2 עם התיקונים
+- אם המשתמש ביטל, אמרי "בסדר, לא בוצע שינוי" ושאלי איך להמשיך
+
+**חשוב - אישור אחד מספיק לפעולה שלמה:**
+- כשמוסיפים לו"ז עם 10 פריטים: הציגי את כל 10, בקשי אישור **אחד**, ואז שלחי הכל ב-add_schedule_items **בקריאה אחת** (מערך של כל הפריטים). **אל תשאלי אישור על כל פריט בנפרד!**
+- כשמוסיפים 5 משתתפים: הציגי את כולם, אישור **אחד**, ואז add_participants **בקריאה אחת**
+- כשמוסיפים צ'קליסט עם 8 פריטים: הציגי, אישור **אחד**, add_checklist_items **בקריאה אחת**
+- אותו הדבר ליצירת אירוע + צ'קליסט + ספקים: אישור **אחד** ואז בצעי הכל
+
+**חריגים - מתי מותר לדלג על COV:**
+- כשהמשתמש אומר במפורש "בצע ישר" / "בלי לשאול" / "פשוט תעשה את זה"
+- כשהמשתמש מאשר תוכנית ויש בה כמה צעדים - אחרי אישור אחד בצעי את כולם ברצף
 
 ## איך לנהל שיחה
-1. **שאלי שאלות חכמות** - אל תחכי שהמשתמש יספר הכל. שאלי באופן יזום:
+1. **שאלי שאלות חכמות** - אל תחכי שהמשתמש יספר הכל. שאלי באופן יזום (אבל זכרי - לפני כל פעולת כתיבה, הציגי תוכנית ובקשי אישור!):
    - מה המטרה המרכזית של האירוע?
    - מי קהל היעד?
    - מה התקציב המשוער?
@@ -137,6 +191,13 @@ const SYSTEM_PROMPT = `את שותפה אמיתית לתכנון והפקת אי
 - שאלי שאלת המשך אחת בסוף כל תשובה כדי לקדם את התכנון
 - כשמשתמשת בכלים ומוצאת תוצאות, שלבי אותן בתשובה שלך בצורה טבעית
 
+## אזור זמן - חשוב מאוד!
+- **כל השעות במערכת הן בשעון ישראל (Asia/Jerusalem)**
+- כשאת שולחת שעות בכלים (start_time, end_time), **חובה** לכלול את אזור הזמן הישראלי: **+02:00** (חורף, אוקטובר-מרץ) או **+03:00** (קיץ, מרץ-אוקטובר)
+- דוגמה: אם המשתמש אומר "09:00", שלחי: 2026-02-15T09:00:00+02:00
+- **לעולם אל תשלחי שעה בלי +02:00 או +03:00!** אחרת השעות יהיו שגויות
+- כרגע (ינואר-פברואר 2026) = חורף = **+02:00**
+
 ## זיהוי פרטי אירוע
 כאשר המשתמש מתאר אירוע, זהי:
 - סוג האירוע (כנס, גיבוש, חתונה, יום עיון, אירוע חברה, השקה, בר/בת מצווה, סדנה)
@@ -144,7 +205,14 @@ const SYSTEM_PROMPT = `את שותפה אמיתית לתכנון והפקת אי
 - מספר משתתפים משוער
 - תקציב (אם הוזכר)
 - דרישות מיוחדות
-- קהל יעד ומטרות`
+- קהל יעד ומטרות
+
+## אזהרה קריטית - MUST USE FUNCTION CALLS
+**זוהי ההנחיה הכי חשובה:**
+- כשהמשתמש מאשר פעולה (אומר "כן", "בצע", "אשר", וכו'), את **חייבת** להגיב עם function call (functionCall) - לא עם טקסט!
+- אם את כותבת "הוספתי", "ביצעתי", "עודכן", "נשלח" בלי function call - **את משקרת למשתמש**. הפעולה לא בוצעה!
+- **הדרך היחידה לבצע פעולה במערכת היא דרך function call.** טקסט לבד לא עושה כלום.
+- אחרי שהמשתמש מאשר, התגובה שלך חייבת להכיל functionCall עם שם הכלי והפרמטרים. רק אחרי שתקבלי את תוצאת הכלי, תוכלי לכתוב הודעה למשתמש.`
 
 // ============================================================================
 // Gemini Function Declarations (Tool Definitions)
@@ -358,6 +426,302 @@ const TOOL_DECLARATIONS = [
         },
       },
       required: ['event_id', 'vendor_ids'],
+    },
+  },
+  {
+    name: 'add_participants',
+    description: 'הוספת משתתפים לאירוע קיים. ניתן להוסיף משתתף אחד או יותר עם שם, טלפון, אימייל וסטטוס.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        participants: {
+          type: 'ARRAY',
+          description: 'רשימת משתתפים להוספה',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              first_name: {
+                type: 'STRING',
+                description: 'שם פרטי',
+              },
+              last_name: {
+                type: 'STRING',
+                description: 'שם משפחה',
+              },
+              phone: {
+                type: 'STRING',
+                description: 'מספר טלפון (פורמט ישראלי: 05XXXXXXXX)',
+              },
+              email: {
+                type: 'STRING',
+                description: 'כתובת אימייל',
+              },
+              status: {
+                type: 'STRING',
+                description: 'סטטוס המשתתף',
+                enum: ['invited', 'confirmed', 'declined', 'maybe'],
+              },
+              is_vip: {
+                type: 'BOOLEAN',
+                description: 'האם המשתתף VIP',
+              },
+            },
+            required: ['first_name'],
+          },
+        },
+      },
+      required: ['event_id', 'participants'],
+    },
+  },
+  {
+    name: 'list_participants',
+    description: 'הצגת רשימת המשתתפים של אירוע, כולל סטטיסטיקות לפי סטטוס. שימושי לקבלת תמונת מצב על המוזמנים.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        status: {
+          type: 'STRING',
+          description: 'סינון לפי סטטוס ספציפי',
+          enum: ['invited', 'confirmed', 'declined', 'maybe', 'checked_in', 'no_show'],
+        },
+        limit: {
+          type: 'INTEGER',
+          description: 'מספר תוצאות מרבי (ברירת מחדל: 50)',
+        },
+      },
+      required: ['event_id'],
+    },
+  },
+  {
+    name: 'update_event',
+    description: 'עדכון פרטי אירוע קיים - שם, תיאור, תאריכים, מיקום, תקציב, סטטוס ועוד.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        name: {
+          type: 'STRING',
+          description: 'שם חדש לאירוע',
+        },
+        description: {
+          type: 'STRING',
+          description: 'תיאור חדש',
+        },
+        start_date: {
+          type: 'STRING',
+          description: 'תאריך התחלה חדש בפורמט ISO',
+        },
+        end_date: {
+          type: 'STRING',
+          description: 'תאריך סיום חדש בפורמט ISO',
+        },
+        venue_name: {
+          type: 'STRING',
+          description: 'שם מקום חדש',
+        },
+        venue_address: {
+          type: 'STRING',
+          description: 'כתובת חדשה',
+        },
+        venue_city: {
+          type: 'STRING',
+          description: 'עיר חדשה',
+        },
+        max_participants: {
+          type: 'INTEGER',
+          description: 'מספר משתתפים מרבי חדש',
+        },
+        budget: {
+          type: 'NUMBER',
+          description: 'תקציב חדש בשקלים',
+        },
+        status: {
+          type: 'STRING',
+          description: 'סטטוס חדש',
+          enum: ['draft', 'planning', 'active', 'completed', 'cancelled'],
+        },
+      },
+      required: ['event_id'],
+    },
+  },
+  {
+    name: 'complete_checklist_item',
+    description: 'סימון פריט צ\'קליסט כהושלם לפי כותרת או מזהה. ניתן גם לעדכן סטטוס לכל ערך אחר.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        item_title: {
+          type: 'STRING',
+          description: 'כותרת הפריט (חיפוש חלקי)',
+        },
+        item_id: {
+          type: 'STRING',
+          description: 'מזהה הפריט (UUID) - אם ידוע',
+        },
+        new_status: {
+          type: 'STRING',
+          description: 'הסטטוס החדש (ברירת מחדל: completed)',
+          enum: ['pending', 'in_progress', 'completed', 'blocked', 'cancelled'],
+        },
+      },
+      required: ['event_id'],
+    },
+  },
+  {
+    name: 'send_whatsapp_to_participants',
+    description: 'שליחת הודעת WhatsApp למשתתפי אירוע. ניתן לסנן לפי סטטוס (כל המשתתפים, רק מאושרים, רק מוזמנים).',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        message_text: {
+          type: 'STRING',
+          description: 'תוכן ההודעה לשליחה',
+        },
+        recipient_filter: {
+          type: 'STRING',
+          description: 'סינון נמענים',
+          enum: ['all', 'confirmed', 'invited', 'maybe'],
+        },
+      },
+      required: ['event_id', 'message_text'],
+    },
+  },
+  {
+    name: 'add_schedule_items',
+    description: 'הוספת פריטי לו"ז (תוכנייה) לאירוע קיים - הרצאות, סדנאות, הפסקות, פעילויות ועוד. ניתן להוסיף מספר פריטים בבת אחת.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        items: {
+          type: 'ARRAY',
+          description: 'רשימת פריטי לו"ז להוספה',
+          items: {
+            type: 'OBJECT',
+            properties: {
+              title: {
+                type: 'STRING',
+                description: 'כותרת הפריט (למשל: "הרצאת פתיחה", "הפסקת קפה", "סדנה")',
+              },
+              description: {
+                type: 'STRING',
+                description: 'תיאור הפריט',
+              },
+              start_time: {
+                type: 'STRING',
+                description: 'שעת התחלה בפורמט ISO **עם אזור זמן ישראלי**. דוגמה: 2026-02-15T09:00:00+02:00. חובה לכלול +02:00 (חורף) או +03:00 (קיץ). אם לא ידוע התאריך, השתמש בתאריך האירוע.',
+              },
+              end_time: {
+                type: 'STRING',
+                description: 'שעת סיום בפורמט ISO **עם אזור זמן ישראלי**. דוגמה: 2026-02-15T10:30:00+02:00. חובה לכלול +02:00 (חורף) או +03:00 (קיץ).',
+              },
+              location: {
+                type: 'STRING',
+                description: 'מיקום/אולם (למשל: "אולם ראשי", "חדר 3", "לובי")',
+              },
+              speaker_name: {
+                type: 'STRING',
+                description: 'שם הדובר/מנחה',
+              },
+              speaker_title: {
+                type: 'STRING',
+                description: 'תפקיד הדובר',
+              },
+              is_mandatory: {
+                type: 'BOOLEAN',
+                description: 'האם חובה להשתתף',
+              },
+              is_break: {
+                type: 'BOOLEAN',
+                description: 'האם זו הפסקה (קפה, ארוחה, וכו\')',
+              },
+              max_capacity: {
+                type: 'INTEGER',
+                description: 'מספר משתתפים מרבי (רלוונטי לסדנאות)',
+              },
+              track: {
+                type: 'STRING',
+                description: 'שם הטראק/מסלול (למשל: "טכנולוגי", "עסקי", "כללי")',
+              },
+            },
+            required: ['title', 'start_time', 'end_time'],
+          },
+        },
+      },
+      required: ['event_id', 'items'],
+    },
+  },
+  {
+    name: 'update_schedule_item',
+    description: 'עדכון או מחיקה של פריט קיים בלו"ז לפי כותרת או מזהה.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        item_id: {
+          type: 'STRING',
+          description: 'מזהה פריט הלו"ז (UUID) - אם ידוע',
+        },
+        item_title: {
+          type: 'STRING',
+          description: 'כותרת הפריט לחיפוש (חיפוש חלקי)',
+        },
+        action: {
+          type: 'STRING',
+          description: 'הפעולה לבצע',
+          enum: ['update', 'delete'],
+        },
+        title: {
+          type: 'STRING',
+          description: 'כותרת חדשה',
+        },
+        description: {
+          type: 'STRING',
+          description: 'תיאור חדש',
+        },
+        start_time: {
+          type: 'STRING',
+          description: 'שעת התחלה חדשה בפורמט ISO עם אזור זמן ישראלי (למשל: 2026-02-15T09:00:00+02:00)',
+        },
+        end_time: {
+          type: 'STRING',
+          description: 'שעת סיום חדשה בפורמט ISO עם אזור זמן ישראלי (למשל: 2026-02-15T10:30:00+02:00)',
+        },
+        location: {
+          type: 'STRING',
+          description: 'מיקום חדש',
+        },
+        speaker_name: {
+          type: 'STRING',
+          description: 'שם דובר חדש',
+        },
+      },
+      required: ['event_id'],
     },
   },
 ]
@@ -898,6 +1262,654 @@ async function executeAssignVendors(
 }
 
 // ============================================================================
+// New Tool Executors (Phase 4)
+// ============================================================================
+
+async function executeAddParticipants(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    const participants = args.participants as Array<{
+      first_name: string
+      last_name?: string
+      phone?: string
+      email?: string
+      status?: string
+      is_vip?: boolean
+    }>
+
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+    if (!participants || !Array.isArray(participants) || participants.length === 0) {
+      return { success: false, error: 'חסרים משתתפים להוספה' }
+    }
+
+    // Verify event exists
+    const { error: eventError } = await supabase
+      .from('events')
+      .select('id')
+      .eq('id', eventId)
+      .single()
+
+    if (eventError) return { success: false, error: 'האירוע לא נמצא' }
+
+    // Normalize phone numbers (Israeli format)
+    const normalizePhone = (phone: string): string => {
+      const cleaned = phone.replace(/[\s\-()]/g, '')
+      if (cleaned.startsWith('0')) return '972' + cleaned.substring(1)
+      if (cleaned.startsWith('+972')) return cleaned.substring(1)
+      return cleaned
+    }
+
+    const insertData = participants.map(p => ({
+      event_id: eventId,
+      first_name: p.first_name,
+      last_name: p.last_name || '',
+      phone: p.phone ? normalizePhone(p.phone) : null,
+      email: p.email || null,
+      status: p.status || 'invited',
+      is_vip: p.is_vip || false,
+    }))
+
+    const { data, error } = await supabase
+      .from('participants')
+      .insert(insertData)
+      .select('id, first_name, last_name, phone, email, status, is_vip')
+
+    if (error) {
+      console.error('add_participants error:', error)
+      return { success: false, error: `שגיאה בהוספת משתתפים: ${error.message}` }
+    }
+
+    return {
+      success: true,
+      data: {
+        participants: data,
+        count: data?.length || 0,
+        message: `נוספו ${data?.length || 0} משתתפים לאירוע בהצלחה`,
+      },
+    }
+  } catch (err) {
+    console.error('add_participants exception:', err)
+    return { success: false, error: 'שגיאה פנימית בהוספת משתתפים' }
+  }
+}
+
+async function executeListParticipants(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+
+    let query = supabase
+      .from('participants')
+      .select('id, first_name, last_name, phone, email, status, is_vip, has_companion, dietary_restrictions')
+      .eq('event_id', eventId)
+      .order('first_name', { ascending: true })
+
+    if (args.status && typeof args.status === 'string') {
+      query = query.eq('status', args.status)
+    }
+
+    const limit = typeof args.limit === 'number' ? Math.min(args.limit, 100) : 50
+    query = query.limit(limit)
+
+    const { data, error } = await query
+
+    if (error) {
+      console.error('list_participants error:', error)
+      return { success: false, error: `שגיאה בטעינת משתתפים: ${error.message}` }
+    }
+
+    // Compute status counts
+    const statusCounts: Record<string, number> = {}
+    for (const p of (data || [])) {
+      statusCounts[p.status] = (statusCounts[p.status] || 0) + 1
+    }
+
+    const statusHebrew: Record<string, string> = {
+      invited: 'הוזמנו',
+      confirmed: 'אישרו',
+      declined: 'סירבו',
+      maybe: 'אולי',
+      checked_in: 'עשו צ\'ק-אין',
+      no_show: 'לא הגיעו',
+    }
+
+    return {
+      success: true,
+      data: {
+        participants: data || [],
+        total: data?.length || 0,
+        status_counts: statusCounts,
+        status_summary: Object.entries(statusCounts)
+          .map(([status, count]) => `${statusHebrew[status] || status}: ${count}`)
+          .join(', '),
+        vip_count: data?.filter((p: { is_vip: boolean }) => p.is_vip).length || 0,
+        message: `נמצאו ${data?.length || 0} משתתפים`,
+      },
+    }
+  } catch (err) {
+    console.error('list_participants exception:', err)
+    return { success: false, error: 'שגיאה פנימית בטעינת משתתפים' }
+  }
+}
+
+async function executeUpdateEvent(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+
+    const updateData: Record<string, unknown> = {}
+
+    if (args.name) updateData.name = args.name
+    if (args.description) updateData.description = args.description
+    if (args.start_date) updateData.start_date = args.start_date
+    if (args.end_date) updateData.end_date = args.end_date
+    if (args.venue_name) updateData.venue_name = args.venue_name
+    if (args.venue_address) updateData.venue_address = args.venue_address
+    if (args.venue_city) updateData.venue_city = args.venue_city
+    if (typeof args.max_participants === 'number') updateData.max_participants = args.max_participants
+    if (typeof args.budget === 'number') updateData.budget = args.budget
+    if (args.status) updateData.status = args.status
+
+    if (Object.keys(updateData).length === 0) {
+      return { success: false, error: 'לא צוינו שדות לעדכון' }
+    }
+
+    const { data, error } = await supabase
+      .from('events')
+      .update(updateData)
+      .eq('id', eventId)
+      .select('id, name, status, start_date, end_date, venue_name, budget')
+      .single()
+
+    if (error) {
+      console.error('update_event error:', error)
+      return { success: false, error: `שגיאה בעדכון האירוע: ${error.message}` }
+    }
+
+    const updatedFields = Object.keys(updateData).join(', ')
+    return {
+      success: true,
+      data: {
+        event: data,
+        updated_fields: updatedFields,
+        message: `האירוע "${data.name}" עודכן בהצלחה (שדות: ${updatedFields})`,
+      },
+    }
+  } catch (err) {
+    console.error('update_event exception:', err)
+    return { success: false, error: 'שגיאה פנימית בעדכון האירוע' }
+  }
+}
+
+async function executeCompleteChecklistItem(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+
+    const newStatus = (args.new_status as string) || 'completed'
+    let itemId = args.item_id as string | undefined
+    const itemTitle = args.item_title as string | undefined
+
+    // If no ID, search by title
+    if (!itemId && itemTitle) {
+      const { data: items, error: searchError } = await supabase
+        .from('checklist_items')
+        .select('id, title, status')
+        .eq('event_id', eventId)
+        .ilike('title', `%${itemTitle}%`)
+        .limit(1)
+
+      if (searchError || !items || items.length === 0) {
+        return { success: false, error: `לא נמצא פריט צ'קליסט עם הכותרת "${itemTitle}"` }
+      }
+
+      itemId = items[0].id
+    }
+
+    if (!itemId) {
+      return { success: false, error: 'חסר מזהה או כותרת של פריט הצ\'קליסט' }
+    }
+
+    const updateData: Record<string, unknown> = { status: newStatus }
+    if (newStatus === 'completed') {
+      updateData.completed_at = new Date().toISOString()
+    }
+
+    const { data, error } = await supabase
+      .from('checklist_items')
+      .update(updateData)
+      .eq('id', itemId)
+      .eq('event_id', eventId)
+      .select('id, title, status')
+      .single()
+
+    if (error) {
+      console.error('complete_checklist_item error:', error)
+      return { success: false, error: `שגיאה בעדכון הפריט: ${error.message}` }
+    }
+
+    const statusHebrew: Record<string, string> = {
+      pending: 'ממתין',
+      in_progress: 'בביצוע',
+      completed: 'הושלם',
+      blocked: 'חסום',
+      cancelled: 'בוטל',
+    }
+
+    return {
+      success: true,
+      data: {
+        item: data,
+        message: `הפריט "${data.title}" עודכן לסטטוס: ${statusHebrew[newStatus] || newStatus}`,
+      },
+    }
+  } catch (err) {
+    console.error('complete_checklist_item exception:', err)
+    return { success: false, error: 'שגיאה פנימית בעדכון פריט הצ\'קליסט' }
+  }
+}
+
+async function executeSendWhatsAppToParticipants(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    const messageText = args.message_text as string
+    const recipientFilter = (args.recipient_filter as string) || 'all'
+
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+    if (!messageText) return { success: false, error: 'חסר תוכן הודעה' }
+
+    // Fetch participants with phone numbers
+    let query = supabase
+      .from('participants')
+      .select('id, first_name, last_name, phone, status')
+      .eq('event_id', eventId)
+      .not('phone', 'is', null)
+
+    if (recipientFilter !== 'all') {
+      query = query.eq('status', recipientFilter)
+    }
+
+    const { data: participants, error: fetchError } = await query
+
+    if (fetchError) {
+      return { success: false, error: `שגיאה בטעינת משתתפים: ${fetchError.message}` }
+    }
+
+    if (!participants || participants.length === 0) {
+      return {
+        success: true,
+        data: {
+          sent: 0,
+          message: 'לא נמצאו משתתפים עם מספר טלפון לשליחה',
+        },
+      }
+    }
+
+    // Create message records in the messages table
+    const messageRecords = participants.map((p: { id: string; phone: string }) => ({
+      event_id: eventId,
+      participant_id: p.id,
+      type: 'custom',
+      channel: 'whatsapp',
+      content: messageText,
+      recipient_phone: p.phone,
+      status: 'pending',
+    }))
+
+    const { data: insertedMessages, error: insertError } = await supabase
+      .from('messages')
+      .insert(messageRecords)
+      .select('id')
+
+    if (insertError) {
+      console.error('send_whatsapp insert error:', insertError)
+      return { success: false, error: `שגיאה ביצירת הודעות: ${insertError.message}` }
+    }
+
+    const filterHebrew: Record<string, string> = {
+      all: 'כל המשתתפים',
+      confirmed: 'מאושרים',
+      invited: 'מוזמנים',
+      maybe: 'אולי',
+    }
+
+    return {
+      success: true,
+      data: {
+        queued: insertedMessages?.length || 0,
+        recipients: participants.length,
+        filter: filterHebrew[recipientFilter] || recipientFilter,
+        message: `${insertedMessages?.length || 0} הודעות WhatsApp נוצרו ומחכות לשליחה (${filterHebrew[recipientFilter] || recipientFilter})`,
+      },
+    }
+  } catch (err) {
+    console.error('send_whatsapp exception:', err)
+    return { success: false, error: 'שגיאה פנימית בשליחת הודעות WhatsApp' }
+  }
+}
+
+// ============================================================================
+// Schedule Tool Executors
+// ============================================================================
+
+async function executeAddScheduleItems(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    const items = args.items as Array<{
+      title: string
+      description?: string
+      start_time: string
+      end_time: string
+      location?: string
+      speaker_name?: string
+      speaker_title?: string
+      is_mandatory?: boolean
+      is_break?: boolean
+      max_capacity?: number
+      track?: string
+    }>
+
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      return { success: false, error: 'חסרים פריטי לו"ז להוספה' }
+    }
+
+    // Verify event exists
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, name, start_date')
+      .eq('id', eventId)
+      .single()
+
+    if (eventError || !event) return { success: false, error: 'האירוע לא נמצא' }
+
+    // Get current max sort_order
+    const { data: existingSchedules } = await supabase
+      .from('schedules')
+      .select('sort_order')
+      .eq('event_id', eventId)
+      .order('sort_order', { ascending: false })
+      .limit(1)
+
+    let nextSortOrder = (existingSchedules?.[0]?.sort_order ?? -1) + 1
+
+    // Helper: ensure timezone is included (default to Israel +02:00 if missing)
+    const ensureTimezone = (timeStr: string): string => {
+      if (!timeStr) return timeStr
+      // Check if already has timezone offset (+XX:XX, -XX:XX, or Z)
+      if (/[+-]\d{2}:\d{2}$/.test(timeStr) || timeStr.endsWith('Z')) {
+        return timeStr
+      }
+      // No timezone - assume Israel time (UTC+2 winter, UTC+3 summer)
+      // Use +02:00 as default (Israel Standard Time)
+      return timeStr + '+02:00'
+    }
+
+    const insertData = items.map((item) => {
+      const record: Record<string, unknown> = {
+        event_id: eventId,
+        title: item.title,
+        start_time: ensureTimezone(item.start_time),
+        end_time: ensureTimezone(item.end_time),
+        sort_order: nextSortOrder++,
+      }
+
+      if (item.description) record.description = item.description
+      if (item.location) record.location = item.location
+      if (item.speaker_name) record.speaker_name = item.speaker_name
+      if (item.speaker_title) record.speaker_title = item.speaker_title
+      if (typeof item.is_mandatory === 'boolean') record.is_mandatory = item.is_mandatory
+      if (typeof item.is_break === 'boolean') record.is_break = item.is_break
+      if (typeof item.max_capacity === 'number') record.max_capacity = item.max_capacity
+      if (item.track) record.track = item.track
+
+      return record
+    })
+
+    const { data, error } = await supabase
+      .from('schedules')
+      .insert(insertData)
+      .select('id, title, start_time, end_time, location, speaker_name, is_break, sort_order')
+
+    if (error) {
+      console.error('add_schedule_items error:', error)
+      return { success: false, error: `שגיאה בהוספת פריטי לו"ז: ${error.message}` }
+    }
+
+    // ── Auto-create participant_schedules + reminder messages ──
+    let assignmentsCreated = 0
+    let messagesCreated = 0
+
+    const createdSchedules = data || []
+    if (createdSchedules.length > 0) {
+      // Fetch all participants for this event (with phone for messages)
+      const { data: participants } = await supabase
+        .from('participants')
+        .select('id, full_name, first_name, last_name, phone')
+        .eq('event_id', eventId)
+
+      if (participants && participants.length > 0) {
+        // 1. Create participant_schedules entries
+        const psEntries = createdSchedules.flatMap((schedule: { id: string }) =>
+          participants.map((p: { id: string }) => ({
+            participant_id: p.id,
+            schedule_id: schedule.id,
+            status: 'registered',
+          }))
+        )
+
+        // Insert in batches of 100
+        for (let i = 0; i < psEntries.length; i += 100) {
+          const batch = psEntries.slice(i, i + 100)
+          const { error: psError } = await supabase
+            .from('participant_schedules')
+            .insert(batch)
+          if (!psError) assignmentsCreated += batch.length
+          else console.error('participant_schedules insert error:', psError)
+        }
+
+        // 2. Create reminder messages for schedules (send_reminder defaults to true)
+        const reminderMessages = createdSchedules.flatMap((schedule: { id: string; title: string; start_time: string; location?: string }) =>
+          participants
+            .filter((p: { phone?: string }) => p.phone)
+            .map((p: { id: string; full_name?: string; first_name?: string; last_name?: string; phone: string }) => {
+              const name = p.full_name || `${p.first_name || ''} ${p.last_name || ''}`.trim()
+              const time = new Date(schedule.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+              const date = new Date(schedule.start_time).toLocaleDateString('he-IL', { weekday: 'long', day: 'numeric', month: 'long' })
+              let content = `שלום ${name}! תזכורת: "${schedule.title}" ב${date} בשעה ${time}`
+              if (schedule.location) content += ` | ${schedule.location}`
+
+              // scheduled_for = start_time - 15 minutes (default reminder)
+              const scheduledFor = new Date(schedule.start_time)
+              scheduledFor.setMinutes(scheduledFor.getMinutes() - 15)
+
+              return {
+                event_id: eventId,
+                participant_id: p.id,
+                schedule_id: schedule.id,
+                channel: 'whatsapp',
+                to_phone: p.phone,
+                content,
+                status: 'scheduled',
+                direction: 'outgoing',
+                subject: `תזכורת: ${schedule.title}`,
+                message_type: 'reminder',
+                scheduled_for: scheduledFor.toISOString(),
+              }
+            })
+        )
+
+        // Insert messages in batches of 50
+        for (let i = 0; i < reminderMessages.length; i += 50) {
+          const batch = reminderMessages.slice(i, i + 50)
+          const { error: msgError } = await supabase
+            .from('messages')
+            .insert(batch)
+          if (!msgError) messagesCreated += batch.length
+          else console.error('messages insert error:', msgError)
+        }
+      }
+    }
+
+    // Build readable summary
+    const itemsSummary = (data || []).map((s: { title: string; start_time: string; end_time: string }) => {
+      const startTime = new Date(s.start_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+      const endTime = new Date(s.end_time).toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' })
+      return `${startTime}-${endTime}: ${s.title}`
+    }).join('\n')
+
+    // Build message with full chain info
+    let resultMessage = `נוספו ${data?.length || 0} פריטי לו"ז לאירוע "${event.name}" בהצלחה`
+    if (assignmentsCreated > 0) resultMessage += ` | ${assignmentsCreated} שיוכי משתתפים`
+    if (messagesCreated > 0) resultMessage += ` | ${messagesCreated} הודעות תזכורת`
+
+    return {
+      success: true,
+      data: {
+        items: data,
+        count: data?.length || 0,
+        event_name: event.name,
+        summary: itemsSummary,
+        message: resultMessage,
+        assignments_created: assignmentsCreated,
+        messages_created: messagesCreated,
+      },
+    }
+  } catch (err) {
+    console.error('add_schedule_items exception:', err)
+    return { success: false, error: 'שגיאה פנימית בהוספת פריטי לו"ז' }
+  }
+}
+
+async function executeUpdateScheduleItem(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    if (!eventId) return { success: false, error: 'חסר מזהה אירוע' }
+
+    const action = (args.action as string) || 'update'
+    let itemId = args.item_id as string | undefined
+    const itemTitle = args.item_title as string | undefined
+
+    // Find item by title if no ID provided
+    if (!itemId && itemTitle) {
+      const { data: items, error: searchError } = await supabase
+        .from('schedules')
+        .select('id, title')
+        .eq('event_id', eventId)
+        .ilike('title', `%${itemTitle}%`)
+        .limit(1)
+
+      if (searchError || !items || items.length === 0) {
+        return { success: false, error: `לא נמצא פריט לו"ז עם הכותרת "${itemTitle}"` }
+      }
+
+      itemId = items[0].id
+    }
+
+    if (!itemId) {
+      return { success: false, error: 'חסר מזהה או כותרת של פריט הלו"ז' }
+    }
+
+    // Delete action
+    if (action === 'delete') {
+      const { data: deletedItem } = await supabase
+        .from('schedules')
+        .select('title')
+        .eq('id', itemId)
+        .eq('event_id', eventId)
+        .single()
+
+      const { error } = await supabase
+        .from('schedules')
+        .delete()
+        .eq('id', itemId)
+        .eq('event_id', eventId)
+
+      if (error) {
+        console.error('delete schedule item error:', error)
+        return { success: false, error: `שגיאה במחיקת פריט: ${error.message}` }
+      }
+
+      return {
+        success: true,
+        data: {
+          action: 'deleted',
+          title: deletedItem?.title,
+          message: `הפריט "${deletedItem?.title || itemId}" נמחק מהלו"ז בהצלחה`,
+        },
+      }
+    }
+
+    // Helper: ensure timezone is included (default to Israel +02:00 if missing)
+    const ensureTimezone = (timeStr: string): string => {
+      if (!timeStr) return timeStr
+      if (/[+-]\d{2}:\d{2}$/.test(timeStr) || timeStr.endsWith('Z')) return timeStr
+      return timeStr + '+02:00'
+    }
+
+    // Update action
+    const updateData: Record<string, unknown> = {}
+    if (args.title) updateData.title = args.title
+    if (args.description) updateData.description = args.description
+    if (args.start_time) updateData.start_time = ensureTimezone(args.start_time as string)
+    if (args.end_time) updateData.end_time = ensureTimezone(args.end_time as string)
+    if (args.location) updateData.location = args.location
+    if (args.speaker_name) updateData.speaker_name = args.speaker_name
+
+    if (Object.keys(updateData).length === 0) {
+      return { success: false, error: 'לא צוינו שדות לעדכון' }
+    }
+
+    const { data, error } = await supabase
+      .from('schedules')
+      .update(updateData)
+      .eq('id', itemId)
+      .eq('event_id', eventId)
+      .select('id, title, start_time, end_time, location, speaker_name')
+      .single()
+
+    if (error) {
+      console.error('update schedule item error:', error)
+      return { success: false, error: `שגיאה בעדכון פריט: ${error.message}` }
+    }
+
+    return {
+      success: true,
+      data: {
+        action: 'updated',
+        item: data,
+        updated_fields: Object.keys(updateData).join(', '),
+        message: `הפריט "${data.title}" עודכן בהצלחה`,
+      },
+    }
+  } catch (err) {
+    console.error('update_schedule_item exception:', err)
+    return { success: false, error: 'שגיאה פנימית בעדכון פריט לו"ז' }
+  }
+}
+
+// ============================================================================
 // Tool Dispatcher
 // ============================================================================
 
@@ -923,6 +1935,20 @@ async function executeTool(
       return executeAddChecklistItems(supabase, args)
     case 'assign_vendors':
       return executeAssignVendors(supabase, args)
+    case 'add_participants':
+      return executeAddParticipants(supabase, args)
+    case 'list_participants':
+      return executeListParticipants(supabase, args)
+    case 'update_event':
+      return executeUpdateEvent(supabase, args)
+    case 'complete_checklist_item':
+      return executeCompleteChecklistItem(supabase, args)
+    case 'send_whatsapp_to_participants':
+      return executeSendWhatsAppToParticipants(supabase, args)
+    case 'add_schedule_items':
+      return executeAddScheduleItems(supabase, args)
+    case 'update_schedule_item':
+      return executeUpdateScheduleItem(supabase, args)
     default:
       return { success: false, error: `כלי לא מוכר: ${toolName}` }
   }
@@ -1162,6 +2188,92 @@ function extractActions(toolCallLog: Array<{ name: string; args: Record<string, 
         }
         break
       }
+      case 'add_participants': {
+        if (call.result.success) {
+          const pData = call.result.data as { count: number }
+          actions.push({
+            type: 'participants_added',
+            data: { count: pData?.count || 0, event_id: call.args.event_id },
+            status: 'completed',
+            label: `נוספו ${pData?.count || 0} משתתפים`,
+          })
+        }
+        break
+      }
+      case 'list_participants': {
+        if (call.result.success) {
+          const lpData = call.result.data as { total: number; status_summary: string }
+          actions.push({
+            type: 'participants_listed',
+            data: { total: lpData?.total || 0 },
+            status: 'completed',
+            label: `${lpData?.total || 0} משתתפים (${lpData?.status_summary || ''})`,
+          })
+        }
+        break
+      }
+      case 'update_event': {
+        if (call.result.success) {
+          const ueData = call.result.data as { event: { name: string }; updated_fields: string }
+          actions.push({
+            type: 'event_updated',
+            data: { event_name: ueData?.event?.name, updated_fields: ueData?.updated_fields },
+            status: 'completed',
+            label: `האירוע "${ueData?.event?.name}" עודכן`,
+          })
+        }
+        break
+      }
+      case 'complete_checklist_item': {
+        if (call.result.success) {
+          const ccData = call.result.data as { item: { title: string } }
+          actions.push({
+            type: 'checklist_completed',
+            data: { title: ccData?.item?.title },
+            status: 'completed',
+            label: `"${ccData?.item?.title}" - הושלם`,
+          })
+        }
+        break
+      }
+      case 'send_whatsapp_to_participants': {
+        if (call.result.success) {
+          const swData = call.result.data as { queued: number; filter: string }
+          actions.push({
+            type: 'whatsapp_sent',
+            data: { queued: swData?.queued || 0, filter: swData?.filter },
+            status: 'completed',
+            label: `${swData?.queued || 0} הודעות WhatsApp נשלחו`,
+          })
+        }
+        break
+      }
+      case 'add_schedule_items': {
+        if (call.result.success) {
+          const siData = call.result.data as { count: number; event_name: string }
+          actions.push({
+            type: 'schedule_items_added',
+            data: { count: siData?.count || 0, event_id: call.args.event_id },
+            status: 'completed',
+            label: `נוספו ${siData?.count || 0} פריטי לו"ז`,
+          })
+        }
+        break
+      }
+      case 'update_schedule_item': {
+        if (call.result.success) {
+          const usData = call.result.data as { action: string; title?: string; item?: { title: string } }
+          const itemTitle = usData?.item?.title || usData?.title || ''
+          const actionLabel = usData?.action === 'deleted' ? 'נמחק' : 'עודכן'
+          actions.push({
+            type: 'schedule_item_updated',
+            data: { action: usData?.action, title: itemTitle },
+            status: 'completed',
+            label: `"${itemTitle}" - ${actionLabel}`,
+          })
+        }
+        break
+      }
     }
   }
 
@@ -1234,6 +2346,7 @@ serve(async (req) => {
     if (eventId) {
       systemInstruction += `\n\n--- אירוע נוכחי ---\nמזהה אירוע: ${eventId}`
       if (eventName) systemInstruction += `\nשם האירוע: ${eventName}`
+      systemInstruction += `\n\n**חשוב מאוד:** המשתמש כרגע עובד על האירוע הזה. כשהוא מבקש לבצע פעולות (הוספת משתתפים, עדכון, שליחת הודעות, סימון משימות, צ'קליסט וכו'), השתמשי במזהה האירוע הזה (${eventId}) אוטומטית - אל תשאלי אותו מהו מזהה האירוע.`
     }
 
     // Build messages - start clean, system prompt is in system_instruction
@@ -1241,12 +2354,26 @@ serve(async (req) => {
 
     // Add conversation history if provided
     if (history && history.trim()) {
-      const historyLines = history.split('\n')
-      for (const line of historyLines) {
-        if (line.startsWith('משתמש:')) {
-          messages.push({ role: 'user', parts: [{ text: line.replace('משתמש:', '').trim() }] })
-        } else if (line.startsWith('עוזר:')) {
-          messages.push({ role: 'model', parts: [{ text: line.replace('עוזר:', '').trim() }] })
+      // Try JSON format first (new format - preserves multi-line content)
+      try {
+        const parsed = JSON.parse(history)
+        if (Array.isArray(parsed)) {
+          for (const msg of parsed) {
+            if (msg.content && msg.content.trim()) {
+              const role: 'user' | 'model' = msg.role === 'user' ? 'user' : 'model'
+              messages.push({ role, parts: [{ text: msg.content }] })
+            }
+          }
+        }
+      } catch {
+        // Fallback: old line-by-line format (backwards compatibility)
+        const historyLines = history.split('\n')
+        for (const line of historyLines) {
+          if (line.startsWith('משתמש:')) {
+            messages.push({ role: 'user', parts: [{ text: line.replace('משתמש:', '').trim() }] })
+          } else if (line.startsWith('עוזר:')) {
+            messages.push({ role: 'model', parts: [{ text: line.replace('עוזר:', '').trim() }] })
+          }
         }
       }
     }
@@ -1411,10 +2538,17 @@ serve(async (req) => {
     const createdEvent = toolCallLog.find(
       (tc) => tc.name === 'create_event_draft' && tc.result.success
     )
-    if (createdEvent) {
+    const addedSchedule = toolCallLog.find(
+      (tc) => tc.name === 'add_schedule_items' && tc.result.success
+    )
+    if (addedSchedule) {
+      suggestions.push('הוסף עוד פריטים ללו"ז')
+      suggestions.push('הצג את הלו"ז המלא')
+      suggestions.push('הוסף משתתפים לאירוע')
+    } else if (createdEvent) {
       suggestions.push('הוסף צ\'קליסט לאירוע')
       suggestions.push('חפש ספקים מתאימים')
-      suggestions.push('הצע לוח זמנים')
+      suggestions.push('הוסף לו"ז לאירוע')
     } else if (page === 'events' || page === 'dashboard') {
       suggestions.push('חפש אירועים קודמים')
       suggestions.push('צור אירוע חדש')
@@ -1426,7 +2560,8 @@ serve(async (req) => {
       suggestions.push('חפש ספקי קייטרינג')
       suggestions.push('חפש צלמים מומלצים')
       suggestions.push('מה חשוב לבדוק אצל ספק?')
-    } else if (page === 'schedule') {
+    } else if (page === 'schedule' || page === 'program' || page === 'timeline') {
+      suggestions.push('הוסף פריטי לו"ז לאירוע')
       suggestions.push('הצע לוח זמנים לכנס')
       suggestions.push('הצע לוח זמנים ליום גיבוש')
     } else {

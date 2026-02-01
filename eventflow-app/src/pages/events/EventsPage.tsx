@@ -47,9 +47,11 @@ export function EventsPage() {
   const [pendingEventData, setPendingEventData] = useState<Record<string, unknown> | null>(null)
 
   useEffect(() => {
-    fetchEvents()
-    fetchEventTypes()
-  }, [])
+    if (user) {
+      fetchEvents()
+      fetchEventTypes()
+    }
+  }, [user?.id])
 
   async function fetchEvents() {
     setLoading(true)

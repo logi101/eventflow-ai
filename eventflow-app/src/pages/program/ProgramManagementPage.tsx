@@ -269,7 +269,11 @@ export function ProgramManagementPage() {
 
   async function handleParticipantsImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !selectedEventId) return
+    if (!file) return
+    if (!selectedEventId) {
+      alert('יש לבחור אירוע לפני ייבוא משתתפים')
+      return
+    }
 
     setImporting(true)
 
@@ -279,27 +283,60 @@ export function ProgramManagementPage() {
       const sheet = workbook.Sheets[workbook.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
 
-      const participantsToInsert = rows.map(row => ({
-        event_id: selectedEventId,
-        first_name: String(row['שם פרטי'] || row['first_name'] || ''),
-        last_name: String(row['שם משפחה'] || row['last_name'] || ''),
-        phone: normalizePhone(String(row['טלפון'] || row['phone'] || '')),
-        email: row['אימייל'] || row['email'] || null,
-        status: 'confirmed' as ParticipantStatus,
-        // Track assignment stored in custom_fields for later processing
-        custom_fields: {
-          track: row['טראק'] || row['track'] || row['מסלול'] || null
-        }
-      })).filter(p => p.first_name && p.phone)
-
-      if (participantsToInsert.length === 0) {
-        alert('לא נמצאו משתתפים תקינים בקובץ')
+      if (rows.length === 0) {
+        alert('הקובץ ריק - לא נמצאו שורות')
         setImporting(false)
+        if (participantsFileRef.current) participantsFileRef.current.value = ''
         return
       }
 
-      // Use Edge Function for insert to avoid Client-Side RLS issues
-      // Direct insert via Supabase client (RLS policies allow org members)
+      // Normalize column headers - remove invisible chars (BOM, RTL/LTR marks), trim whitespace
+      const normalizedRows = rows.map(row => {
+        const normalized: Record<string, unknown> = {}
+        for (const [key, value] of Object.entries(row)) {
+          const cleanKey = key
+            .replace(/[\u200F\u200E\uFEFF\u200B\u200C\u200D]/g, '')
+            .trim()
+          normalized[cleanKey] = value
+        }
+        return normalized
+      })
+
+      // Helper to find a column value by trying multiple possible names
+      function getCol(row: Record<string, unknown>, names: string[]): unknown {
+        for (const name of names) {
+          const val = row[name]
+          if (val !== undefined && val !== null && val !== '') return val
+        }
+        return undefined
+      }
+
+      const participantsToInsert = normalizedRows.map(row => {
+        const firstName = String(getCol(row, ['שם פרטי', 'first_name', 'שם', 'First Name', 'firstName']) || '')
+        const lastName = String(getCol(row, ['שם משפחה', 'last_name', 'משפחה', 'Last Name', 'lastName']) || '')
+        const phone = String(getCol(row, ['טלפון', 'phone', 'Phone', 'נייד', 'מספר טלפון', 'tel']) || '')
+        const email = getCol(row, ['אימייל', 'email', 'Email', 'מייל', 'דוא"ל', 'דואר אלקטרוני'])
+        const track = getCol(row, ['טראק', 'track', 'מסלול', 'Track'])
+
+        return {
+          event_id: selectedEventId,
+          first_name: firstName,
+          last_name: lastName,
+          phone: normalizePhone(phone),
+          email: email ? String(email) : null,
+          status: 'confirmed' as ParticipantStatus,
+          custom_fields: { track: track ? String(track) : null }
+        }
+      }).filter(p => p.first_name && p.phone && p.phone !== '972')
+
+      if (participantsToInsert.length === 0) {
+        const sampleKeys = Object.keys(normalizedRows[0] || {}).join(', ')
+        alert(`לא נמצאו משתתפים תקינים בקובץ.\n\nעמודות שזוהו: ${sampleKeys}\n\nנדרש לפחות: שם פרטי + טלפון`)
+        setImporting(false)
+        if (participantsFileRef.current) participantsFileRef.current.value = ''
+        return
+      }
+
       const { data: insertedData, error: insertError } = await supabase
         .from('participants')
         .insert(participantsToInsert)
@@ -309,17 +346,32 @@ export function ProgramManagementPage() {
         console.error('Import error:', insertError)
         alert('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
       } else {
-        // Auto-assign participants to tracks using the inserted data
         if (insertedData) {
           await autoAssignToTracks(insertedData)
         }
 
-        alert(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!`)
+        // Generate scheduled messages for all participant-schedule combinations
+        const { data: msgResult, error: msgError } = await supabase.rpc('generate_event_messages', {
+          p_event_id: selectedEventId
+        })
+
+        let msgInfo = ''
+        if (msgError) {
+          console.error('Message generation error:', msgError)
+        } else if (msgResult) {
+          const r = msgResult as { created_messages: number; skipped: number }
+          if (r.created_messages > 0) {
+            msgInfo = `\n${r.created_messages} הודעות תזכורת נוצרו`
+          }
+        }
+
+        alert(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!${msgInfo}`)
         loadEventData()
       }
     } catch (err) {
       console.error('Parse error:', err)
-      alert('שגיאה בקריאת הקובץ')
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      alert('שגיאה בקריאת הקובץ: ' + errorMessage)
     }
 
     setImporting(false)

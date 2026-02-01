@@ -11,10 +11,13 @@ import { z } from 'zod'
 export const messageStatusSchema = z.enum([
   'pending',
   'scheduled',
+  'sending',
   'sent',
   'delivered',
   'read',
-  'failed'
+  'failed',
+  'expired',
+  'cancelled'
 ])
 
 export const messageChannelSchema = z.enum([
@@ -60,6 +63,9 @@ export const messageSchema = z.object({
   direction: messageDirectionSchema.default('outgoing'),
   from_phone: z.string().nullable(),
   auto_reply: z.boolean().default(false),
+  message_type: z.string().nullable(),
+  schedule_id: z.string().uuid().nullable(),
+  scheduled_for: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string().nullable()
 })
@@ -122,10 +128,13 @@ export type MessageFilters = z.infer<typeof messageFiltersSchema>
 export const messageStatusLabels: Record<MessageStatus, string> = {
   pending: 'ממתינה',
   scheduled: 'מתוזמנת',
+  sending: 'נשלחת...',
   sent: 'נשלחה',
   delivered: 'נמסרה',
   read: 'נקראה',
-  failed: 'נכשלה'
+  failed: 'נכשלה',
+  expired: 'פג תוקף',
+  cancelled: 'בוטלה'
 }
 
 export const messageChannelLabels: Record<MessageChannel, string> = {
@@ -137,10 +146,13 @@ export const messageChannelLabels: Record<MessageChannel, string> = {
 export const messageStatusColors: Record<MessageStatus, string> = {
   pending: 'bg-zinc-700/50 text-zinc-300',
   scheduled: 'bg-blue-900/40 text-blue-300',
+  sending: 'bg-cyan-900/40 text-cyan-300',
   sent: 'bg-yellow-900/40 text-yellow-300',
   delivered: 'bg-green-900/40 text-green-300',
   read: 'bg-emerald-900/40 text-emerald-300',
-  failed: 'bg-red-900/40 text-red-300'
+  failed: 'bg-red-900/40 text-red-300',
+  expired: 'bg-zinc-700/50 text-zinc-400',
+  cancelled: 'bg-zinc-700/50 text-zinc-500'
 }
 
 export const messageDirectionLabels: Record<MessageDirection, string> = {

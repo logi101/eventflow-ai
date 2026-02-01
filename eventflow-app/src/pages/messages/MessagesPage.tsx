@@ -75,10 +75,13 @@ function StatusBadge({ status }: { status: MessageStatus }) {
   const icons: Record<MessageStatus, React.ReactNode> = {
     pending: <Clock size={14} />,
     scheduled: <Calendar size={14} />,
+    sending: <Loader2 size={14} className="animate-spin" />,
     sent: <Send size={14} />,
     delivered: <CheckCircle size={14} />,
     read: <CheckCheck size={14} />,
-    failed: <XCircle size={14} />
+    failed: <XCircle size={14} />,
+    expired: <Clock size={14} />,
+    cancelled: <X size={14} />
   }
 
   return (
@@ -342,6 +345,12 @@ function MessageDetailModal({
               <label className="text-zinc-400">נוצרה</label>
               <p className="text-white">{format(new Date(message.created_at), 'dd/MM/yyyy HH:mm', { locale: he })}</p>
             </div>
+            {message.scheduled_for && (
+              <div>
+                <label className="text-zinc-400 flex items-center gap-1"><Calendar size={12} /> מתוזמנת ל</label>
+                <p className="text-amber-300 font-medium">{format(new Date(message.scheduled_for), 'dd/MM/yyyy HH:mm', { locale: he })}</p>
+              </div>
+            )}
             {message.sent_at && (
               <div>
                 <label className="text-zinc-400">נשלחה</label>
@@ -766,6 +775,28 @@ export function MessagesPage() {
           {format(new Date(row.original.created_at), 'dd/MM/yy HH:mm', { locale: he })}
         </span>
       )
+    },
+    {
+      accessorKey: 'scheduled_for',
+      header: ({ column }) => (
+        <button
+          className="flex items-center gap-1 text-zinc-300"
+          onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        >
+          <Calendar size={14} />
+          מתוזמנת ל
+          {column.getIsSorted() === 'asc' ? <ChevronUp size={14} /> : column.getIsSorted() === 'desc' ? <ChevronDown size={14} /> : null}
+        </button>
+      ),
+      cell: ({ row }) => {
+        const scheduledFor = row.original.scheduled_for
+        if (!scheduledFor) return <span className="text-sm text-zinc-600">-</span>
+        return (
+          <span className="text-sm whitespace-nowrap text-amber-300 font-medium">
+            {format(new Date(scheduledFor), 'dd/MM/yy HH:mm', { locale: he })}
+          </span>
+        )
+      }
     },
     {
       accessorKey: 'direction',

@@ -245,18 +245,10 @@ export function ProgramManagementPage() {
         return
       }
 
-      // Use Edge Function for insert to avoid Client-Side RLS issues
-      const { error: insertError } = await supabase.functions.invoke('bulk-insert', {
-        body: {
-          table: 'schedules',
-          rows: schedulesToInsert,
-          eventId: selectedEventId
-        },
-        headers: {
-          // Force usage of Anon Key for this utility function to avoid 401s from expired user sessions
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
-      })
+      // Direct insert via Supabase client (RLS policies allow org members)
+      const { error: insertError } = await supabase
+        .from('schedules')
+        .insert(schedulesToInsert)
 
       if (insertError) {
         console.error('Import error:', insertError)
@@ -307,24 +299,19 @@ export function ProgramManagementPage() {
       }
 
       // Use Edge Function for insert to avoid Client-Side RLS issues
-      const { data: insertResponse, error: insertError } = await supabase.functions.invoke('bulk-insert', {
-        body: {
-          table: 'participants',
-          rows: participantsToInsert,
-          eventId: selectedEventId
-        },
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
-      })
+      // Direct insert via Supabase client (RLS policies allow org members)
+      const { data: insertedData, error: insertError } = await supabase
+        .from('participants')
+        .insert(participantsToInsert)
+        .select()
 
       if (insertError) {
         console.error('Import error:', insertError)
         alert('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
       } else {
         // Auto-assign participants to tracks using the inserted data
-        if (insertResponse?.data) {
-          await autoAssignToTracks(insertResponse.data)
+        if (insertedData) {
+          await autoAssignToTracks(insertedData)
         }
 
         alert(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!`)
@@ -360,16 +347,10 @@ export function ProgramManagementPage() {
     }
 
     if (assignmentsToCreate.length > 0) {
-      // Use Edge Function for assignment insert too
-      const { error } = await supabase.functions.invoke('bulk-insert', {
-        body: {
-          table: 'participant_schedules',
-          rows: assignmentsToCreate
-        },
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`
-        }
-      })
+      // Direct insert via Supabase client
+      const { error } = await supabase
+        .from('participant_schedules')
+        .insert(assignmentsToCreate)
 
       if (error) {
         console.error('Failed to auto-assign:', error)
@@ -834,10 +815,10 @@ export function ProgramManagementPage() {
                   onClick={async () => {
                     if (window.confirm('האם אתה בטוח שברצונך למחוק את כל התוכניה? פעולה זו אינה הפיכה.')) {
                       setLoading(true)
-                      const { error } = await supabase.functions.invoke('clear-event-data', {
-                        body: { eventId: selectedEventId, target: 'schedule' },
-                        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
-                      })
+                      const { error } = await supabase
+                        .from('schedules')
+                        .delete()
+                        .eq('event_id', selectedEventId)
                       if (error) alert('שגיאה במחיקה')
                       else loadEventData()
                       setLoading(false)
@@ -913,10 +894,10 @@ export function ProgramManagementPage() {
                   onClick={async () => {
                     if (window.confirm('האם אתה בטוח שברצונך למחוק את כל המשתתפים? פעולה זו אינה הפיכה.')) {
                       setLoading(true)
-                      const { error } = await supabase.functions.invoke('clear-event-data', {
-                        body: { eventId: selectedEventId, target: 'participants' },
-                        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}` }
-                      })
+                      const { error } = await supabase
+                        .from('participants')
+                        .delete()
+                        .eq('event_id', selectedEventId)
                       if (error) alert('שגיאה במחיקה')
                       else loadEventData()
                       setLoading(false)

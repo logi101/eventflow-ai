@@ -1071,18 +1071,15 @@ serve(async (req) => {
                       }
                     })
 
-                  // Insert one by one — skip duplicates (dedup index handles conflicts)
-                  let inserted = 0
-                  for (const msg of messageBatch) {
-                    const { error: insertErr } = await supabase.from('messages').insert(msg)
-                    if (insertErr) {
-                      if (insertErr.code === '23505') continue // duplicate — already exists
-                      console.error('Error creating message:', insertErr)
-                    } else {
-                      inserted++
-                    }
+                  // Insert in batches of 50 with conflict handling
+                  for (let i = 0; i < messageBatch.length; i += 50) {
+                    const batch = messageBatch.slice(i, i + 50)
+                    await supabase.from('messages').upsert(batch, {
+                      onConflict: 'participant_id,schedule_id,message_type',
+                      ignoreDuplicates: true
+                    })
                   }
-                  results.sent += inserted
+                  results.sent += messageBatch.length
                 }
               }
             }
@@ -1160,17 +1157,14 @@ serve(async (req) => {
                         }
                       })
 
-                    let inserted = 0
-                    for (const msg of messageBatch) {
-                      const { error: insertErr } = await supabase.from('messages').insert(msg)
-                      if (insertErr) {
-                        if (insertErr.code === '23505') continue
-                        console.error('Error creating message:', insertErr)
-                      } else {
-                        inserted++
-                      }
+                    for (let i = 0; i < messageBatch.length; i += 50) {
+                      const batch = messageBatch.slice(i, i + 50)
+                      await supabase.from('messages').upsert(batch, {
+                        onConflict: 'participant_id,schedule_id,message_type',
+                        ignoreDuplicates: true
+                      })
                     }
-                    results.sent += inserted
+                    results.sent += messageBatch.length
                   }
                 }
               } else {

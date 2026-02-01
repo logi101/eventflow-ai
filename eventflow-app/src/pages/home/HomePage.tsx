@@ -136,13 +136,32 @@ export function HomePage() {
     e.stopPropagation()
     try {
       // 1. Activate the event
+      const { data: eventData } = await supabase
+        .from('events')
+        .select('settings')
+        .eq('id', eventId)
+        .single()
+
+      // Disable old cron-based reminders — new system uses schedule-linked messages
+      const updatedSettings = {
+        ...(eventData?.settings || {}),
+        reminder_activation: false,
+        reminder_week_before: false,
+        reminder_day_before: false,
+        reminder_morning: false,
+        reminder_15min: false,
+        reminder_event_end: false,
+        reminder_follow_up_3mo: false,
+        reminder_follow_up_6mo: false,
+      }
+
       const { error } = await supabase
         .from('events')
-        .update({ status: 'active' })
+        .update({ status: 'active', settings: updatedSettings })
         .eq('id', eventId)
       if (error) throw error
 
-      // 2. Auto-generate all scheduled messages for this event
+      // 2. Auto-generate schedule-linked reminder messages
       await supabase.rpc('generate_event_messages', { p_event_id: eventId })
 
       await refreshEvents()

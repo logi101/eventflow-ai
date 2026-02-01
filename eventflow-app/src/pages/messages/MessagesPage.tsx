@@ -960,7 +960,7 @@ export function MessagesPage() {
               )}
             </button>
           )}
-          {selectedEvent && !showAllMessages && messages.length === 0 && !isLoading && (
+          {selectedEvent && !showAllMessages && (
             <button
               onClick={handleGenerateMessages}
               disabled={generateMessages.isPending}

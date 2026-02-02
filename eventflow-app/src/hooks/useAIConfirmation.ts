@@ -55,8 +55,10 @@ export function useAIConfirmation() {
   /**
    * Approve and execute the pending action
    */
-  const approve = useCallback(async () => {
-    if (!state.pendingAction) return
+  const approve = useCallback(async (): Promise<{ success: boolean; data?: unknown }> => {
+    if (!state.pendingAction) {
+      return { success: false }
+    }
 
     setState(prev => ({ ...prev, isExecuting: true }))
 
@@ -101,8 +103,10 @@ export function useAIConfirmation() {
   /**
    * Reject the pending action
    */
-  const reject = useCallback(async () => {
-    if (!state.pendingAction) return
+  const reject = useCallback(async (): Promise<{ success: boolean }> => {
+    if (!state.pendingAction) {
+      return { success: false }
+    }
 
     try {
       console.log('[AIConfirmation] Rejecting action:', state.pendingAction.action_id)

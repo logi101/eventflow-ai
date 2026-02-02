@@ -1,161 +1,121 @@
-# Roadmap: EventFlow AI - Automated Reminders
+# Roadmap: EventFlow AI v2.0
 
-**Milestone:** v1.0
-**Created:** 2026-01-28
-**Phases:** 5
+## Overview
 
----
+This roadmap delivers the v2.0 milestone: Intelligent Production & Networking Engine. Building on v1.0's automated reminder system, v2.0 transforms EventFlow AI from a static data manager to an active real-time event concierge. The journey progresses through four phases: establishing AI write capabilities with human confirmation (Phase 6), adding networking infrastructure for intelligent seating and VIP handling (Phase 7), enabling offline check-in and vendor budget intelligence (Phase 8), and culminating in day simulation for proactive issue detection (Phase 9). All changes are additive — existing v1.0 functionality remains intact.
 
-## Phase 1: Scheduler Infrastructure
+## Milestones
 
-**Goal:** Enable pg_cron and create database functions that trigger Edge Functions on schedule
+- ✅ **v1.0 Automated Reminders** - Phases 1-5 (shipped 2026-02-02)
+- 🚧 **v2.0 Intelligent Production & Networking Engine** - Phases 6-9 (in progress)
 
-**Requirements:** SCHED-01, SCHED-02, SCHED-03, SCHED-04
+## Phases
 
-**Plans:** 4 plans
+**Phase Numbering:**
+- Integer phases (6, 7, 8, 9): Planned v2.0 work
+- Decimal phases (6.1, 6.2): Urgent insertions (marked with INSERTED)
 
-Plans:
-- [x] 01-01-PLAN.md - Enable pg_cron, pg_net, vault extensions
-- [x] 01-02-PLAN.md - Configure Vault secrets for credentials
-- [x] 01-03-PLAN.md - Create trigger_reminder_job function
-- [x] 01-04-PLAN.md - Schedule cron jobs for reminders
+- [ ] **Phase 6: AI Write Foundation** - AI manages schedules and rooms with human confirmation
+- [ ] **Phase 7: Networking & VIP Infrastructure** - Intelligent seating, VIP priority, room assignments
+- [ ] **Phase 8: Offline & Vendor Intelligence** - Offline check-in with sync, budget alerts
+- [ ] **Phase 9: Day Simulation & Real-Time Operations** - Stress testing and contingency management
 
-**Success Criteria:**
-1. pg_cron extension shows as enabled in Supabase dashboard
-2. Database function `trigger_reminder_job(reminder_type)` exists and callable
-3. Cron job for `check_reminders_due` runs every 5 minutes without errors
-4. Test reminder job executes successfully when triggered manually
+## Phase Details
 
-**Build Order:**
-1. Enable pg_cron in Supabase dashboard
-2. Create migration for `trigger_reminder_job` function
-3. Create migration for cron schedule configuration
-4. Test with manual invocation
+### Phase 6: AI Write Foundation
+**Goal**: AI can manage schedules, room assignments, and participant tracks via chat with human confirmation and full audit trail
 
----
+**Depends on**: Phase 5 (v1.0 complete)
 
-## Phase 2: Reminder Types Implementation
+**Requirements**: AIAG-01, AIAG-02, AIAG-03, AIAG-04, AIAG-05, SCHED-05, SCHED-06, SCHED-07, VIP-03
 
-**Goal:** Implement all 8 reminder types in send-reminder Edge Function
+**Success Criteria** (what must be TRUE):
+  1. Manager can ask AI "Add workshop at 2pm in Room A" and see preview before execution
+  2. AI suggestions show conflict warnings (room double-booking, capacity overflow) before approval
+  3. Every AI write action appears in audit log with timestamp, user, and data changed
+  4. AI chat maintains correct event context throughout conversation
+  5. AI write operations respect RLS policies (multi-tenant isolation preserved)
 
-**Requirements:** REM-01, REM-02, REM-03, REM-04, REM-05, REM-06, REM-07, REM-08
-
-**Plans:** 4 plans
+**Plans**: TBD
 
 Plans:
-- [x] 02-01-PLAN.md — Schema migration for new reminder types
-- [x] 02-02-PLAN.md — Activation & week-before reminder handlers
-- [x] 02-03-PLAN.md — Event-end & follow-up reminder handlers
-- [x] 02-04-PLAN.md — Full integration test & verification
+- [ ] 06-01: TBD
+- [ ] 06-02: TBD
 
-**Success Criteria:**
-1. send-reminder accepts `type` parameter for all 8 types
-2. Activation reminder fires when event.status changes to 'active'
-3. Week-before reminder finds events 7 days out
-4. Day-before reminder finds events tomorrow
-5. Morning reminder finds events today
-6. 15-min reminder finds sessions starting in 15-20 minutes
-7. Event-end reminder fires when event end_date passes
-8. Follow-up reminders check manager approval flags before sending
+### Phase 7: Networking & VIP Infrastructure
+**Goal**: Manager can assign interest tracks to participants, generate intelligent table seating based on shared interests and diversity, and ensure VIP priority throughout the system
 
-**Build Order:**
-1. Add activation trigger (database trigger on event status change)
-2. Extend send-reminder.ts with week_before logic
-3. Verify day_before logic (existing)
-4. Verify morning logic (existing)
-5. Verify 15_min logic (existing)
-6. Add event_end logic
-7. Add follow_up_3mo and follow_up_6mo logic with approval check
+**Depends on**: Phase 6
 
----
+**Requirements**: NETW-01, NETW-02, NETW-03, NETW-04, NETW-05, NETW-06, VIP-01, VIP-02, ROOM-01, ROOM-02, ROOM-03
 
-## Phase 3: Dynamic Template System
+**Success Criteria** (what must be TRUE):
+  1. Manager can assign interest tracks to participants and toggle networking opt-in flag
+  2. Seating algorithm generates table assignments placing participants with shared interests together while maintaining diversity
+  3. VIP participants visually distinguished with badges throughout participant lists and check-in
+  4. Manager can review AI-generated seating plan and manually override specific table assignments
+  5. AI suggests room assignments based on VIP status, bed preferences, and accessibility needs with availability preview
 
-**Goal:** send-reminder fetches and uses templates from message_templates table
-
-**Requirements:** TMPL-01, TMPL-02, TMPL-03, TMPL-04
-
-**Plans:** 2 plans
+**Plans**: TBD
 
 Plans:
-- [x] 03-01-PLAN.md — Template engine + wire into all 8 reminder handlers
-- [x] 03-02-PLAN.md — Deploy and verify all 8 types with database templates
+- [ ] 07-01: TBD
+- [ ] 07-02: TBD
+- [ ] 07-03: TBD
 
-**Success Criteria:**
-1. send-reminder queries message_templates by type before sending
-2. Variable substitution replaces {{participant_name}}, {{event_name}}, {{event_date}}, {{venue_name}}, {{venue_address}}
-3. All 8 reminder types have default templates seeded in database
-4. Templates display correctly in WhatsApp with Hebrew RTL
+### Phase 8: Offline & Vendor Intelligence
+**Goal**: Check-in works without internet connection and syncs when connection returns, while AI analyzes vendor quotes against budget and suggests alternatives
 
-**Build Order:**
-1. Create/update seed.sql with 8 default templates
-2. Modify send-reminder to fetch template by reminder type
-3. Implement variable substitution function
-4. Test each template renders correctly
+**Depends on**: Phase 6
 
----
+**Requirements**: OFFL-01, OFFL-02, OFFL-03, OFFL-04, OFFL-05, VEND-01, VEND-02, VEND-03, VEND-04
 
-## Phase 4: Manager Controls — COMPLETE (audit-only)
+**Success Criteria** (what must be TRUE):
+  1. Check-in page loads participant list into local storage and shows offline/online status indicator
+  2. QR check-in succeeds without internet, stores locally, and syncs to Supabase when connection returns
+  3. Sync queue shows pending check-ins count and respects rate limits (no conflict with reminder system)
+  4. Manager receives alert when accepted vendor quotes exceed budget threshold for checklist item
+  5. AI can analyze vendor pricing and suggest alternative vendors with better ratings or lower cost
 
-**Goal:** Managers can control follow-up reminders and preview messages
-
-**Requirements:** CTRL-01, CTRL-02, CTRL-03, CTRL-04
-
-**Status:** All 4 requirements pre-existing. Audit verified + 1 bug fixed (follow-up defaults true→false).
-
-**Success Criteria:**
-1. [x] Event settings UI has toggles for follow_up_3mo and follow_up_6mo
-2. [x] Database events.settings JSONB stores these flags
-3. [x] Manager can see preview of activation message before enabling event
-4. [x] Test reminder button sends a single test message to manager's phone
-
-**Build Order:**
-1. ~~Add follow-up toggles to event settings schema~~ (pre-existing)
-2. ~~Update EventDetailPage to show follow-up controls~~ (pre-existing)
-3. ~~Add message preview component~~ (pre-existing)
-4. ~~Add test reminder button with Edge Function call~~ (pre-existing)
-
----
-
-## Phase 5: Reliability & Production Readiness — COMPLETE
-
-**Goal:** Ensure reminders are reliable, don't duplicate, and handle failures
-
-**Requirements:** REL-01, REL-02, REL-03, REL-04
-
-**Plans:** 2 plans
+**Plans**: TBD
 
 Plans:
-- [x] 05-01-PLAN.md — Database safety net (unique constraint + retry columns)
-- [x] 05-02-PLAN.md — Rate limit handling + basic retry in send-reminder
+- [ ] 08-01: TBD
+- [ ] 08-02: TBD
 
-**Status:** Unique partial index prevents duplicate messages. retry_count + last_retry_at columns added. send-reminder v14 deployed with 2.1s throttle and one-retry for transient failures.
+### Phase 9: Day Simulation & Real-Time Operations
+**Goal**: Manager can run day simulation to detect issues before event day (room conflicts, speaker overlaps, capacity problems) and activate contingency plans when issues occur
 
-**Success Criteria:**
-1. [x] Same participant never receives same reminder type twice for same event
-2. [x] Failed messages logged with timestamp, error message, and retry count
-3. [x] Transient failures (network, rate limit) trigger automatic retry
-4. [x] System respects 30 msgs/min rate limit per organization
+**Depends on**: Phase 6, Phase 7
 
-**Build Order:**
-1. ~~Add unique constraint on messages (participant_id, event_id, type)~~ (05-01)
-2. ~~Add retry_count and last_retry_at columns to messages table~~ (05-01)
-3. ~~Implement retry logic in send-reminder~~ (05-02)
-4. ~~Add rate limiting throttle before sending~~ (05-02)
+**Requirements**: SIM-01, SIM-02, SIM-03, SIM-04, SIM-05, SCHED-08, SCHED-09
+
+**Success Criteria** (what must be TRUE):
+  1. Manager can trigger day simulation from event detail page or via chat command
+  2. Simulation report shows issues by severity (critical/warning/info) with specific problems identified (room capacity exceeded, speaker double-booked, transition time too short)
+  3. Simulation is deterministic (running twice with same data produces identical results)
+  4. Manager can activate contingency plan (swap to backup speaker) when primary cancels
+  5. Affected participants receive WhatsApp notification when schedule changes occur
+
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: TBD
+- [ ] 09-02: TBD
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 6 → 6.1 (if inserted) → 6.2 → 7 → 8 → 9
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 6. AI Write Foundation | 0/TBD | Not started | - |
+| 7. Networking & VIP Infrastructure | 0/TBD | Not started | - |
+| 8. Offline & Vendor Intelligence | 0/TBD | Not started | - |
+| 9. Day Simulation & Real-Time Operations | 0/TBD | Not started | - |
 
 ---
-
-## Summary
-
-| Phase | Name | Requirements | Success Criteria |
-|-------|------|--------------|------------------|
-| 1 | Scheduler Infrastructure | SCHED-01,02,03,04 | 4 |
-| 2 | Reminder Types | REM-01,02,03,04,05,06,07,08 | 8 |
-| 3 | Dynamic Templates | TMPL-01,02,03,04 | 4 |
-| 4 | Manager Controls | CTRL-01,02,03,04 | 4 |
-| 5 | Reliability | REL-01,02,03,04 | 4 |
-
-**Total:** 5 phases, 20 requirements, 24 success criteria
-
----
-*Roadmap updated: 2026-01-30*
+*Roadmap created: 2026-02-02*
+*Milestone: v2.0 Intelligent Production & Networking Engine*
+*Coverage: 36/36 v2.0 requirements mapped*

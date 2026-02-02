@@ -2,17 +2,19 @@
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 6 (AI Write Foundation)
 Plan: —
-Status: Defining requirements for milestone v2.0
-Last activity: 2026-02-02 — Milestone v2.0 started
+Status: Roadmap created, awaiting Phase 6 planning
+Last activity: 2026-02-02 — v2.0 roadmap created
+
+Progress: ░░░░░░░░░░░░░░░░░░░░ 0% (0/4 phases)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-02-02)
 
 **Core value:** The event manager has full control while AI handles the complexity
-**Current focus:** Milestone v2.0 — Intelligent Production & Networking Engine
+**Current focus:** Milestone v2.0 — Intelligent Production & Networking Engine (Phase 6/9)
 
 ## Accumulated Context
 
@@ -34,6 +36,8 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - v2.0: Manager assigns participant tracks (not self-service)
 - v2.0: Offline mode only for check-in (not full app)
 - v2.0: ALL changes must be additive — no breaking existing functionality
+- v2.0: Phase numbering continues from v1.0 (starts at Phase 6)
+- v2.0: 4 phases covering 36 requirements across 8 feature categories
 
 ### Blockers
 (None currently)
@@ -55,7 +59,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Program management tables exist: tracks, rooms, speakers, time_blocks
 
 ### Completed Milestones
-- v1.0: Automated Reminders (5 phases, 20 requirements, all complete)
+- v1.0: Automated Reminders (5 phases, 20 requirements, all complete — shipped 2026-02-02)
 
 ### Completed Phases (v1.0)
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
@@ -72,3 +76,4 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 
 ---
 *State updated: 2026-02-02*
+*Next: Plan Phase 6 (AI Write Foundation)*

@@ -1,52 +1,73 @@
-# Requirements: EventFlow AI - Automated Reminders
+# Requirements: EventFlow AI — Intelligent Production & Networking Engine
 
-**Defined:** 2026-01-28
-**Core Value:** Participants receive the right message at the right time automatically
+**Defined:** 2026-02-02
+**Core Value:** The event manager has full control while AI handles the complexity
 
-## v1 Requirements
+## v2.0 Requirements
 
-Requirements for automated reminder system. Each maps to roadmap phases.
+Requirements for intelligent production features. Each maps to roadmap phases.
 
-### Scheduler Infrastructure (SCHED)
+### AI Agent Foundation (AIAG)
 
-- [ ] **SCHED-01**: pg_cron extension enabled in Supabase project
-- [ ] **SCHED-02**: Database function exists that calls send-reminder Edge Function
-- [ ] **SCHED-03**: Cron jobs configured for each reminder type at correct intervals
-- [ ] **SCHED-04**: System verifies cron jobs are active and running
+- [ ] **AIAG-01**: AI chat can suggest DB write operations with preview before execution
+- [ ] **AIAG-02**: Manager sees confirmation dialog with action description + impact before any AI write executes
+- [ ] **AIAG-03**: AI actions are logged in audit trail (ai_insights_log table) with action type, data, user, timestamp
+- [ ] **AIAG-04**: AI chat maintains correct event context (event_id scoped per conversation)
+- [ ] **AIAG-05**: AI writes respect existing RLS policies (uses user JWT, not service_role_key)
 
-### Reminder Types (REM)
+### Schedule Management (SCHED)
 
-- [x] **REM-01**: Activation reminder sent when manager activates event or sets date
-- [x] **REM-02**: Week-before reminder sent 7 days before event
-- [x] **REM-03**: Day-before reminder sent evening before event
-- [x] **REM-04**: Morning reminder sent on event day with location details
-- [x] **REM-05**: 15-minute reminder sent before each scheduled activity
-- [x] **REM-06**: Event-end reminder sent after event concludes (thank you)
-- [x] **REM-07**: 3-month follow-up sent (only if manager approved)
-- [x] **REM-08**: 6-month follow-up sent (only if manager approved)
+- [ ] **SCHED-05**: AI can create, update, and delete schedule items via chat with manager confirmation
+- [ ] **SCHED-06**: System detects schedule conflicts (room double-booking, speaker overlap, capacity overflow) in real-time
+- [ ] **SCHED-07**: Conflict warnings shown before AI suggestion is approved
+- [ ] **SCHED-08**: Manager can activate contingency plan (swap to backup speaker) when primary cancels
+- [ ] **SCHED-09**: Affected participants notified via WhatsApp when schedule changes
 
-### Template System (TMPL)
+### Networking Engine (NETW)
 
-- [ ] **TMPL-01**: send-reminder fetches templates from message_templates table
-- [ ] **TMPL-02**: Variable substitution works ({{participant_name}}, {{event_name}}, etc.)
-- [ ] **TMPL-03**: Each reminder type has a default template in the database
-- [ ] **TMPL-04**: Templates support Hebrew RTL with Heebo font styling hints
+- [ ] **NETW-01**: Manager can assign interest tracks to participants (participant_tracks linking)
+- [ ] **NETW-02**: Participants have networking_opt_in flag (default false, manager toggles)
+- [ ] **NETW-03**: Seating algorithm assigns participants to tables based on shared interests + diversity constraints
+- [ ] **NETW-04**: Table assignments stored in table_assignments table with event_id, participant_id, table_number
+- [ ] **NETW-05**: Manager can view and manually override AI-generated seating plan
+- [ ] **NETW-06**: VIP participants get priority seating (table 1 or designated VIP tables)
 
-### Manager Controls (CTRL)
+### VIP Handling (VIP)
 
-- [ ] **CTRL-01**: Manager can enable/disable follow-up reminders per event
-- [ ] **CTRL-02**: Event settings store follow-up approval (follow_up_3mo, follow_up_6mo flags)
-- [ ] **CTRL-03**: Manager can preview message before activation reminder goes out
-- [ ] **CTRL-04**: Manager can manually trigger any reminder type for testing
+- [ ] **VIP-01**: VIP participants visually distinguished throughout the system (badges, priority indicators)
+- [ ] **VIP-02**: VIP-specific WhatsApp templates with personalized variables (room_number, table_number)
+- [ ] **VIP-03**: AI prioritizes VIP requests and concerns in chat responses
 
-### Reliability (REL)
+### Smart Room Assignment (ROOM)
 
-- [ ] **REL-01**: Duplicate prevention (same reminder not sent twice to same participant)
-- [ ] **REL-02**: Failed messages logged with error details
-- [ ] **REL-03**: Retry logic for transient failures (up to 3 attempts)
-- [ ] **REL-04**: Rate limiting respected (30 msgs/min per organization)
+- [ ] **ROOM-01**: AI can suggest room assignments based on VIP status, bed preferences, accessibility needs
+- [ ] **ROOM-02**: Manager sees room availability and capacity before approving AI suggestion
+- [ ] **ROOM-03**: WhatsApp templates include room details (room_number, building, floor) as dynamic variables
 
-## v2 Requirements
+### Day Simulation (SIM)
+
+- [ ] **SIM-01**: Manager can trigger day simulation from event detail page or via chat command
+- [ ] **SIM-02**: Simulation analyzes: room capacity vs registrations, transition times between sessions, speaker schedule risks, vendor readiness
+- [ ] **SIM-03**: Simulation report shows issues by severity (critical, warning, info) with suggested fixes
+- [ ] **SIM-04**: Simulation is deterministic (same input → same output)
+- [ ] **SIM-05**: Manager can re-run simulation after fixing issues to verify resolution
+
+### Vendor Intelligence (VEND)
+
+- [ ] **VEND-01**: AI can analyze vendor quotes against budget allocation per checklist item
+- [ ] **VEND-02**: System alerts when accepted quotes exceed budget threshold
+- [ ] **VEND-03**: AI suggests alternative vendors with better ratings or pricing
+- [ ] **VEND-04**: Checklist items can be linked to vendors (vendor_id on checklist_items)
+
+### Offline Check-In (OFFL)
+
+- [ ] **OFFL-01**: Check-in page loads participant list into local IndexedDB for offline access
+- [ ] **OFFL-02**: QR check-in works without internet connection (writes to local DB)
+- [ ] **OFFL-03**: Offline check-ins sync to Supabase when connection returns
+- [ ] **OFFL-04**: UI shows online/offline status and pending sync count
+- [ ] **OFFL-05**: Sync respects existing rate limits (no conflict with reminder system throttle)
+
+## v3.0 Requirements
 
 Deferred to future milestone.
 
@@ -54,7 +75,17 @@ Deferred to future milestone.
 
 - **CHAN-01**: Email reminders as fallback for failed WhatsApp
 - **CHAN-02**: SMS reminders for urgent messages
-- **CHAN-03**: Push notifications via web
+- **CHAN-03**: Push notifications via web (partially done — iOS PWA push exists)
+
+### Calendar Integration (CAL)
+
+- **CAL-01**: Google Calendar sync for event schedules
+- **CAL-02**: Calendar invites sent to participants
+
+### Payments (PAY)
+
+- **PAY-01**: Payment processing for event registration
+- **PAY-02**: Invoice generation for vendors
 
 ### Analytics (ANLYT)
 
@@ -66,45 +97,61 @@ Deferred to future milestone.
 
 | Feature | Reason |
 |---------|--------|
-| Real-time chat with participants | Different feature - not reminder system |
-| Payment reminders | Phase 5 premium feature |
-| Google Calendar invites | Phase 5 premium feature |
-| Mobile app push notifications | Web-first approach |
+| Autonomous AI agent (no confirmation) | Violates core principle: system recommends, user decides |
+| Participant self-service track selection | Manager controls networking quality |
+| Full offline mode (all features) | 80/20 rule — only check-in is field-critical |
+| Real-time chat with participants | Different product category |
+| Mobile native app | Web PWA approach covers offline needs |
+| Social media auto-posting | Brand risk, requires separate approval workflow |
+| Gamification (badges, leaderboards) | Wrong fit for luxury/professional events |
+| Multi-event attendee dashboard | Attendees care about ONE event at a time |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCHED-01 | Phase 1 | Complete |
-| SCHED-02 | Phase 1 | Complete |
-| SCHED-03 | Phase 1 | Complete |
-| SCHED-04 | Phase 1 | Complete |
-| REM-01 | Phase 2 | Complete |
-| REM-02 | Phase 2 | Complete |
-| REM-03 | Phase 2 | Complete |
-| REM-04 | Phase 2 | Complete |
-| REM-05 | Phase 2 | Complete |
-| REM-06 | Phase 2 | Complete |
-| REM-07 | Phase 2 | Complete |
-| REM-08 | Phase 2 | Complete |
-| TMPL-01 | Phase 3 | Pending |
-| TMPL-02 | Phase 3 | Pending |
-| TMPL-03 | Phase 3 | Pending |
-| TMPL-04 | Phase 3 | Pending |
-| CTRL-01 | Phase 4 | Pending |
-| CTRL-02 | Phase 4 | Pending |
-| CTRL-03 | Phase 4 | Pending |
-| CTRL-04 | Phase 4 | Pending |
-| REL-01 | Phase 5 | Pending |
-| REL-02 | Phase 5 | Pending |
-| REL-03 | Phase 5 | Pending |
-| REL-04 | Phase 5 | Pending |
+| AIAG-01 | — | Pending |
+| AIAG-02 | — | Pending |
+| AIAG-03 | — | Pending |
+| AIAG-04 | — | Pending |
+| AIAG-05 | — | Pending |
+| SCHED-05 | — | Pending |
+| SCHED-06 | — | Pending |
+| SCHED-07 | — | Pending |
+| SCHED-08 | — | Pending |
+| SCHED-09 | — | Pending |
+| NETW-01 | — | Pending |
+| NETW-02 | — | Pending |
+| NETW-03 | — | Pending |
+| NETW-04 | — | Pending |
+| NETW-05 | — | Pending |
+| NETW-06 | — | Pending |
+| VIP-01 | — | Pending |
+| VIP-02 | — | Pending |
+| VIP-03 | — | Pending |
+| ROOM-01 | — | Pending |
+| ROOM-02 | — | Pending |
+| ROOM-03 | — | Pending |
+| SIM-01 | — | Pending |
+| SIM-02 | — | Pending |
+| SIM-03 | — | Pending |
+| SIM-04 | — | Pending |
+| SIM-05 | — | Pending |
+| VEND-01 | — | Pending |
+| VEND-02 | — | Pending |
+| VEND-03 | — | Pending |
+| VEND-04 | — | Pending |
+| OFFL-01 | — | Pending |
+| OFFL-02 | — | Pending |
+| OFFL-03 | — | Pending |
+| OFFL-04 | — | Pending |
+| OFFL-05 | — | Pending |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 20
-- Unmapped: 0 ✓
+- v2.0 requirements: 36 total
+- Mapped to phases: 0 (pending roadmap creation)
+- Unmapped: 36
 
 ---
-*Requirements defined: 2026-01-28*
-*Last updated: 2026-01-28 after Phase 2 completion*
+*Requirements defined: 2026-02-02*
+*Last updated: 2026-02-02 after initial definition*

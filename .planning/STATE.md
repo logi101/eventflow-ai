@@ -3,11 +3,11 @@
 ## Current Position
 
 Phase: 6 (AI Write Foundation)
-Plan: —
-Status: Roadmap created, awaiting Phase 6 planning
-Last activity: 2026-02-02 — v2.0 roadmap created
+Plan: 1 of 4
+Status: In progress - Database foundation complete
+Last activity: 2026-02-02 — Completed 06-01-PLAN.md (database migration)
 
-Progress: ░░░░░░░░░░░░░░░░░░░░ 0% (0/4 phases)
+Progress: ██░░░░░░░░░░░░░░░░░░ 6% (1/16 total plans across 4 phases)
 
 ## Project Reference
 
@@ -38,6 +38,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - v2.0: ALL changes must be additive — no breaking existing functionality
 - v2.0: Phase numbering continues from v1.0 (starts at Phase 6)
 - v2.0: 4 phases covering 36 requirements across 8 feature categories
+- Phase 6: Database-level conflict detection for rooms (EXCLUDE USING GIST), application-level for speakers (warn but don't block)
+- Phase 6: ai_insights_log with JSONB action_data for flexibility across different AI action types
+- Phase 6: RLS policies on ai_insights_log enforce organization isolation for AI operations
 
 ### Blockers
 (None currently)
@@ -57,6 +60,8 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - chatService.ts routes all conversations to Gemini except /help and skill triggers
 - participant_rooms table + RoomAssignmentPanel.tsx exist for room management
 - Program management tables exist: tracks, rooms, speakers, time_blocks
+- Migration 006 ready: ai_insights_log table, btree_gist extension, no_room_overlap constraint, check_speaker_conflicts function
+- Idempotent migration with validation queries - safe to run multiple times
 
 ### Completed Milestones
 - v1.0: Automated Reminders (5 phases, 20 requirements, all complete — shipped 2026-02-02)
@@ -68,12 +73,21 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 4: Manager Controls (audit-only, all pre-existing, 1 bug fixed)
 - Phase 5: Reliability & Production Readiness (2/2 plans complete)
 
+### Completed Plans (v2.0)
+- Phase 6, Plan 1: Database foundation for AI write operations (06-01-SUMMARY.md)
+
 ### Quick Tasks Completed
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | iOS PWA Push Notifications | 2026-01-30 | complete | [001-ios-pwa-push-notifications](./quick/001-ios-pwa-push-notifications/) |
 
+## Session Continuity
+
+Last session: 2026-02-02 21:24:31 UTC
+Stopped at: Completed 06-01-PLAN.md
+Resume file: None
+
 ---
 *State updated: 2026-02-02*
-*Next: Plan Phase 6 (AI Write Foundation)*
+*Next: Execute 06-02-PLAN.md (Extend ai-chat Edge Function with write tools)*

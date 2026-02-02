@@ -2,17 +2,17 @@
 
 ## Current Position
 
-Phase: 5 (Reliability & Production Readiness) — COMPLETE
-Plan: 2 plans (05-01 database safety net, 05-02 rate limit + retry)
-Status: All 5 phases complete. Milestone v1.0 finished.
-Last activity: 2026-01-30 - Phase 5: unique constraint, retry columns, throttle + retry in send-reminder v14
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements for milestone v2.0
+Last activity: 2026-02-02 — Milestone v2.0 started
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-28)
+See: .planning/PROJECT.md (updated 2026-02-02)
 
-**Core value:** Participants receive the right message at the right time automatically
-**Current focus:** All 5 phases complete. Milestone v1.0 (Automated Reminders) ready.
+**Core value:** The event manager has full control while AI handles the complexity
+**Current focus:** Milestone v2.0 — Intelligent Production & Networking Engine
 
 ## Accumulated Context
 
@@ -30,6 +30,10 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - Variable substitution via regex with empty string fallback for missing values
 - Hardcoded message builders kept as emergency fallback
 - Fixed Zod schema follow-up defaults from true→false (opt-in alignment)
+- v2.0: Enhanced AI chat (not autonomous agent) — suggest + confirm pattern
+- v2.0: Manager assigns participant tracks (not self-service)
+- v2.0: Offline mode only for check-in (not full app)
+- v2.0: ALL changes must be additive — no breaking existing functionality
 
 ### Blockers
 (None currently)
@@ -45,8 +49,15 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 - push_subscriptions table created with RLS (3 policies)
 - send-push-notification Edge Function deployed (RFC 8291 encryption, --no-verify-jwt)
 - VAPID keys set as Supabase secrets
+- AI chat types define 80+ action types (most not yet implemented)
+- chatService.ts routes all conversations to Gemini except /help and skill triggers
+- participant_rooms table + RoomAssignmentPanel.tsx exist for room management
+- Program management tables exist: tracks, rooms, speakers, time_blocks
 
-### Completed Phases
+### Completed Milestones
+- v1.0: Automated Reminders (5 phases, 20 requirements, all complete)
+
+### Completed Phases (v1.0)
 - Phase 1: Scheduler Infrastructure (4/4 plans complete)
 - Phase 2: Reminder Types Implementation (4/4 plans complete)
 - Phase 3: Dynamic Template System (2/2 plans complete)
@@ -59,22 +70,5 @@ See: .planning/PROJECT.md (updated 2026-01-28)
 |---|-------------|------|--------|-----------|
 | 001 | iOS PWA Push Notifications | 2026-01-30 | complete | [001-ios-pwa-push-notifications](./quick/001-ios-pwa-push-notifications/) |
 
-### Technical Notes (Phase 4 Audit)
-- EventSettingsPanel.tsx: 8 toggles (6 standard + 2 follow-up), accordion message preview, save to JSONB
-- MessagePreview.tsx: WhatsApp-style bubble with Hebrew RTL, variable substitution, all 8 types
-- TestReminderButton.tsx + useTestReminder.ts: invokes `send-reminder` with `mode: 'test'`
-- send-reminder v13 line 124: full test mode handling (phone normalization, template engine, single send)
-- Routes: `/events/:eventId` and `/event/reminder-settings` both render EventSettingsPanel
-
-### Technical Notes (Phase 5 Reliability)
-- Unique partial index `idx_messages_dedup` on (event_id, participant_id, message_type) WHERE participant_id IS NOT NULL
-- Cleaned 48 duplicate reminder_15min messages before constraint creation (kept oldest per group)
-- Added `retry_count` (INT DEFAULT 0) and `last_retry_at` (TIMESTAMPTZ) columns to messages table
-- sendWhatsApp helper: 2.1s throttle between sends (~28 msgs/min, safely under 30/min limit)
-- sendWhatsApp helper: one retry for transient failures (network/rate/timeout/fetch/429) with 3s delay
-- retry_count tracked in messages table on retry attempt
-- send-reminder v14 deployed (ACTIVE, id: 28edf0d6-e6af-4f95-9c79-df378a38dab9)
-- All 8 handler sections untouched — only sendWhatsApp helper modified
-
 ---
-*State updated: 2026-01-30*
+*State updated: 2026-02-02*

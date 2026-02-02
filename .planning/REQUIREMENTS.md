@@ -110,48 +110,51 @@ Deferred to future milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AIAG-01 | — | Pending |
-| AIAG-02 | — | Pending |
-| AIAG-03 | — | Pending |
-| AIAG-04 | — | Pending |
-| AIAG-05 | — | Pending |
-| SCHED-05 | — | Pending |
-| SCHED-06 | — | Pending |
-| SCHED-07 | — | Pending |
-| SCHED-08 | — | Pending |
-| SCHED-09 | — | Pending |
-| NETW-01 | — | Pending |
-| NETW-02 | — | Pending |
-| NETW-03 | — | Pending |
-| NETW-04 | — | Pending |
-| NETW-05 | — | Pending |
-| NETW-06 | — | Pending |
-| VIP-01 | — | Pending |
-| VIP-02 | — | Pending |
-| VIP-03 | — | Pending |
-| ROOM-01 | — | Pending |
-| ROOM-02 | — | Pending |
-| ROOM-03 | — | Pending |
-| SIM-01 | — | Pending |
-| SIM-02 | — | Pending |
-| SIM-03 | — | Pending |
-| SIM-04 | — | Pending |
-| SIM-05 | — | Pending |
-| VEND-01 | — | Pending |
-| VEND-02 | — | Pending |
-| VEND-03 | — | Pending |
-| VEND-04 | — | Pending |
-| OFFL-01 | — | Pending |
-| OFFL-02 | — | Pending |
-| OFFL-03 | — | Pending |
-| OFFL-04 | — | Pending |
-| OFFL-05 | — | Pending |
+| AIAG-01 | Phase 6 | Pending |
+| AIAG-02 | Phase 6 | Pending |
+| AIAG-03 | Phase 6 | Pending |
+| AIAG-04 | Phase 6 | Pending |
+| AIAG-05 | Phase 6 | Pending |
+| SCHED-05 | Phase 6 | Pending |
+| SCHED-06 | Phase 6 | Pending |
+| SCHED-07 | Phase 6 | Pending |
+| SCHED-08 | Phase 9 | Pending |
+| SCHED-09 | Phase 9 | Pending |
+| NETW-01 | Phase 7 | Pending |
+| NETW-02 | Phase 7 | Pending |
+| NETW-03 | Phase 7 | Pending |
+| NETW-04 | Phase 7 | Pending |
+| NETW-05 | Phase 7 | Pending |
+| NETW-06 | Phase 7 | Pending |
+| VIP-01 | Phase 7 | Pending |
+| VIP-02 | Phase 7 | Pending |
+| VIP-03 | Phase 6 | Pending |
+| ROOM-01 | Phase 7 | Pending |
+| ROOM-02 | Phase 7 | Pending |
+| ROOM-03 | Phase 7 | Pending |
+| SIM-01 | Phase 9 | Pending |
+| SIM-02 | Phase 9 | Pending |
+| SIM-03 | Phase 9 | Pending |
+| SIM-04 | Phase 9 | Pending |
+| SIM-05 | Phase 9 | Pending |
+| VEND-01 | Phase 8 | Pending |
+| VEND-02 | Phase 8 | Pending |
+| VEND-03 | Phase 8 | Pending |
+| VEND-04 | Phase 8 | Pending |
+| OFFL-01 | Phase 8 | Pending |
+| OFFL-02 | Phase 8 | Pending |
+| OFFL-03 | Phase 8 | Pending |
+| OFFL-04 | Phase 8 | Pending |
+| OFFL-05 | Phase 8 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 36 total
-- Mapped to phases: 0 (pending roadmap creation)
-- Unmapped: 36
+- Mapped to phases: 36 (100% coverage ✓)
+- Phase 6: 9 requirements
+- Phase 7: 11 requirements
+- Phase 8: 9 requirements
+- Phase 9: 7 requirements
 
 ---
 *Requirements defined: 2026-02-02*
-*Last updated: 2026-02-02 after initial definition*
+*Last updated: 2026-02-02 after roadmap creation*

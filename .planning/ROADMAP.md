@@ -36,11 +36,13 @@ This roadmap delivers the v2.0 milestone: Intelligent Production & Networking En
   4. AI chat maintains correct event context throughout conversation
   5. AI write operations respect RLS policies (multi-tenant isolation preserved)
 
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 06-01: TBD
-- [ ] 06-02: TBD
+- [ ] 06-01-PLAN.md -- Database foundation: ai_insights_log table, btree_gist, schedule conflict constraints, speaker overlap detection
+- [ ] 06-02-PLAN.md -- Extend ai-chat Edge Function: 3 schedule management tools, conflict detection, VIP awareness, pending_approval responses
+- [ ] 06-03-PLAN.md -- New execute-ai-action Edge Function: authenticated action executor with RLS enforcement and conflict re-check
+- [ ] 06-04-PLAN.md -- Frontend confirmation workflow: types, useAIConfirmation hook, AIConfirmationDialog, ChatContext + ChatWindow integration
 
 ### Phase 7: Networking & VIP Infrastructure
 **Goal**: Manager can assign interest tracks to participants, generate intelligent table seating based on shared interests and diversity, and ensure VIP priority throughout the system
@@ -110,7 +112,7 @@ Phases execute in numeric order: 6 → 6.1 (if inserted) → 6.2 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. AI Write Foundation | 0/TBD | Not started | - |
+| 6. AI Write Foundation | 0/4 | Planned | - |
 | 7. Networking & VIP Infrastructure | 0/TBD | Not started | - |
 | 8. Offline & Vendor Intelligence | 0/TBD | Not started | - |
 | 9. Day Simulation & Real-Time Operations | 0/TBD | Not started | - |

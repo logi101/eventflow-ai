@@ -9,11 +9,13 @@ import type {
   ChatWindowState,
   PageContext,
   PageType,
-  AgentType
+  AgentType,
+  AIWriteAction
 } from '../types/chat'
 import { DEFAULT_CHAT_SETTINGS } from '../types/chat'
 import { getSlashCommands } from '../hooks/usePageContext'
 import { useEvent } from './EventContext'
+import { useAIConfirmation } from '../hooks/useAIConfirmation'
 
 // ============================================================================
 // Initial State
@@ -197,6 +199,15 @@ interface ChatContextValue {
   updateSettings: (settings: Partial<ChatSettings>) => void
   // Page context
   setPageContext: (page: PageType, eventId?: string, eventName?: string) => void
+  // AI Confirmation (Phase 6)
+  confirmation: {
+    pendingAction: AIWriteAction | null
+    isExecuting: boolean
+    dialogOpen: boolean
+    approve: () => Promise<{ success: boolean; data?: unknown }>
+    reject: () => Promise<{ success: boolean }>
+    dismiss: () => void
+  }
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null)
@@ -212,6 +223,9 @@ interface ChatProviderProps {
 export function ChatProvider({ children }: ChatProviderProps) {
   const [state, dispatch] = useReducer(chatReducer, undefined, createInitialState)
   const { selectedEvent } = useEvent()
+
+  // AI Confirmation workflow (Phase 6)
+  const aiConfirmation = useAIConfirmation()
 
   // Persist settings to localStorage
   useEffect(() => {
@@ -330,6 +344,12 @@ export function ChatProvider({ children }: ChatProviderProps) {
       }
       dispatch({ type: 'ADD_MESSAGE', payload: assistantMessage })
 
+      // Check for pending approval actions (Phase 6: AI Write Operations)
+      if (response.pendingApprovalActions && response.pendingApprovalActions.length > 0) {
+        // Trigger confirmation dialog for the first pending action
+        aiConfirmation.requestConfirmation(response.pendingApprovalActions[0])
+      }
+
       // Play notification sound if enabled and window not open
       if (state.settings.soundEnabled && state.windowState !== 'open') {
         // Sound will be played by the component
@@ -435,7 +455,15 @@ export function ChatProvider({ children }: ChatProviderProps) {
     markActionCompleted,
     switchAgent,
     updateSettings,
-    setPageContext
+    setPageContext,
+    confirmation: {
+      pendingAction: aiConfirmation.pendingAction,
+      isExecuting: aiConfirmation.isExecuting,
+      dialogOpen: aiConfirmation.dialogOpen,
+      approve: aiConfirmation.approve,
+      reject: aiConfirmation.reject,
+      dismiss: aiConfirmation.dismiss
+    }
   }
 
   return (

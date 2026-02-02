@@ -271,6 +271,7 @@ export interface ChatResponse {
   actions?: ChatAction[]
   metadata?: MessageMetadata
   suggestions?: string[]
+  pendingApprovalActions?: AIWriteAction[]
 }
 
 export type AIProvider = 'claude' | 'gemini'

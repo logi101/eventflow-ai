@@ -94,6 +94,9 @@ const SYSTEM_PROMPT = `את שותפה אמיתית לתכנון והפקת אי
 - **ליצור טיוטת אירוע** (create_event_draft) - כשיש מספיק מידע
 - **להוסיף פריטי צ'קליסט** (add_checklist_items) - לאירוע קיים
 - **לשייך ספקים לאירוע** (assign_vendors) - לאירוע קיים
+- **ליצור פריט בלוח זמנים** (create_schedule_item) - הרצאה, סדנה, הפסקה וכו'
+- **לעדכן פריט בלוח זמנים** (update_schedule_item) - שינוי זמן, חדר, דובר
+- **למחוק פריט מלוח זמנים** (delete_schedule_item) - עם סיבה למחיקה
 
 ## איך להשתמש בכלים - חשוב מאוד!
 - **תמיד השתמשי בכלים באופן יזום** - אל תשאלי אם להשתמש, פשוט השתמשי. אם המשתמש מזכיר אירוע, חפשי מיד (search_events). אם מזכיר ספק, חפשי מיד (search_vendors).
@@ -103,6 +106,14 @@ const SYSTEM_PROMPT = `את שותפה אמיתית לתכנון והפקת אי
 - כשהמשתמש מאשר, הוסיפי צ'קליסט (add_checklist_items) ושייכי ספקים (assign_vendors).
 - **כלל חובה**: כשהמשתמש מבקש לחפש משהו, חפשי מיד בלי לשאול שאלות נוספות. הפעילי את הכלי ותני תשובה עם התוצאות.
 - גם אם אין תוצאות, הפעילי את הכלי והגיבי בהתאם (למשל: "חיפשתי במערכת ולא מצאתי אירועים דומים, אז נתחיל מאפס!").
+
+
+## ניהול לוח זמנים והשפעה על VIP
+כשמציעה שינויים בלוח הזמנים:
+- **בדקי קונפליקטים** - חדרים מוזמנים כפול ודוברים עם חפיפה
+- **זהי השפעה על VIP** - אם יש משתתפי VIP, הזכירי זאת במפורש
+- **הציעי חלופות** - אם יש קונפליקט, הציעי פתרונות (חדר אחר, זמן אחר)
+- **הסבירי את השפעת השינוי** - מי יושפע, איזה משתתפים, מה המשמעות
 
 ## איך לנהל שיחה
 1. **שאלי שאלות חכמות** - אל תחכי שהמשתמש יספר הכל. שאלי באופן יזום:
@@ -358,6 +369,118 @@ const TOOL_DECLARATIONS = [
         },
       },
       required: ['event_id', 'vendor_ids'],
+    },
+  },
+  {
+    name: 'create_schedule_item',
+    description: 'יצירת פריט חדש בלוח הזמנים (הרצאה, סדנה, הפסקה). מחזיר הצעה הדורשת אישור מנהל.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        event_id: {
+          type: 'STRING',
+          description: 'מזהה האירוע (UUID)',
+        },
+        title: {
+          type: 'STRING',
+          description: 'כותרת הפריט בלוח הזמנים',
+        },
+        start_time: {
+          type: 'STRING',
+          description: 'זמן התחלה בפורמט ISO (YYYY-MM-DDTHH:MM:SS)',
+        },
+        end_time: {
+          type: 'STRING',
+          description: 'זמן סיום בפורמט ISO (YYYY-MM-DDTHH:MM:SS)',
+        },
+        room: {
+          type: 'STRING',
+          description: 'שם החדר/אולם',
+        },
+        speaker_name: {
+          type: 'STRING',
+          description: 'שם הדובר/מרצה',
+        },
+        max_capacity: {
+          type: 'INTEGER',
+          description: 'קיבולת מרבית של המשתתפים',
+        },
+        description: {
+          type: 'STRING',
+          description: 'תיאור הפריט',
+        },
+        is_mandatory: {
+          type: 'BOOLEAN',
+          description: 'האם הפריט חובה לכל המשתתפים',
+        },
+      },
+      required: ['event_id', 'title', 'start_time', 'end_time'],
+    },
+  },
+  {
+    name: 'update_schedule_item',
+    description: 'עדכון פריט קיים בלוח הזמנים. מחזיר הצעה עם שינויים וקונפליקטים הדורשת אישור.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        schedule_id: {
+          type: 'STRING',
+          description: 'מזהה הפריט בלוח הזמנים (UUID)',
+        },
+        changes: {
+          type: 'OBJECT',
+          description: 'שינויים מוצעים (שדות שונים בלבד)',
+          properties: {
+            title: {
+              type: 'STRING',
+              description: 'כותרת חדשה',
+            },
+            start_time: {
+              type: 'STRING',
+              description: 'זמן התחלה חדש (ISO)',
+            },
+            end_time: {
+              type: 'STRING',
+              description: 'זמן סיום חדש (ISO)',
+            },
+            room: {
+              type: 'STRING',
+              description: 'חדר חדש',
+            },
+            speaker_name: {
+              type: 'STRING',
+              description: 'דובר חדש',
+            },
+            max_capacity: {
+              type: 'INTEGER',
+              description: 'קיבולת חדשה',
+            },
+            description: {
+              type: 'STRING',
+              description: 'תיאור חדש',
+            },
+          },
+        },
+      },
+      required: ['schedule_id', 'changes'],
+    },
+  },
+  {
+    name: 'delete_schedule_item',
+    description: 'מחיקת פריט מלוח הזמנים. מחזיר הצעה הדורשת אישור.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        schedule_id: {
+          type: 'STRING',
+          description: 'מזהה הפריט למחיקה (UUID)',
+        },
+        reason: {
+          type: 'STRING',
+          description: 'סיבת המחיקה',
+        },
+      },
+      required: ['schedule_id'],
     },
   },
 ]
@@ -898,6 +1021,430 @@ async function executeAssignVendors(
 }
 
 // ============================================================================
+// Schedule Conflict Detection Helper
+// ============================================================================
+
+interface ConflictResult {
+  room_conflicts: Array<{
+    id: string
+    title: string
+    start_time: string
+    end_time: string
+    room: string
+  }>
+  speaker_conflicts: Array<{
+    id: string
+    title: string
+    start_time: string
+    end_time: string
+    speaker_name: string
+  }>
+  capacity_warning?: string
+  vip_affected?: boolean
+}
+
+async function detectScheduleConflicts(
+  supabase: SupabaseClient,
+  eventId: string,
+  startTime: string,
+  endTime: string,
+  room?: string,
+  speakerName?: string,
+  maxCapacity?: number,
+  excludeScheduleId?: string
+): Promise<ConflictResult> {
+  const conflicts: ConflictResult = {
+    room_conflicts: [],
+    speaker_conflicts: [],
+  }
+
+  // Check room conflicts (same event, same room, overlapping time)
+  if (room) {
+    let roomQuery = supabase
+      .from('schedules')
+      .select('id, title, start_time, end_time, room')
+      .eq('event_id', eventId)
+      .eq('room', room)
+      .lt('start_time', endTime)
+      .gt('end_time', startTime)
+
+    if (excludeScheduleId) {
+      roomQuery = roomQuery.neq('id', excludeScheduleId)
+    }
+
+    const { data: roomConflicts } = await roomQuery
+
+    if (roomConflicts && roomConflicts.length > 0) {
+      conflicts.room_conflicts = roomConflicts.map(rc => ({
+        id: rc.id,
+        title: rc.title,
+        start_time: rc.start_time,
+        end_time: rc.end_time,
+        room: rc.room || '',
+      }))
+    }
+  }
+
+  // Check speaker conflicts (same event, same speaker, overlapping time)
+  if (speakerName) {
+    let speakerQuery = supabase
+      .from('schedules')
+      .select('id, title, start_time, end_time, speaker_name')
+      .eq('event_id', eventId)
+      .ilike('speaker_name', speakerName)
+      .lt('start_time', endTime)
+      .gt('end_time', startTime)
+
+    if (excludeScheduleId) {
+      speakerQuery = speakerQuery.neq('id', excludeScheduleId)
+    }
+
+    const { data: speakerConflicts } = await speakerQuery
+
+    if (speakerConflicts && speakerConflicts.length > 0) {
+      conflicts.speaker_conflicts = speakerConflicts.map(sc => ({
+        id: sc.id,
+        title: sc.title,
+        start_time: sc.start_time,
+        end_time: sc.end_time,
+        speaker_name: sc.speaker_name || '',
+      }))
+    }
+  }
+
+  // Check capacity (compare proposed capacity with registered participant count)
+  if (maxCapacity) {
+    const { count } = await supabase
+      .from('participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .eq('status', 'registered')
+
+    if (count && count > maxCapacity) {
+      conflicts.capacity_warning = `הקיבולת המוצעת (${maxCapacity}) נמוכה ממספר המשתתפים הרשומים (${count})`
+    }
+  }
+
+  return conflicts
+}
+
+async function executeCreateScheduleItem(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>,
+  userId?: string
+): Promise<ToolResult> {
+  try {
+    const eventId = args.event_id as string
+    const title = args.title as string
+    const startTime = args.start_time as string
+    const endTime = args.end_time as string
+
+    if (!eventId || !title || !startTime || !endTime) {
+      return { success: false, error: 'חסרים שדות חובה: event_id, title, start_time, end_time' }
+    }
+
+    const parsedStart = new Date(startTime)
+    const parsedEnd = new Date(endTime)
+    if (isNaN(parsedStart.getTime()) || isNaN(parsedEnd.getTime())) {
+      return { success: false, error: 'תאריכים לא תקינים. השתמש בפורמט ISO: YYYY-MM-DDTHH:MM:SS' }
+    }
+
+    if (parsedStart >= parsedEnd) {
+      return { success: false, error: 'זמן התחלה חייב להיות לפני זמן סיום' }
+    }
+
+    const { data: event, error: eventError } = await supabase
+      .from('events')
+      .select('id, name')
+      .eq('id', eventId)
+      .single()
+
+    if (eventError || !event) {
+      return { success: false, error: 'האירוע לא נמצא' }
+    }
+
+    const conflicts = await detectScheduleConflicts(
+      supabase,
+      eventId,
+      startTime,
+      endTime,
+      args.room as string | undefined,
+      args.speaker_name as string | undefined,
+      args.max_capacity as number | undefined
+    )
+
+    let vipAffected = false
+    if (args.is_mandatory) {
+      const { count } = await supabase
+        .from('participants')
+        .select('id', { count: 'exact', head: true })
+        .eq('event_id', eventId)
+        .eq('is_vip', true)
+
+      vipAffected = (count || 0) > 0
+    }
+
+    const proposedState = {
+      title,
+      start_time: startTime,
+      end_time: endTime,
+      room: args.room || null,
+      speaker_name: args.speaker_name || null,
+      max_capacity: args.max_capacity || null,
+      description: args.description || null,
+      is_mandatory: args.is_mandatory || false,
+    }
+
+    const { data: logEntry, error: logError } = await supabase
+      .from('ai_insights_log')
+      .insert({
+        user_id: userId,
+        event_id: eventId,
+        action_type: 'schedule_create',
+        action_data: {
+          current_state: null,
+          proposed_state: proposedState,
+          conflicts_detected: {
+            room: conflicts.room_conflicts,
+            speaker: conflicts.speaker_conflicts,
+            capacity: conflicts.capacity_warning || null,
+          },
+          vip_affected: vipAffected,
+          reasoning: 'AI suggested new schedule item based on user request',
+        },
+        execution_status: 'suggested',
+      })
+      .select('id')
+      .single()
+
+    if (logError) {
+      console.error('Failed to log AI suggestion:', logError)
+    }
+
+    return {
+      success: true,
+      data: {
+        action: 'pending_approval',
+        action_type: 'schedule_create',
+        log_id: logEntry?.id,
+        proposed_item: proposedState,
+        conflicts: {
+          room_conflicts: conflicts.room_conflicts.length,
+          speaker_conflicts: conflicts.speaker_conflicts.length,
+          has_conflicts: conflicts.room_conflicts.length > 0 || conflicts.speaker_conflicts.length > 0,
+          details: conflicts,
+        },
+        vip_affected: vipAffected,
+        message: conflicts.room_conflicts.length > 0 || conflicts.speaker_conflicts.length > 0
+          ? `זוהו ${conflicts.room_conflicts.length + conflicts.speaker_conflicts.length} קונפליקטים. נדרש אישור מנהל.`
+          : vipAffected
+            ? 'הפריט משפיע על משתתפי VIP. נדרש אישור מנהל.'
+            : 'ההצעה מוכנה לאישור מנהל.',
+      },
+    }
+  } catch (err) {
+    console.error('create_schedule_item exception:', err)
+    return { success: false, error: 'שגיאה פנימית ביצירת הצעת פריט לוח זמנים' }
+  }
+}
+
+async function executeUpdateScheduleItem(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>,
+  userId?: string
+): Promise<ToolResult> {
+  try {
+    const scheduleId = args.schedule_id as string
+    const changes = args.changes as Record<string, unknown> | undefined
+
+    if (!scheduleId) {
+      return { success: false, error: 'חסר מזהה פריט לוח זמנים' }
+    }
+
+    if (!changes || Object.keys(changes).length === 0) {
+      return { success: false, error: 'לא צוינו שינויים' }
+    }
+
+    const { data: currentSchedule, error: fetchError } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('id', scheduleId)
+      .single()
+
+    if (fetchError || !currentSchedule) {
+      return { success: false, error: 'פריט לוח הזמנים לא נמצא' }
+    }
+
+    const proposedState = { ...currentSchedule, ...changes }
+
+    if (changes.start_time || changes.end_time) {
+      const startTime = changes.start_time ? new Date(changes.start_time as string) : new Date(currentSchedule.start_time)
+      const endTime = changes.end_time ? new Date(changes.end_time as string) : new Date(currentSchedule.end_time)
+
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        return { success: false, error: 'תאריכים לא תקינים. השתמש בפורמט ISO: YYYY-MM-DDTHH:MM:SS' }
+      }
+
+      if (startTime >= endTime) {
+        return { success: false, error: 'זמן התחלה חייב להיות לפני זמן סיום' }
+      }
+    }
+
+    const conflicts = await detectScheduleConflicts(
+      supabase,
+      currentSchedule.event_id,
+      proposedState.start_time,
+      proposedState.end_time,
+      proposedState.room,
+      proposedState.speaker_name,
+      proposedState.max_capacity,
+      scheduleId
+    )
+
+    let vipAffected = false
+    const { count } = await supabase
+      .from('participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', currentSchedule.event_id)
+      .eq('is_vip', true)
+
+    vipAffected = (count || 0) > 0
+
+    const { data: logEntry, error: logError } = await supabase
+      .from('ai_insights_log')
+      .insert({
+        user_id: userId,
+        event_id: currentSchedule.event_id,
+        action_type: 'schedule_update',
+        action_data: {
+          schedule_id: scheduleId,
+          current_state: currentSchedule,
+          proposed_state: proposedState,
+          changes,
+          conflicts_detected: {
+            room: conflicts.room_conflicts,
+            speaker: conflicts.speaker_conflicts,
+            capacity: conflicts.capacity_warning || null,
+          },
+          vip_affected: vipAffected,
+          reasoning: 'AI suggested schedule update based on user request',
+        },
+        execution_status: 'suggested',
+      })
+      .select('id')
+      .single()
+
+    if (logError) {
+      console.error('Failed to log AI suggestion:', logError)
+    }
+
+    return {
+      success: true,
+      data: {
+        action: 'pending_approval',
+        action_type: 'schedule_update',
+        log_id: logEntry?.id,
+        schedule_id: scheduleId,
+        current_item: currentSchedule,
+        proposed_item: proposedState,
+        changes,
+        conflicts: {
+          room_conflicts: conflicts.room_conflicts.length,
+          speaker_conflicts: conflicts.speaker_conflicts.length,
+          has_conflicts: conflicts.room_conflicts.length > 0 || conflicts.speaker_conflicts.length > 0,
+          details: conflicts,
+        },
+        vip_affected: vipAffected,
+        message: conflicts.room_conflicts.length > 0 || conflicts.speaker_conflicts.length > 0
+          ? `זוהו ${conflicts.room_conflicts.length + conflicts.speaker_conflicts.length} קונפליקטים. נדרש אישור מנהל.`
+          : vipAffected
+            ? 'העדכון משפיע על משתתפי VIP. נדרש אישור מנהל.'
+            : 'העדכון מוכן לאישור מנהל.',
+      },
+    }
+  } catch (err) {
+    console.error('update_schedule_item exception:', err)
+    return { success: false, error: 'שגיאה פנימית בעדכון הצעת פריט לוח זמנים' }
+  }
+}
+
+async function executeDeleteScheduleItem(
+  supabase: SupabaseClient,
+  args: Record<string, unknown>,
+  userId?: string
+): Promise<ToolResult> {
+  try {
+    const scheduleId = args.schedule_id as string
+    const reason = args.reason as string | undefined
+
+    if (!scheduleId) {
+      return { success: false, error: 'חסר מזהה פריט לוח זמנים' }
+    }
+
+    const { data: currentSchedule, error: fetchError } = await supabase
+      .from('schedules')
+      .select('*')
+      .eq('id', scheduleId)
+      .single()
+
+    if (fetchError || !currentSchedule) {
+      return { success: false, error: 'פריט לוח הזמנים לא נמצא' }
+    }
+
+    let vipAffected = false
+    const { count } = await supabase
+      .from('participants')
+      .select('id', { count: 'exact', head: true })
+      .eq('event_id', currentSchedule.event_id)
+      .eq('is_vip', true)
+
+    vipAffected = (count || 0) > 0
+
+    const { data: logEntry, error: logError } = await supabase
+      .from('ai_insights_log')
+      .insert({
+        user_id: userId,
+        event_id: currentSchedule.event_id,
+        action_type: 'schedule_delete',
+        action_data: {
+          schedule_id: scheduleId,
+          current_state: currentSchedule,
+          proposed_state: null,
+          reason: reason || 'No reason provided',
+          vip_affected: vipAffected,
+          reasoning: 'AI suggested schedule deletion based on user request',
+        },
+        execution_status: 'suggested',
+      })
+      .select('id')
+      .single()
+
+    if (logError) {
+      console.error('Failed to log AI suggestion:', logError)
+    }
+
+    return {
+      success: true,
+      data: {
+        action: 'pending_approval',
+        action_type: 'schedule_delete',
+        log_id: logEntry?.id,
+        schedule_id: scheduleId,
+        current_item: currentSchedule,
+        reason: reason || 'לא צוינה סיבה',
+        vip_affected: vipAffected,
+        message: vipAffected
+          ? 'המחיקה משפיעה על משתתפי VIP. נדרש אישור מנהל.'
+          : 'המחיקה מוכנה לאישור מנהל.',
+      },
+    }
+  } catch (err) {
+    console.error('delete_schedule_item exception:', err)
+    return { success: false, error: 'שגיאה פנימית במחיקת הצעת פריט לוח זמנים' }
+  }
+}
+
+// ============================================================================
 // Tool Dispatcher
 // ============================================================================
 
@@ -923,6 +1470,12 @@ async function executeTool(
       return executeAddChecklistItems(supabase, args)
     case 'assign_vendors':
       return executeAssignVendors(supabase, args)
+    case 'create_schedule_item':
+      return executeCreateScheduleItem(supabase, args, userId)
+    case 'update_schedule_item':
+      return executeUpdateScheduleItem(supabase, args, userId)
+    case 'delete_schedule_item':
+      return executeDeleteScheduleItem(supabase, args, userId)
     default:
       return { success: false, error: `כלי לא מוכר: ${toolName}` }
   }
@@ -1158,6 +1711,68 @@ function extractActions(toolCallLog: Array<{ name: string; args: Record<string, 
             data: call.result.data as Record<string, unknown>,
             status: 'suggested',
             label: 'הוצע לוח זמנים',
+          })
+        }
+        break
+      }
+      case 'create_schedule_item': {
+        if (call.result.success) {
+          const actionData = call.result.data as {
+            action: string
+            proposed_item: { title: string }
+            conflicts: { has_conflicts: boolean }
+            vip_affected: boolean
+          }
+          actions.push({
+            type: 'schedule_create_pending',
+            data: call.result.data as Record<string, unknown>,
+            status: 'pending_approval',
+            label: `הצעה ליצירת "${actionData.proposed_item?.title}" (${
+              actionData.conflicts?.has_conflicts
+                ? 'עם קונפליקטים'
+                : actionData.vip_affected
+                  ? 'משפיע על VIP'
+                  : 'ללא קונפליקטים'
+            })`,
+          })
+        }
+        break
+      }
+      case 'update_schedule_item': {
+        if (call.result.success) {
+          const actionData = call.result.data as {
+            current_item: { title: string }
+            conflicts: { has_conflicts: boolean }
+            vip_affected: boolean
+          }
+          actions.push({
+            type: 'schedule_update_pending',
+            data: call.result.data as Record<string, unknown>,
+            status: 'pending_approval',
+            label: `הצעה לעדכון "${actionData.current_item?.title}" (${
+              actionData.conflicts?.has_conflicts
+                ? 'עם קונפליקטים'
+                : actionData.vip_affected
+                  ? 'משפיע על VIP'
+                  : 'ללא קונפליקטים'
+            })`,
+          })
+        }
+        break
+      }
+      case 'delete_schedule_item': {
+        if (call.result.success) {
+          const actionData = call.result.data as {
+            current_item: { title: string }
+            vip_affected: boolean
+          }
+          actions.push({
+            type: 'schedule_delete_pending',
+            data: call.result.data as Record<string, unknown>,
+            status: 'pending_approval',
+            label: `הצעה למחיקת "${actionData.current_item?.title}" (${
+              actionData.vip_affected ? 'משפיע על VIP' : 'ללא השפעה על VIP'
+            })`,
           })
         }
         break

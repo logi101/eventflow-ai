@@ -9,6 +9,7 @@ import { PAGE_WELCOME_MESSAGES } from '../../hooks/usePageContext'
 import ChatMessage from './ChatMessage'
 import ChatInput from './ChatInput'
 import ChatSettings from './ChatSettings'
+import { AIConfirmationDialog } from './AIConfirmationDialog'
 
 // ============================================================================
 // Types
@@ -26,7 +27,9 @@ export function ChatWindow({ height }: ChatWindowProps) {
   const {
     state,
     clearMessages,
-    switchAgent
+    switchAgent,
+    confirmation,
+    addSystemMessage
   } = useChatContext()
   const { selectedEvent } = useEvent()
 
@@ -50,6 +53,24 @@ export function ChatWindow({ height }: ChatWindowProps) {
     'vendor-coordinator': { name: 'רכז ספקים', emoji: '🏢' },
     'task-assistant': { name: 'עוזר משימות', emoji: '✅' },
     'budget-advisor': { name: 'יועץ תקציב', emoji: '💰' }
+  }
+
+  // AI Confirmation handlers (Phase 6)
+  const handleApprove = async () => {
+    try {
+      const result = await confirmation.approve()
+      if (result.success) {
+        addSystemMessage('✅ הפעולה בוצעה בהצלחה!')
+      }
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'שגיאה לא ידועה'
+      addSystemMessage(`❌ שגיאה בביצוע הפעולה: ${errorMsg}`)
+    }
+  }
+
+  const handleReject = async () => {
+    await confirmation.reject()
+    addSystemMessage('🚫 הפעולה נדחתה')
   }
 
   return (
@@ -207,8 +228,33 @@ export function ChatWindow({ height }: ChatWindowProps) {
 
       {/* Input Area */}
       <ChatInput />
+
+      {/* AI Confirmation Dialog (Phase 6) */}
+      {confirmation.dialogOpen && confirmation.pendingAction && (
+        <AIConfirmationDialog
+          action={confirmation.pendingAction}
+          risk={getActionRisk(confirmation.pendingAction)}
+          onApprove={handleApprove}
+          onReject={handleReject}
+          isExecuting={confirmation.isExecuting}
+        />
+      )}
     </div>
   )
+}
+
+// Helper function for risk assessment
+function getActionRisk(action: { conflicts: Array<{ severity: string }>; impact: { vip_count: number; requires_notifications: boolean; affected_participants: number } }): 'low' | 'medium' | 'high' | 'critical' {
+  if (action.conflicts.some(c => c.severity === 'error')) {
+    return 'critical'
+  }
+  if (action.impact.vip_count > 0 || action.conflicts.some(c => c.severity === 'warning')) {
+    return 'high'
+  }
+  if (action.impact.requires_notifications || action.impact.affected_participants > 50) {
+    return 'medium'
+  }
+  return 'low'
 }
 
 export default ChatWindow

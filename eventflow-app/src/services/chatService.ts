@@ -9,7 +9,8 @@ import type {
   ChatMessage,
   PageContext,
   AIRoutingResult,
-  SkillType
+  SkillType,
+  AIWriteAction
 } from '../types/chat'
 import { SLASH_COMMANDS } from '../hooks/usePageContext'
 import { supabase } from '../lib/supabase'
@@ -309,10 +310,21 @@ class GeminiService {
       const uniqueDetected = detectedActions.filter(a => !backendTypes.has(a.type))
       const allActions = [...backendActions, ...uniqueDetected]
 
+      // Detect pending_approval actions (Phase 6: AI Write Operations)
+      const pendingApprovalActions: AIWriteAction[] = []
+      if (data.pending_actions && Array.isArray(data.pending_actions)) {
+        for (const action of data.pending_actions) {
+          if (action.status === 'pending_approval') {
+            pendingApprovalActions.push(action as AIWriteAction)
+          }
+        }
+      }
+
       return {
         content: aiContent,
         actions: allActions.length > 0 ? allActions : undefined,
         suggestions: data.suggestions,
+        pendingApprovalActions: pendingApprovalActions.length > 0 ? pendingApprovalActions : undefined,
         metadata: {
           page: context.currentPage,
           ...(slashCommand ? { command: slashCommand } : {})

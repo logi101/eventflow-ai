@@ -77,6 +77,12 @@ export type ActionType =
   // Schedule actions
   | 'schedule_items_added'
   | 'schedule_item_updated'
+  // AI write operations (Phase 6)
+  | 'ai_write_pending'
+  | 'ai_write_approved'
+  | 'ai_write_rejected'
+  | 'ai_write_executed'
+  | 'ai_write_failed'
 
 export interface ChatAction {
   id: string
@@ -299,3 +305,36 @@ declare global {
     'chat-navigate': ChatNavigateEvent
   }
 }
+
+// ============================================================================
+// AI Write Action Types (Phase 6)
+// ============================================================================
+
+export interface ScheduleConflict {
+  type: 'room_overlap' | 'speaker_overlap' | 'capacity_overflow'
+  severity: 'error' | 'warning'
+  message: string
+  conflicting_item?: {
+    id: string
+    title: string
+    start_time: string
+    end_time: string
+  }
+}
+
+export interface AIWriteAction {
+  action_id: string
+  type: 'schedule_create' | 'schedule_update' | 'schedule_delete'
+  status: 'pending_approval'
+  data: Record<string, unknown>
+  conflicts: ScheduleConflict[]
+  impact: {
+    affected_participants: number
+    vip_count: number
+    requires_notifications: boolean
+  }
+  label: string
+  vip_warning?: string
+}
+
+export type ActionRisk = 'low' | 'medium' | 'high' | 'critical'

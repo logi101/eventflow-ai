@@ -2,12 +2,12 @@
 
 ## Current Position
 
-Phase: 8 (Offline & Vendor Intelligence)
-Plan: 5 of 9 (complete, deployment pending)
-Status: Phase 8 in progress - AI vendor analysis system complete
-Last activity: 2026-02-03 — Completed 08-05 (AI vendor analysis and intelligence UI)
+Phase: 8 (Offline & Vendor Intelligence) COMPLETE
+Plan: 6 of 6 (all complete)
+Status: Phase 8 complete - Edge Function deployment pending (supabase login required)
+Last activity: 2026-02-03 — Completed 08-06 (Offline check-in UI integration)
 
-Progress: █████████████░░░░░░░ 74% (14/19 total plans)
+Progress: ████████████████░░░░ 84% (16/19 total plans)
 
 ## Project Reference
 
@@ -102,7 +102,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8: Budget alert badges show two-tier states (warning yellow, critical red)
 
 ### Blockers
-- vendor-analysis Edge Function deployment pending user authentication (supabase login required)
+- budget-alerts Edge Function deployment pending (supabase login required)
+- vendor-analysis Edge Function deployment pending (supabase login required)
+- Database migration 008_budget_alerts.sql needs to be applied via Supabase Dashboard
 
 ### Technical Notes
 - Edge Function send-reminder deployed as v14 with template engine + all 8 handlers + throttle + retry
@@ -192,9 +194,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-05 (AI vendor analysis and intelligence UI) - vendor-analysis Edge Function deployment pending
+Stopped at: Phase 8 COMPLETE (all 6 plans executed, deployment pending)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: User deploys vendor-analysis Edge Function with `supabase login`, then continue Phase 8 - Plan 08-06 onwards*
+*Next: Deploy Edge Functions (budget-alerts, vendor-analysis) after `supabase login`, then Phase 9 or milestone audit*

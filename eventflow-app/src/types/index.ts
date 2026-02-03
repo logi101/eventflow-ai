@@ -154,6 +154,42 @@ export interface VendorFormData {
   tags: string
 }
 
+// Event-Vendor relationship (event_vendors table)
+export interface EventVendor {
+  id: string
+  event_id: string
+  vendor_id: string
+  category_id: string | null
+  status: VendorStatus
+  quote_requested_at: string | null
+  quote_request_notes: string | null
+  quote_received_at: string | null
+  quoted_amount: number | null
+  quote_valid_until: string | null
+  quote_notes: string | null
+  quote_document_url: string | null
+  approved_amount: number | null
+  approved_at: string | null
+  approved_by: string | null
+  contract_signed: boolean
+  contract_document_url: string | null
+  payment_terms: string | null
+  deposit_amount: number | null
+  deposit_paid: boolean
+  final_amount: number | null
+  final_paid: boolean
+  arrival_time: string | null
+  arrival_confirmed: boolean
+  arrival_confirmed_at: string | null
+  actual_arrival_time: string | null
+  post_event_rating: number | null
+  post_event_notes: string | null
+  would_use_again: boolean | null
+  notes: string | null
+  created_at: string
+  vendors?: Vendor
+}
+
 // Program Builder Types
 export type SpeakerRole = 'main' | 'backup' | 'moderator' | 'panelist' | 'facilitator'
 export type ContingencyType = 'speaker_unavailable' | 'room_unavailable' | 'technical_failure' | 'weather' | 'medical' | 'security' | 'other'
@@ -343,6 +379,7 @@ export interface ChecklistItem {
   sort_order: number
   is_milestone: boolean
   milestone_date: string | null
+  budget_allocation: number | null
   created_at: string
   events?: { name: string }
 }
@@ -357,6 +394,32 @@ export interface ChecklistFormData {
   estimated_cost: string
   is_milestone: boolean
   notes: string
+}
+
+// Budget Alert Types
+export const BudgetAlertThreshold = {
+  WARNING: 80,
+  CRITICAL: 100
+} as const
+
+export type BudgetAlertType = 'warning' | 'critical'
+export type AlertSentVia = 'app' | 'whatsapp' | 'both'
+
+export interface BudgetAlert {
+  id: string
+  checklistItemId: string
+  eventId: string
+  organizationId: string
+  alertType: BudgetAlertType
+  thresholdPercentage: number
+  currentAmount: number
+  budgetAmount: number
+  sentAt: string
+  sentVia: AlertSentVia
+  acknowledgedAt?: string
+  acknowledgedBy?: string
+  acknowledgmentNotes?: string
+  createdAt: string
 }
 
 // Checkin Types

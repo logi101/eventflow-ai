@@ -3,11 +3,11 @@
 ## Current Position
 
 Phase: 9 (Day Simulation & Real-Time Operations) IN PROGRESS
-Plan: 2 of 3 (validators complete)
-Status: Simulation engine with 8 validators ready for UI integration
-Last activity: 2026-02-03 — Completed 09-02 (Simulation Validators & Engine)
+Plan: 4 of 6 (UI components ready)
+Status: Simulation UI complete - trigger, report, and issue cards ready for integration
+Last activity: 2026-02-03 — Completed 09-04 (Simulation UI & Hooks)
 
-Progress: ███████████████████░ 95% (18/19 total plans)
+Progress: ███████████████████░ 95% (19/20 total plans)
 
 ## Project Reference
 
@@ -117,6 +117,10 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 9: Impact summary calculated twice: before suggestion (estimated) and after execution (actual)
 - Phase 9: All notification attempts logged to messages table (sent/failed status with error_message)
 - Phase 9: Hebrew-only notification messages for 5 contingency types (speaker, room, time, cancel, adjust)
+- Phase 9: useSimulation hook uses direct supabase import from @/lib/supabase (no auth-helpers-react package)
+- Phase 9: Smart section expansion - first non-empty severity section auto-expands for UX
+- Phase 9: Three-state trigger button: Run / Running / Run Again with icon changes
+- Phase 9: Critical issues warning banner shows recommendation but doesn't block (manager override allowed)
 
 ### Blockers
 - budget-alerts Edge Function deployment pending (supabase login required)
@@ -207,6 +211,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 9, Plan 1: Database & Types Foundation (09-01-SUMMARY.md)
 - Phase 9, Plan 2: Simulation Validators & Engine (09-02-SUMMARY.md)
 - Phase 9, Plan 3: Contingency Services (09-03-SUMMARY.md)
+- Phase 9, Plan 4: Simulation UI & Hooks (09-04-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -217,9 +222,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 9, Plan 2 complete (Simulation Validators & Engine)
+Stopped at: Phase 9, Plan 4 complete (Simulation UI & Hooks)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Execute Phase 9, Plan 3 (Contingency Services) - validation engine ready*
+*Next: Execute Phase 9, Plan 5 or 6 (Contingency UI components + Integration)*

@@ -7,10 +7,12 @@ import { useState, useEffect } from 'react'
 import {
   Building2, DoorOpen, Bed, User, Search,
   Check, X, Edit2, Save, Loader2, Hotel,
-  ChevronDown
+  ChevronDown, Grid3x3, List
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { Participant, ParticipantRoom, RoomType, BedConfiguration } from '../../types'
+import { RoomGridView } from './RoomGridView'
+import { RoomListView } from './RoomListView'
 
 interface RoomAssignmentPanelProps {
   eventId: string
@@ -21,6 +23,32 @@ interface ParticipantWithRoom extends Participant {
   room?: ParticipantRoom
 }
 
+interface RoomGridItem {
+  id: string
+  room_number: string
+  building?: string
+  floor?: string
+  participant?: {
+    id: string
+    first_name: string
+    last_name: string
+    is_vip: boolean
+  }
+}
+
+interface RoomGridItem {
+  id: string
+  room_number: string
+  building?: string
+  floor?: string
+  participant?: {
+    id: string
+    first_name: string
+    last_name: string
+    is_vip: boolean
+  }
+}
+
 export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelProps) {
   const [participants, setParticipants] = useState<ParticipantWithRoom[]>([])
   const [loading, setLoading] = useState(true)
@@ -28,6 +56,7 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
   const [filterStatus, setFilterStatus] = useState<'all' | 'assigned' | 'unassigned'>('all')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [viewMode, setViewMode] = useState<'participant' | 'list' | 'grid'>('participant')
 
   // Form state for room assignment
   const [roomForm, setRoomForm] = useState({
@@ -158,6 +187,22 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
   const assignedCount = participants.filter(p => p.room).length
   const unassignedCount = participants.length - assignedCount
 
+  // Convert participants to room-centric view
+  const roomsData: RoomGridItem[] = filtered
+    .filter(p => p.room?.room_number) // Only participants with assigned rooms
+    .map(p => ({
+      id: p.id,
+      room_number: p.room!.room_number,
+      building: p.room!.building || undefined,
+      floor: p.room!.floor || undefined,
+      participant: {
+        id: p.id,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        is_vip: p.is_vip
+      }
+    }))
+
   const roomTypeLabels: Record<RoomType, string> = {
     standard: 'סטנדרט',
     suite: 'סוויטה',
@@ -220,6 +265,32 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
           </div>
         </div>
 
+        {/* View Mode Toggle */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setViewMode('list')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'list'
+                ? 'bg-[#C4704B] text-white'
+                : 'bg-white border border-[#E8E4DD] text-[#8B8680] hover:border-[#D4CFC6]'
+            }`}
+          >
+            <List size={16} />
+            רשימה
+          </button>
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+              viewMode === 'grid'
+                ? 'bg-[#C4704B] text-white'
+                : 'bg-white border border-[#E8E4DD] text-[#8B8680] hover:border-[#D4CFC6]'
+            }`}
+          >
+            <Grid3x3 size={16} />
+            רשת
+          </button>
+        </div>
+
         {/* Search and Filter */}
         <div className="flex gap-3">
           <div className="flex-1 relative">
@@ -249,8 +320,32 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
         </div>
       </div>
 
-      {/* Participant List */}
+      {/* Content Area - Conditional Rendering */}
       <div className="flex-1 overflow-auto p-4">
+        {/* Grid View */}
+        {viewMode === 'grid' && (
+          <RoomGridView
+            rooms={roomsData}
+            onRoomClick={(roomId: string) => {
+              const participant = filtered.find(p => p.id === roomId)
+              if (participant) startEditing(participant)
+            }}
+          />
+        )}
+
+        {/* List View */}
+        {viewMode === 'list' && (
+          <RoomListView
+            rooms={roomsData}
+            onRoomClick={(roomId: string) => {
+              const participant = filtered.find(p => p.id === roomId)
+              if (participant) startEditing(participant)
+            }}
+          />
+        )}
+
+        {/* Participant Assignment View (default) */}
+        {viewMode === 'participant' && (
         <div className="space-y-2">
           {filtered.map(participant => (
             <div
@@ -486,6 +581,7 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   )

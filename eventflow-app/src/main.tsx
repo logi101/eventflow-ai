@@ -9,6 +9,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { EventProvider } from './contexts/EventContext'
 import { GracePeriodProvider } from './contexts/GracePeriodContext'
 import { setupAutoSync } from './modules/checkin/services/syncService'
+import { ErrorBoundary } from './ErrorBoundary'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -24,18 +25,20 @@ setupAutoSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <EventProvider>
-            <GracePeriodProvider>
-              <ChatProvider>
-                <App />
-              </ChatProvider>
-            </GracePeriodProvider>
-          </EventProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <EventProvider>
+              <GracePeriodProvider>
+                <ChatProvider>
+                  <App />
+                </ChatProvider>
+              </GracePeriodProvider>
+            </EventProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

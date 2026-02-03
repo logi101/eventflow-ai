@@ -101,6 +101,10 @@ export interface ParticipantFormData {
   vip_notes: string
 }
 
+export interface ParticipantWithTracks extends Participant {
+  tracks: Track[]
+}
+
 // Vendor Types
 export type VendorStatus = 'pending' | 'quote_requested' | 'quoted' | 'approved' | 'rejected' | 'confirmed'
 

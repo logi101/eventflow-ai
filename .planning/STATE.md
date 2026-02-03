@@ -3,11 +3,11 @@
 ## Current Position
 
 Phase: 8 (Offline & Vendor Intelligence)
-Plan: 1 of 9 (complete)
-Status: Phase 8 in progress - Budget alerts database foundation complete
-Last activity: 2026-02-03 — Completed 08-01 (budget alerts migration)
+Plan: 3 of 9 (complete)
+Status: Phase 8 in progress - Offline sync service complete
+Last activity: 2026-02-03 — Completed 08-03 (offline sync service and online status)
 
-Progress: ███████████░░░░░░░░░ 58% (11/19 total plans)
+Progress: ████████████░░░░░░░░ 63% (12/19 total plans)
 
 ## Project Reference
 
@@ -82,6 +82,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8: Separate budget_alert_history table for alert deduplication and acknowledgment tracking
 - Phase 8: Trigger-based duplicate prevention - one unacknowledged alert per item+type
 - Phase 8: Alert delivery tracking via sent_via field (app, whatsapp, or both)
+- Phase 8: Rate limit: 10 requests/minute shared across all sync operations (localStorage tracking)
+- Phase 8: Exponential backoff: 200ms base with 30% jitter, max 5s delay, 5 retry attempts
+- Phase 8: Pending count badge only visible when offline (per CONTEXT.md)
+- Phase 8: Connection status as toast notification (3s auto-hide), not persistent banner
+- Phase 8: Auto-sync triggered by window 'online' event with 1s stability delay
+- Phase 8: Offline-first pattern: IndexedDB write first, then sync if online
 
 ### Blockers
 (None currently)
@@ -127,6 +133,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - CRUD operations: addOfflineCheckIn, getPendingCheckIns, markCheckInSynced, cacheParticipants, getCachedParticipants
 - TTL pattern: expiresAt = cachedAt + PARTICIPANT_TTL_MS (24 hours)
 - TypeScript verbatimModuleSyntax: use type-only imports (import { type ... })
+- useOnlineStatus hook: navigator.onLine + window online/offline events for connection detection
+- useSyncQueue hook: useLiveQuery from dexie-react-hooks for real-time pending count tracking
+- syncService: Rate-limited sync with exponential backoff, max 5 retries per check-in
+- useOfflineCheckIn hook: Write IndexedDB first, sync if online, optimistic TanStack Query updates
+- ConnectionStatus component: Toast on connection change (3s auto-hide), pending badge only offline
+- setupAutoSync() registers window 'online' listener for automatic background sync
 
 ### Completed Milestones
 - v1.0: Automated Reminders (5 phases, 20 requirements, all complete — shipped 2026-02-02)
@@ -151,6 +163,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 7, Plan 6: UI integration gap closure (07-06-SUMMARY.md)
 - Phase 8, Plan 1: Database foundation for budget alerts (08-01-SUMMARY.md)
 - Phase 8, Plan 2: Dexie.js IndexedDB setup (08-02-SUMMARY.md)
+- Phase 8, Plan 3: Offline sync service and online status (08-03-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -161,9 +174,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-01 (budget alerts database foundation)
+Stopped at: Completed 08-03 (offline sync service and online status)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Continue Phase 8 - Plan 08-02 onwards (already partially complete), or resume with 08-03+*
+*Next: Continue Phase 8 - Plan 08-04 onwards (budget alerts UI), or continue with remaining Phase 8 plans*

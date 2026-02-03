@@ -9,17 +9,17 @@ Requirements for intelligent production features. Each maps to roadmap phases.
 
 ### AI Agent Foundation (AIAG)
 
-- [ ] **AIAG-01**: AI chat can suggest DB write operations with preview before execution
-- [ ] **AIAG-02**: Manager sees confirmation dialog with action description + impact before any AI write executes
-- [ ] **AIAG-03**: AI actions are logged in audit trail (ai_insights_log table) with action type, data, user, timestamp
-- [ ] **AIAG-04**: AI chat maintains correct event context (event_id scoped per conversation)
-- [ ] **AIAG-05**: AI writes respect existing RLS policies (uses user JWT, not service_role_key)
+- [x] **AIAG-01**: AI chat can suggest DB write operations with preview before execution
+- [x] **AIAG-02**: Manager sees confirmation dialog with action description + impact before any AI write executes
+- [x] **AIAG-03**: AI actions are logged in audit trail (ai_insights_log table) with action type, data, user, timestamp
+- [x] **AIAG-04**: AI chat maintains correct event context (event_id scoped per conversation)
+- [x] **AIAG-05**: AI writes respect existing RLS policies (uses user JWT, not service_role_key)
 
 ### Schedule Management (SCHED)
 
-- [ ] **SCHED-05**: AI can create, update, and delete schedule items via chat with manager confirmation
-- [ ] **SCHED-06**: System detects schedule conflicts (room double-booking, speaker overlap, capacity overflow) in real-time
-- [ ] **SCHED-07**: Conflict warnings shown before AI suggestion is approved
+- [x] **SCHED-05**: AI can create, update, and delete schedule items via chat with manager confirmation
+- [x] **SCHED-06**: System detects schedule conflicts (room double-booking, speaker overlap, capacity overflow) in real-time
+- [x] **SCHED-07**: Conflict warnings shown before AI suggestion is approved
 - [ ] **SCHED-08**: Manager can activate contingency plan (swap to backup speaker) when primary cancels
 - [ ] **SCHED-09**: Affected participants notified via WhatsApp when schedule changes
 
@@ -36,7 +36,7 @@ Requirements for intelligent production features. Each maps to roadmap phases.
 
 - [ ] **VIP-01**: VIP participants visually distinguished throughout the system (badges, priority indicators)
 - [ ] **VIP-02**: VIP-specific WhatsApp templates with personalized variables (room_number, table_number)
-- [ ] **VIP-03**: AI prioritizes VIP requests and concerns in chat responses
+- [x] **VIP-03**: AI prioritizes VIP requests and concerns in chat responses
 
 ### Smart Room Assignment (ROOM)
 
@@ -110,14 +110,14 @@ Deferred to future milestone.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AIAG-01 | Phase 6 | Pending |
-| AIAG-02 | Phase 6 | Pending |
-| AIAG-03 | Phase 6 | Pending |
-| AIAG-04 | Phase 6 | Pending |
-| AIAG-05 | Phase 6 | Pending |
-| SCHED-05 | Phase 6 | Pending |
-| SCHED-06 | Phase 6 | Pending |
-| SCHED-07 | Phase 6 | Pending |
+| AIAG-01 | Phase 6 | Complete |
+| AIAG-02 | Phase 6 | Complete |
+| AIAG-03 | Phase 6 | Complete |
+| AIAG-04 | Phase 6 | Complete |
+| AIAG-05 | Phase 6 | Complete |
+| SCHED-05 | Phase 6 | Complete |
+| SCHED-06 | Phase 6 | Complete |
+| SCHED-07 | Phase 6 | Complete |
 | SCHED-08 | Phase 9 | Pending |
 | SCHED-09 | Phase 9 | Pending |
 | NETW-01 | Phase 7 | Pending |
@@ -128,7 +128,7 @@ Deferred to future milestone.
 | NETW-06 | Phase 7 | Pending |
 | VIP-01 | Phase 7 | Pending |
 | VIP-02 | Phase 7 | Pending |
-| VIP-03 | Phase 6 | Pending |
+| VIP-03 | Phase 6 | Complete |
 | ROOM-01 | Phase 7 | Pending |
 | ROOM-02 | Phase 7 | Pending |
 | ROOM-03 | Phase 7 | Pending |
@@ -157,4 +157,4 @@ Deferred to future milestone.
 
 ---
 *Requirements defined: 2026-02-02*
-*Last updated: 2026-02-02 after roadmap creation*
+*Last updated: 2026-02-02 after Phase 6 completion*

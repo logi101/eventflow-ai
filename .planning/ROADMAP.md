@@ -58,12 +58,14 @@ Plans:
   4. Manager can review AI-generated seating plan and manually override specific table assignments
   5. AI suggests room assignments based on VIP status, bed preferences, and accessibility needs with availability preview
 
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 07-01: TBD
-- [ ] 07-02: TBD
-- [ ] 07-03: TBD
+- [ ] 07-01-PLAN.md -- Database foundation: networking_opt_in column, table_assignments table, track_statistics view
+- [ ] 07-02-PLAN.md -- VIP visual treatment: VIPBadge component, useVIPSorting hook, VIP WhatsApp templates
+- [ ] 07-03-PLAN.md -- Track assignment UI: TrackChip, bulk assignment, useTrackAssignment hook
+- [ ] 07-04-PLAN.md -- Seating system: seating algorithm, seating service, drag-drop seating plan UI
+- [ ] 07-05-PLAN.md -- AI room suggestions: ai-chat room tool, RoomGridView, enhanced RoomAssignmentPanel
 
 ### Phase 8: Offline & Vendor Intelligence
 **Goal**: Check-in works without internet connection and syncs when connection returns, while AI analyzes vendor quotes against budget and suggests alternatives
@@ -113,7 +115,7 @@ Phases execute in numeric order: 6 → 6.1 (if inserted) → 6.2 → 7 → 8 →
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 6. AI Write Foundation | 4/4 | ✓ Complete | 2026-02-02 |
-| 7. Networking & VIP Infrastructure | 0/TBD | Not started | - |
+| 7. Networking & VIP Infrastructure | 0/5 | Planned | - |
 | 8. Offline & Vendor Intelligence | 0/TBD | Not started | - |
 | 9. Day Simulation & Real-Time Operations | 0/TBD | Not started | - |
 

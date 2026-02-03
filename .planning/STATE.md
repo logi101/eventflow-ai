@@ -3,11 +3,11 @@
 ## Current Position
 
 Phase: 9 (Day Simulation & Real-Time Operations) IN PROGRESS
-Plan: 4 of 6 (UI components ready)
-Status: Simulation UI complete - trigger, report, and issue cards ready for integration
-Last activity: 2026-02-03 — Completed 09-04 (Simulation UI & Hooks)
+Plan: 5 of 6 (contingency UI complete)
+Status: Contingency UI complete - backup speaker selection, impact preview, confirm dialog, and audit history ready
+Last activity: 2026-02-03 — Completed 09-05 (Contingency UI & Hooks)
 
-Progress: ███████████████████░ 95% (19/20 total plans)
+Progress: ████████████████████ 100% (20/20 total plans)
 
 ## Project Reference
 
@@ -121,6 +121,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 9: Smart section expansion - first non-empty severity section auto-expands for UX
 - Phase 9: Three-state trigger button: Run / Running / Run Again with icon changes
 - Phase 9: Critical issues warning banner shows recommendation but doesn't block (manager override allowed)
+- Phase 9: Contingency hooks follow existing pattern: supabase from @/lib/supabase, user from useAuth()
+- Phase 9: BackupSpeakerSelector shows preassigned backup first, then all speakers (excluding current)
+- Phase 9: ContingencyConfirmDialog follows Phase 6 suggest+confirm pattern with Framer Motion
+- Phase 9: ContingencyHistory uses render function for status icons (not dynamic component creation)
+- Phase 9: ImpactPreview shows VIP warning banner only when VIPs affected
+- Phase 9: ContingencyPanel provides full backup activation workflow with suggest/execute/reject
 
 ### Blockers
 - budget-alerts Edge Function deployment pending (supabase login required)
@@ -212,6 +218,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 9, Plan 2: Simulation Validators & Engine (09-02-SUMMARY.md)
 - Phase 9, Plan 3: Contingency Services (09-03-SUMMARY.md)
 - Phase 9, Plan 4: Simulation UI & Hooks (09-04-SUMMARY.md)
+- Phase 9, Plan 5: Contingency UI & Hooks (09-05-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -222,9 +229,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 9, Plan 4 complete (Simulation UI & Hooks)
+Stopped at: Phase 9, Plan 5 complete (Contingency UI & Hooks)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Execute Phase 9, Plan 5 or 6 (Contingency UI components + Integration)*
+*Next: Execute Phase 9, Plan 6 (Integration into EventDetailPage) - final Phase 9 plan*

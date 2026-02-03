@@ -8,6 +8,7 @@ import { ChatProvider } from './contexts/ChatContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { EventProvider } from './contexts/EventContext'
 import { GracePeriodProvider } from './contexts/GracePeriodContext'
+import { setupAutoSync } from './modules/checkin/services/syncService'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,6 +18,9 @@ const queryClient = new QueryClient({
     },
   },
 })
+
+// Initialize auto-sync for offline check-ins
+setupAutoSync()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

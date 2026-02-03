@@ -1,276 +1,290 @@
 # Project Research Summary
 
-**Project:** EventFlow AI v2.0 - Intelligent Production & Networking Engine
-**Domain:** Event Management System (Luxury/Complex Events, 100-500+ attendees)
-**Researched:** 2026-02-02
+**Project:** EventFlow AI v2.1 SaaS Tier Structure
+**Domain:** Multi-tenant Event Management SaaS
+**Researched:** 2026-02-03
 **Confidence:** HIGH
 
 ## Executive Summary
 
-EventFlow AI v2.0 adds intelligent automation to a working event management system by extending the existing Gemini AI integration with database write capabilities, offline-first check-in, networking/seating algorithms, day simulation, and vendor intelligence. The research confirms that all features can be implemented with **zero new external services** — only 6 library additions (Dexie.js for IndexedDB, Workbox for Service Workers, optional helpers).
+EventFlow AI v2.1 adds SaaS tier structure (Base + Premium) to an existing Supabase multi-tenant event management system. The research reveals a clear implementation path: extend the existing `organizations` table with tier information, enforce limits at three layers (database RLS, Edge Functions, React Context), and defer payment integration to v2.2.
 
-The recommended approach follows a "suggest + confirm" pattern where AI provides recommendations but humans retain final decision authority. This is critical for high-stakes luxury events where autonomous AI writes would violate trust and safety requirements. All changes are **additive only** — new database tables, new AI tools, new UI components — preserving the existing v1.0 production system (automated reminders, WhatsApp integration, template engine).
+**Recommended approach:** Implement a three-layer enforcement strategy where the database is the single source of truth for tier information, Edge Functions provide quota validation before processing, and the React frontend delivers graceful degradation UX. Use dedicated `tier` column (not JSONB) for RLS performance, atomic counters for usage tracking, and Context API (not new state libraries) for frontend tier state.
 
-Key risks center on multi-tenant security (AI must respect RLS policies), offline sync conflicts (duplicate check-ins), and integration fragility (cron jobs firing during migrations). All risks have clear mitigation strategies and can be addressed through careful phase ordering: AI write foundation first (establishes security patterns), then offline capabilities (isolated failure domain), finally advanced features (networking, simulation).
+**Key risk:** The existing system has 8 pg_cron jobs and offline check-in capabilities that could bypass tier limits if not properly gated. Prevention requires tier checks in Edge Functions (especially send-reminder v21+), atomic usage increments, and soft limit enforcement for offline sync. The biggest technical pitfall is JSONB RLS performance degradation — using a dedicated indexed `tier` column avoids 50-100x query slowdowns.
 
 ## Key Findings
 
 ### Recommended Stack
 
-**Key Finding:** All v2.0 features can be implemented with ZERO new external services — only library additions to the existing Supabase + React 19 architecture.
+**NO NEW LIBRARIES NEEDED.** The entire tier system builds on EventFlow AI's existing stack: PostgreSQL for tier storage and RLS enforcement, Edge Functions for quota checks, and React Context for frontend state.
 
-**Stack additions (required):**
-- **Dexie.js v4.0** — IndexedDB wrapper for offline check-in queue (TypeScript-native, handles versioning cleanly)
-- **Workbox v7.0** — Service Worker framework for offline capabilities (Google's official SW tooling, industry standard)
-- **vite-plugin-pwa v0.19** — Vite integration for PWA + Workbox (simplifies config in Vite projects)
+**Core technologies:**
+- **PostgreSQL tier column + ENUM** — Dedicated `organizations.tier` (not JSONB) prevents RLS performance death. Indexed column enables fast tier checks in RLS policies without 50-100x slowdowns.
+- **PostgreSQL triggers + atomic updates** — Auto-increment usage counters on insert, preventing race conditions across 8 concurrent pg_cron jobs sending ~28 messages/minute.
+- **Security definer functions (STABLE)** — PostgreSQL optimizer caches tier checks per statement rather than per row, enabling performant RLS policies for Premium feature gating.
+- **Supabase Edge Functions (service role)** — Quota enforcement before processing, admin tier updates that bypass RLS, preventing frontend tampering.
+- **React Context API** — Sufficient for infrequent tier data (admin-triggered changes). Avoid Zustand/Redux — overkill for "environment-style" state like subscription tier.
 
-**Stack additions (optional):**
-- **zod-to-json-schema v3.22** — Convert Zod schemas to JSON Schema for Gemini tool definitions (type-safe tool definitions from existing schemas)
-
-**No new dependencies needed for:**
-- AI write access (Gemini native function calling already integrated)
-- Networking/seating algorithm (custom TypeScript, 200 lines)
-- Day simulation (TypeScript logic in Edge Function, date arithmetic + SQL)
-- Vendor intelligence (basic statistics, 20 lines of math)
-
-**Why this stack works:** Gemini function calling is already integrated via ai-chat Edge Function. Existing Supabase Edge Functions support DB writes. The only missing piece is offline capability (Service Worker + IndexedDB), which requires standard PWA libraries.
+**Critical version requirements:** None. Uses existing Supabase client (@supabase/supabase-js ^2.90.1), TanStack Query (@tanstack/react-query ^5.90.19), React 19.
 
 ### Expected Features
 
+**Tier Structure (2-tier maximum for v2.1):**
+
+Base Tier (Free):
+- 5 events per year (annual limit)
+- 100 participants per event
+- 200 messages per month (WhatsApp/SMS/Email combined)
+- Full workflow access: registration, Excel import/export, schedules, basic check-in, vendor management (basic)
+- **Excluded:** AI chat, simulation, networking engine, budget alerts, offline check-in, advanced analytics
+
+Premium Tier (Paid):
+- Unlimited events, participants, messages
+- All Base features PLUS AI chat (DB write access), day simulation (8 validators), networking engine (smart seating), budget alerts (spend tracking), vendor analysis (AI insights), offline check-in (with sync), advanced analytics, priority support
+
+**Gating strategy:** "Limit scale, not features" — Base users get full workflow at limited scale. Premium unlocks AI-powered features (high compute cost) and unlimited scale (high storage/message costs).
+
 **Must have (table stakes):**
-- AI suggestions with human approval — industry standard post-2023, no autonomous writes
-- Real-time conflict detection — prevents scheduling disasters (double-booking, capacity)
-- Networking opt-in/out — privacy requirement (GDPR compliance)
-- VIP priority handling — table stakes for luxury events
-- Manual override capability — AI recommendations must be overridable by manager
-- Audit trail for AI actions — managers need to see what AI suggested/changed
-- Preview before send — any auto-generated message must show preview first
+- Clear tier visibility (dashboard badge showing current tier)
+- Transparent limits (display "3/5 events" before hitting limit)
+- Soft limit warnings (notify at 80% usage)
+- Graceful degradation (upgrade prompt, not hard errors)
+- Contextual upgrade prompts ("Use AI chat to plan faster" vs generic "Upgrade now")
 
-**Should have (differentiators):**
-- Day simulation / stress testing — biggest differentiator, proactive issue detection before event day
-- Contextual networking (interests + tracks) — goes beyond basic seating, creates meaningful connections
-- Vendor intelligence (quote analysis) — budget optimization with AI insights
-- Offline-first check-in with sync — not just offline-capable, but sync-on-reconnect
-- Manager-controlled AI write access — enable/disable AI DB writes per action type
-
-**Defer to v2+:**
-- Multi-event dashboard for attendees (out of scope, feature bloat)
-- Full offline mode (too expensive, check-in only for MVP)
-- Social media integration (brand risk, needs approval workflow)
-- Video conferencing (Zoom/Teams do this well, just embed links)
-- Real-time budget sync with accounting (scope creep, export to Excel instead)
-
-**Anti-features (explicitly avoid):**
-- Fully autonomous AI agent (too risky for high-stakes events)
-- Public self-service track selection (creates chaos)
-- Gamification (wrong fit for luxury/professional events)
+**Defer to v2.2 (Payment Integration):**
+- Stripe integration, automated billing, credit card collection, dunning, proration, subscription lifecycle management
+- **Rationale:** Validate tier structure first (do users want Premium? are limits right?) before adding payment complexity. Use manual tier assignment initially.
 
 ### Architecture Approach
 
-All v2.0 changes are **additive only** — no breaking changes to existing v1.0 functionality. The architecture extends the existing ai-chat Edge Function (7 tools, 3 already write to DB) with 11 new tools for schedule management, room assignments, networking, vendor analysis, and simulation. Two new database tables (table_assignments, ai_insights_log) and two new fields (participants.networking_opt_in, checklist_items.vendor_id) support new features without affecting existing queries.
+The tier system integrates seamlessly with EventFlow AI's existing multi-tenant architecture by anchoring tier information in the `organizations` table and leveraging the established RLS pattern using `auth.user_org_id()`.
+
+**Three-layer enforcement strategy (defense in depth):**
+1. **Database layer (RLS)** — Security boundary. Tier checks in RLS policies block unauthorized access even if Edge Functions are bypassed with service_role. Dedicated `tier` column (indexed) prevents JSONB performance issues.
+2. **Edge Functions layer** — Quota validation before processing. All 6 Edge Functions (ai-chat, send-reminder, execute-ai-action, budget-alerts, vendor-analysis, send-push-notification) check tier and usage counters, returning 429 if quota exceeded.
+3. **Frontend layer (React Context)** — UX layer for graceful degradation. `TierContext` provides `canAccess(feature)` and `hasQuota(type)` helpers. `FeatureGuard` and `QuotaGuard` components wrap Premium features with upgrade prompts.
 
 **Major components:**
-1. **AI Enhanced Tools (extend ai-chat/index.ts)** — Add 11 new tool declarations following existing pattern (create_event_draft, add_checklist_items, assign_vendors already write to DB)
-2. **Offline Service (new)** — Service Worker + Dexie.js for offline check-in, IndexedDB queue syncs when connection returns
-3. **Networking Engine (new)** — TypeScript algorithm for table seating based on shared interests/tracks, VIP priority, diversity constraints
-4. **Simulation Engine (new)** — Timeline analysis in Edge Function, detects room conflicts, speaker overlaps, capacity issues
-5. **Vendor Intelligence (new)** — Statistical analysis (mean, median, outliers) + AI insights via existing ai-chat
-
-**Integration pattern:** All AI writes use same validation as manual edits (RLS policies, unique constraints, foreign keys). No bypass layer. AI suggestions return to frontend for confirmation, then execute via same Supabase client as human actions.
+1. **TierContext (src/contexts/TierContext.tsx)** — Global tier state fetched from `organizations` table on auth. Exposes `tier`, `limits`, `usage`, `canAccess()`, `hasQuota()` to all components.
+2. **Quota middleware (functions/_shared/quota-check.ts)** — Reusable Edge Function helper that checks tier and usage, returns `{allowed, remaining, tier}`. Used by all message-sending and AI functions.
+3. **Usage counter triggers (schema migration)** — PostgreSQL triggers auto-increment `organizations.current_usage` on events/participants/messages insert. Atomic operations prevent race conditions.
+4. **Admin tier control (functions/admin-set-tier)** — Edge Function using service_role to update tier (bypasses RLS). Logs audit trail: `tier_updated_by`, `tier_updated_at`.
 
 ### Critical Pitfalls
 
-1. **AI Bypasses Row-Level Security** — Service role key bypasses RLS, multi-tenant isolation breaks. **Prevention:** Use user JWT for AI writes, validate organization_id on every action, add ai_actions audit log. **Phase 1 critical.**
+1. **Inconsistent gating across access points (CRITICAL)** — Tier checks in UI but not Edge Functions/RLS = easily bypassed. Prevention: Edge Functions FIRST (add tier checks to all 6 functions), then RLS policies, finally UI. Never rely on frontend alone.
 
-2. **Offline Sync Creates Duplicate Participants** — Two managers check in same person (one offline, one online), both succeed, duplicate records. **Prevention:** UPSERT with conflict check on (event_id, participant_id), deterministic timestamp resolution, sync queue processes sequentially. **Phase 2 critical.**
+2. **JSONB tier checks in RLS policies (CRITICAL)** — Storing tier in `organizations.settings->>'tier'` causes 50-100x query slowdown (18s vs 200ms) because JSONB casting is not LEAKPROOF. Prevention: Dedicated `organizations.tier` column (TEXT/ENUM), indexed, simple equality in RLS.
 
-3. **pg_cron Jobs Fire During Schema Migration** — Automated reminder cron fires mid-migration, crashes, leaves partial messages. **Prevention:** Disable cron before migrations via pg_cron.unschedule(), re-enable after verify, add schema version check to Edge Functions. **Every phase with schema changes.**
+3. **pg_cron jobs bypass tier limits (CRITICAL)** — 8 active cron jobs run as `postgres` superuser, bypass all RLS. send-reminder Edge Function must check tier before calling Green API or free users consume unlimited WhatsApp credits. Prevention: Tier check in send-reminder v22+, monthly reset cron, message_count tracking.
 
-4. **Seating Algorithm Exposes Sensitive Preferences** — Track names (e.g., "LGBTQ+ Leadership") exported to vendor, participant safety compromised. **Prevention:** Track visibility flags (is_public), export sanitization, participant opt-out mechanism, use hashed IDs for grouping. **Phase 3 critical.**
+4. **Existing user migration missing (CRITICAL)** — No migration script = all existing users locked out (if no default) or get Premium free (if default = premium). Prevention: Migration script with grandfathering (`tier = 'legacy_premium'` for 6-12 months), gradual rollout (weeks 1-2 deploy column, weeks 3-4 enable enforcement), email campaign before launch.
 
-5. **AI Simulation Recommends Impossible Room Assignment** — AI suggests room already booked (time block conflict), manager approves, chaos on event day. **Prevention:** AI suggestions go through same validation as manual edits, DB constraint UNIQUE (room_id, time_block_id), show conflict warnings before approval. **Phase 4 critical.**
+5. **Offline check-in sync violating limits (HIGH)** — IndexedDB queues 500 participants while offline, syncs all at once, bypasses 100 participant limit because bulk-insert doesn't check. Prevention: Pre-check before offline mode, soft enforcement (allow sync, mark `over_limit = true`, show upgrade banner), batch insert validation.
+
+6. **Usage tracking race conditions (HIGH)** — 8 concurrent cron jobs sending ~28 messages/minute hit read → check → write race condition, causing 5-15% overage. Prevention: Atomic `UPDATE organizations SET count = count + 1 WHERE tier = 'premium' OR count < 100`, row locking, idempotency keys.
+
+7. **AI promises gated features (HIGH)** — AI chat trained on full feature set promises "Sure! Let me run a simulation..." then fails when execute-ai-action tries to call Premium-only function. Prevention: System prompt includes tier context (`CURRENT PLAN: ${tier}`, `BASE PLAN LIMITATIONS: You CANNOT run simulations`), function calling gating (only register Base-accessible tools).
 
 ## Implications for Roadmap
 
-Based on research, suggested **4-phase structure over 4 weeks**:
+Based on research, suggested 4-phase structure:
 
-### Phase 1: AI Write Foundation (Week 1)
-**Rationale:** Establish security patterns and confirmation flows before any advanced features. Extends existing ai-chat pattern (3 tools already write to DB), no schema changes needed.
+### Phase 1: Foundation (Week 1)
+**Rationale:** Database-first approach ensures security boundary before any user-facing changes. Existing user migration is mission-critical to avoid production outage.
 
-**Delivers:** AI can manage schedules, room assignments, participant tracks via chat with human confirmation.
+**Delivers:**
+- Schema migration: `ALTER TABLE organizations ADD COLUMN tier TEXT DEFAULT 'base'`, tier_limits JSONB, current_usage JSONB
+- Usage counter triggers (events, participants, messages)
+- Tier-aware RLS policies (Premium feature tables)
+- Existing user migration script (grandfather to `legacy_premium` or backfill to `base`)
+- Security definer functions for performant RLS tier checks
 
-**Addresses Features:**
-- AI suggestions with human approval (table stakes)
-- Manual override capability (table stakes)
-- Audit trail for AI actions (table stakes)
+**Addresses:**
+- Pitfall 2 (JSONB RLS performance) — uses dedicated column
+- Pitfall 4 (existing user migration) — includes grandfathering plan
+- Table stakes: tier visibility foundation
 
-**Avoids Pitfalls:**
-- Pitfall 1: Use user JWT, validate organization_id on every write
-- Pitfall 10: Explicit event context management (URL parameter)
-- Pitfall 14: AI uses same service layer as manual writes (message dedup)
+**Avoids:**
+- JSONB performance death (indexed TEXT column)
+- Production outage from unmigrated users
+- Race condition foundation (atomic usage increments)
 
-**Stack:** Existing Gemini function calling, no new dependencies
-
-**Research Flag:** LOW — Pattern established with create_event_draft, add_checklist_items tools. Standard extension.
-
----
-
-### Phase 2: Database Schema + Networking Engine (Week 2)
-**Rationale:** Add new tables for networking and vendor intelligence. Networking algorithm is standalone (no dependencies on other v2.0 features).
-
-**Delivers:** Table seating based on shared interests, VIP priority, diversity constraints. Manager can review and override.
-
-**Addresses Features:**
-- Contextual networking (differentiator)
-- VIP priority handling (table stakes)
-- Networking opt-in/out (table stakes, privacy)
-
-**Avoids Pitfalls:**
-- Pitfall 4: Track visibility flags, export sanitization, opt-in mechanism
-- Pitfall 9: Diversity constraints, connector seating, not just interest matching
-
-**Stack:** Custom TypeScript algorithm (200 lines, no dependencies)
-
-**Schema Changes:**
-- ADD participants.networking_opt_in (DEFAULT FALSE)
-- CREATE table_assignments (new)
-- CREATE ai_insights_log (new)
-- ADD checklist_items.vendor_id (nullable)
-
-**Research Flag:** MEDIUM — Algorithm needs tuning with domain knowledge (interest weights, diversity metrics). Standard graph optimization but event-specific constraints.
+**Research flag:** SKIP — PostgreSQL schema patterns well-documented, no complex integrations.
 
 ---
 
-### Phase 3: Offline Check-In + Vendor Intelligence (Week 3)
-**Rationale:** Offline check-in is isolated from other features (separate Service Worker + IndexedDB). Vendor intelligence uses ai_insights_log table from Phase 2.
+### Phase 2: Enforcement (Week 2)
+**Rationale:** Edge Functions and backend logic must enforce limits before UI shows them. Prevents bypass vulnerabilities discovered in Pitfall 1.
 
-**Delivers:** Check-in works without internet, syncs when connection returns. Budget alerts when quotes exceed allocation.
+**Delivers:**
+- Quota middleware (functions/_shared/quota-check.ts)
+- Modify 6 Edge Functions: ai-chat, send-reminder, execute-ai-action, budget-alerts, vendor-analysis, send-push-notification
+- Atomic usage increments with limit checks
+- Monthly usage reset pg_cron job
+- Soft limit warnings (80% notifications)
 
-**Addresses Features:**
-- Offline-first check-in (differentiator)
-- Vendor intelligence (differentiator)
-- Preview before send (table stakes)
+**Addresses:**
+- Pitfall 1 (inconsistent gating) — Edge Functions enforced before UI
+- Pitfall 3 (pg_cron bypass) — send-reminder v22+ checks tier
+- Pitfall 9 (race conditions) — atomic increments, row locking
+- Table stakes: usage limit enforcement, quota tracking
 
-**Avoids Pitfalls:**
-- Pitfall 2: UPSERT with conflict resolution, deterministic timestamp
-- Pitfall 7: Queue size limit (100 max), expiration policy (24h)
-- Pitfall 8: Currency normalization, exchange rate API
-- Pitfall 11: Cache freshness UI, manual refresh button
-- Pitfall 15: Shared rate limiter, batch upsert (not 200 individual calls)
+**Uses:**
+- Supabase Edge Functions (service_role for admin, anon_key for quota checks)
+- PostgreSQL atomic updates (`UPDATE ... WHERE ... RETURNING`)
 
-**Stack:** Dexie.js, Workbox, vite-plugin-pwa (required installations)
+**Implements:**
+- Quota middleware component (Architecture.md pattern 2)
+- Three-layer enforcement (Architecture.md pattern 3)
 
-**Research Flag:** MEDIUM — Service Worker patterns well-documented, but conflict resolution needs testing with real devices. Currency API integration adds complexity.
+**Research flag:** SKIP — Supabase Edge Function patterns documented, atomic SQL well-established.
 
 ---
 
-### Phase 4: Day Simulation + Polish (Week 4)
-**Rationale:** Simulation is read-only analysis (no schema changes), biggest differentiator, requires Phase 1-3 features to be useful (schedules, rooms, participants).
+### Phase 3: Feature Gating (Week 2)
+**Rationale:** Premium features (AI, simulation, networking, budget) need both backend enforcement (Phase 2) and graceful frontend UX.
 
-**Delivers:** Pre-event stress test identifies room conflicts, speaker overlaps, capacity issues. AI suggests fixes.
+**Delivers:**
+- TierContext (src/contexts/TierContext.tsx)
+- FeatureGuard and QuotaGuard components
+- Wrap Premium features: ai-chat, simulation, networking, budget alerts, vendor analysis
+- AI system prompt with tier awareness
+- Function calling gating (Base vs Premium tool registration)
 
-**Addresses Features:**
-- Day simulation (biggest differentiator)
-- Real-time conflict detection (table stakes)
+**Addresses:**
+- Pitfall 8 (AI promises gated features) — system prompt + function gating
+- Pitfall 6 (feature flag sprawl) — central tiers.ts registry
+- Table stakes: feature-level gating, contextual prompts
 
-**Avoids Pitfalls:**
-- Pitfall 5: Validation layer, DB constraint UNIQUE (room_id, time_block_id)
-- Pitfall 12: Deterministic mode (temperature=0), snapshot inputs for reproducibility
+**Uses:**
+- React Context API (not Zustand/Redux)
+- Existing TanStack Query for usage data caching
 
-**Stack:** TypeScript logic in Edge Function, no new dependencies
+**Implements:**
+- TierContext provider (Architecture.md integration point)
+- Feature guard components (Architecture.md new components)
 
-**Schema Changes:** None (read-only analysis)
+**Research flag:** NEEDS RESEARCH — AI prompt engineering for tier awareness may need iterative testing. Contextual upgrade messaging requires UX validation.
 
-**Research Flag:** LOW — Timeline analysis is date arithmetic + SQL queries. Standard validation patterns.
+---
+
+### Phase 4: UI/UX & Admin (Week 3-4)
+**Rationale:** User-facing tier UI and admin tools can be polished after enforcement is solid. Upgrade flow design impacts conversion but not security.
+
+**Delivers:**
+- Tier comparison page (Hebrew, RTL)
+- Upgrade modal with contextual messaging
+- Usage dashboard (settings page showing quotas)
+- Tier badge in header/nav
+- Admin tier management panel (view orgs, manual tier override)
+- Contextual upgrade prompts throughout UI
+- Trial mode logic (7-day Premium trial)
+
+**Addresses:**
+- Pitfall 10 (poor upgrade prompts) — contextual value props
+- Pitfall 7 (unclear enforcement) — consistent hard/soft limit UI
+- Table stakes: upgrade flow, tier visibility, trial mode
+
+**Uses:**
+- React 19 + TailwindCSS (existing)
+- Heebo font (RTL Hebrew)
+
+**Implements:**
+- UpgradePrompt, TierBadge, UsageMetrics components (Architecture.md new components)
+- Admin dashboard (Architecture.md Phase 5)
+
+**Research flag:** NEEDS RESEARCH — Hebrew upgrade messaging, trial duration validation (7 vs 14 vs 30 days for event planning), limit validation (5 events right? 200 messages enough?).
 
 ---
 
 ### Phase Ordering Rationale
 
-**Why this order:**
-1. **AI Write Foundation first** — Establishes security patterns (RLS validation, audit logs) and confirmation flows that all other features depend on. Avoids Pitfall 1 (multi-tenant isolation) from day 1.
+- **Database first (Phase 1)** — Foundation for everything. RLS is security boundary. Schema changes after production data = painful.
+- **Edge Functions second (Phase 2)** — Security layer before frontend. Prevents bypass vulnerabilities. Usage tracking must be atomic before high-traffic cron jobs run.
+- **Feature gating third (Phase 3)** — AI tier awareness depends on Edge Function enforcement. Frontend Context depends on database tier schema.
+- **UI/UX last (Phase 4)** — Polishing upgrade flow can iterate after enforcement is solid. Admin tools less critical than user-facing limits.
 
-2. **Networking Engine before Offline** — Networking is pure algorithm (no external dependencies), isolated failure domain. Offline check-in requires Service Worker (new infrastructure), higher risk if bugs occur.
-
-3. **Vendor Intelligence with Offline** — Both are "nice-to-have" features, can be developed in parallel. Vendor intelligence uses ai_insights_log table created in Phase 2.
-
-4. **Simulation last** — Requires schedules, rooms, participants to be managed by AI (Phase 1), networking engine to suggest room assignments (Phase 2). Pure read-only analysis, no schema changes, lowest risk.
-
-**Grouping rationale:**
-- **Phase 1** = Foundation (AI writes, security)
-- **Phase 2** = Data model extensions (new tables, networking algorithm)
-- **Phase 3** = Progressive enhancements (offline, budget alerts)
-- **Phase 4** = Intelligence layer (simulation, validation)
-
-**Pitfall avoidance:**
-- Pitfall 3 (cron jobs during migration) addressed in Phase 2 deployment: Disable cron → migrate → verify → re-enable
-- Pitfall 13 (breaking Edge Function changes) addressed in all phases: Backward-compatible APIs, optional params with defaults
-- Pitfall 6 (confirmation fatigue) addressed in Phase 1 UX: Risk-based confirmations, batch approval
+**Critical path dependencies:**
+- Phase 2 depends on Phase 1 (schema must exist)
+- Phase 3 depends on Phase 2 (Edge Functions must enforce before frontend shows)
+- Phase 4 can partially overlap Phase 3 (UI work while feature gating stabilizes)
 
 ### Research Flags
 
 **Phases needing deeper research during planning:**
-- **Phase 2 (Networking Engine)** — Algorithm tuning requires user research or A/B testing. Interest weights, diversity constraints, VIP priority levels need validation with real event managers.
-- **Phase 3 (Offline Check-In)** — Service Worker background sync reliability on iOS needs real-device testing. Conflict resolution strategy (last-write-wins vs manual resolution) needs UX validation.
-- **Phase 3 (Vendor Intelligence)** — Currency API integration (exchange rates) needs research. Recommended provider, rate limits, error handling.
+- **Phase 3 (Feature Gating):** AI prompt engineering for tier awareness — may need iterative testing with real users to perfect "I can't do that, but here's what I can do" messaging. Complex because AI model "knows" Premium features exist from training data.
+- **Phase 4 (UI/UX):** Usage limit validation — 5 events/year, 100 participants/event, 200 messages/month are educated guesses from research. Need user research or market data to validate before launch. Trial duration (7 vs 14 vs 30 days) needs testing — events take weeks to plan, not days.
 
 **Phases with standard patterns (skip research-phase):**
-- **Phase 1 (AI Write Foundation)** — Pattern established with existing tools (create_event_draft, add_checklist_items). Extend existing ai-chat/index.ts. Well-documented Gemini function calling.
-- **Phase 4 (Day Simulation)** — Timeline analysis is date arithmetic + SQL queries. Standard validation patterns. No complex dependencies.
+- **Phase 1 (Foundation):** PostgreSQL schema patterns, Supabase RLS well-documented. No novel integrations.
+- **Phase 2 (Enforcement):** Edge Function quota checks, atomic SQL updates well-established. Standard SaaS patterns.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All additions are well-established libraries (Dexie, Workbox) or existing integration (Gemini). No experimental dependencies. |
-| Features | HIGH | Based on existing EventFlow codebase analysis (schema.sql, ai-chat.ts, send-reminder v14) + domain knowledge. Table stakes validated against CLAUDE.md requirements. |
-| Architecture | HIGH | All changes additive, no breaking changes. Integration points clearly identified. Build order validated against existing codebase structure. |
-| Pitfalls | HIGH | Based on codebase review (RLS policies, cron jobs, message deduplication) + domain expertise. All pitfalls have concrete prevention strategies. |
+| Stack | **HIGH** | No new libraries needed. PostgreSQL tier storage, RLS security definer functions, React Context all verified via official docs and EventFlow's existing patterns. |
+| Features | **MEDIUM-HIGH** | Tier structure (2-tier, transparent limits, contextual prompts) verified via multiple 2026 sources. Specific limits (5 events, 100 participants, 200 messages) need user validation. |
+| Architecture | **HIGH** | Three-layer enforcement (RLS + Edge Functions + Context) is standard SaaS pattern. Integration points with existing EventFlow architecture (organizations table, auth.user_org_id(), pg_cron) well-defined. |
+| Pitfalls | **HIGH** | JSONB RLS performance issue confirmed via PostgREST issue #2590 and real-world benchmarks. pg_cron bypass risk verified from EventFlow's 8 active cron jobs. Offline sync bypass risk confirmed from existing IndexedDB architecture. |
 
-**Overall confidence:** HIGH
+**Overall confidence:** **HIGH**
+
+Research is built on EventFlow AI's existing codebase (schema.sql, 6 Edge Functions, 8 pg_cron jobs documented) combined with verified 2026 SaaS tier best practices from authoritative sources (Supabase docs, PostgreSQL performance guides, WorkOS multi-tenancy patterns).
 
 ### Gaps to Address
 
-**Gaps identified during research:**
+**Validation needed during implementation:**
+1. **Usage limit values** — Are 5 events/year, 100 participants/event, 200 messages/month the right Base tier limits? Research provides ranges (3-10 events, 50-200 participants) but EventFlow's target market (Hebrew-speaking event managers) may have different expectations. **How to handle:** A/B test limits with first 100 users, adjust based on conversion data before public launch.
 
-1. **Gemini function calling rate limits** — Documented that Gemini 1.5 Pro supports function calling, but specific rate limits (calls/minute, concurrent functions) unclear. **How to handle:** Test with production API key during Phase 1, implement retry logic with exponential backoff.
+2. **Trial duration** — Is 7 days sufficient for event management trial? Events take weeks to plan, suggesting 14-30 days may convert better. **How to handle:** Test 7-day vs 14-day vs 30-day trials with cohorts, measure trial-to-paid conversion rate (target: 25-40% per ProfitWell data).
 
-2. **iOS Service Worker background sync support** — iOS 16.4+ supports Background Sync API, but reliability in low-battery mode and time limits for sync events unclear. **How to handle:** Test on real iOS devices at event venue with poor connectivity during Phase 3.
+3. **AI tier awareness prompting** — Optimal phrasing for "I can't do that because you're on Base plan" without frustrating users. **How to handle:** Iterative testing with real users during Phase 3, monitor support tickets for AI-related confusion.
 
-3. **Networking algorithm scale** — Greedy + backtracking works for <500 participants, but performance with 1,000+ participants unclear. **How to handle:** Implement greedy first, profile with production data during Phase 2, optimize if needed (move to pg function for parallelization).
+4. **RLS performance under load** — Research confirms STABLE security definer functions cache tier checks, but needs load testing validation (100+ concurrent requests). **How to handle:** Load test in Phase 1 after RLS policies deployed, monitor Supabase slow query logs.
 
-4. **Currency API provider** — Need to choose currency exchange rate API (e.g., exchangerate-api.io, fixer.io). **How to handle:** Research during Phase 3 planning, evaluate rate limits, error handling, cache strategy.
+5. **Offline sync soft limit UX** — How to communicate "You synced 500 participants but your limit is 100" gracefully. **How to handle:** User research during Phase 2, test messaging like "Upgrade to keep all participants" vs "Delete 400 or upgrade."
 
-5. **Simulation scenarios count** — Day simulation can test many scenarios (room capacity, vendor no-show, schedule conflicts, weather, traffic). Unclear which scenarios to prioritize. **How to handle:** User research with event managers during Phase 4 planning, start with room/schedule conflicts (highest ROI).
-
-**No validation needed:**
-- Supabase RLS enforcement (verified in existing 001_complete_rls_policies.sql)
-- pg_cron reliability (8 jobs running in production for v1.0)
-- Gemini API Hebrew support (verified in existing ai-chat.ts)
-- WhatsApp integration (verified in send-reminder v14, Green API active)
+6. **Grandfathering period** — Should existing users get 3 months, 6 months, or 12 months of `legacy_premium` before forced migration? **How to handle:** Business decision based on churn risk tolerance. Research suggests 6-12 months is standard, start with 6 and extend if needed.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- EventFlow AI existing codebase — schema.sql (30+ tables), ai-chat/index.ts (7 tools, 3 write to DB), send-reminder/index.ts v14 (1,375 lines, 10 reminder types), CheckinPage.tsx (QR scan, manual entry)
-- Supabase documentation — Edge Functions, pg_cron, RLS policies, background sync
-- Gemini API documentation — Function calling patterns, tool declarations (official Google AI docs)
-- Dexie.js documentation — IndexedDB wrapper patterns (official docs, widely used)
-- Workbox documentation — Service Worker strategies (official Google docs)
+
+**Stack & Architecture:**
+- [Supabase Row Level Security Documentation](https://supabase.com/docs/guides/database/postgres/row-level-security) — RLS patterns, security definer functions
+- [Supabase User Management](https://supabase.com/docs/guides/auth/managing-user-data) — Admin tier updates, app_metadata
+- [PostgreSQL Function Security](https://www.postgresql.org/docs/current/perm-functions.html) — Security definer, STABLE functions
+- [Multi-tenant PostgreSQL patterns (Crunchy Data)](https://www.crunchydata.com/blog/designing-your-postgres-database-for-multi-tenancy) — Tier storage, isolation
+
+**Features & Best Practices:**
+- [Feature-Based Tiers: Packaging Your Product for Maximum Revenue - 2026 Guide](https://resources.rework.com/libraries/saas-growth/feature-based-tiers) — 3-tier maximum, transparent limits
+- [SaaS Pricing Strategy Guide for 2026](https://www.momentumnexus.com/blog/saas-pricing-strategy-guide-2026/) — Usage-based patterns
+- [Freemium Model Design: 2026 Guide](https://resources.rework.com/libraries/saas-growth/freemium-model-design) — Limit scale not features
+- [How freemium SaaS products convert users with brilliant upgrade prompts](https://www.appcues.com/blog/best-freemium-upgrade-prompts) — Contextual prompts, 2-4x conversion
+
+**Pitfalls & Performance:**
+- [PostgreSQL RLS Footguns (Bytebase)](https://www.bytebase.com/blog/postgres-row-level-security-footguns/) — JSONB performance issues
+- [PostgREST Issue #2590: JSON GUCs lead to bad performance](https://github.com/PostgREST/postgrest/issues/2590) — Real-world benchmarks
+- [Designing the most performant RLS strategy in Postgres](https://cazzer.medium.com/designing-the-most-performant-row-level-security-strategy-in-postgres-a06084f31945) — Security definer optimization
+- [WorkOS: Multi-tenant SaaS architecture](https://workos.com/blog/developers-guide-saas-multi-tenant-architecture) — Tier enforcement patterns
+
+**Compliance & Dark Patterns:**
+- [Dark Pattern Avoidance 2026 Checklist](https://secureprivacy.ai/blog/dark-pattern-avoidance-2026-checklist) — CPRA compliance, transparent limits
+- [Grandfathering vs Forced Migration (GetMonetizely)](https://www.getmonetizely.com/articles/grandfathering-vs-forced-migration-the-strategic-approach-to-price-changes-for-existing-customers) — Existing user migration
 
 ### Secondary (MEDIUM confidence)
-- Training data on event management systems (Eventbrite, Bizzabo, Cvent patterns)
-- Offline-first PWA patterns (Jake Archibald's work, Google I/O examples)
-- React 19 patterns — State management, hooks (official React docs)
-- Graph algorithms for matching/optimization (stable marriage problem, Hungarian algorithm)
+- [React State Management 2026](https://www.nucamp.co/blog/state-management-in-2026-redux-context-api-and-modern-patterns) — Context API for tier state
+- [Kent C. Dodds on React Context](https://kentcdodds.com/blog/how-to-use-react-context-effectively) — Best practices
+- ProfitWell research (cited in multiple articles) — Trial conversion rates (25-40%)
 
-### Tertiary (LOW confidence - needs validation)
-- Gemini function calling rate limits (not explicitly documented in training data, needs production testing)
-- iOS Background Sync reliability (anecdotal reports, needs real-device testing)
-- Algorithm performance at scale (theoretical complexity, needs profiling with real data)
-- Specific 2026 event management trends (could not verify with WebSearch due to tool restrictions)
+### Internal Sources (HIGH confidence)
+- EventFlow AI existing codebase (schema.sql, organizations table, 6 Edge Functions, 8 pg_cron jobs)
+- Supabase dashboard configuration (RLS policies, Edge Function limits)
+- PROJECT.md context (offline check-in architecture, multi-tenant design)
 
 ---
-*Research completed: 2026-02-02*
-*Ready for roadmap: yes*
-*Total estimated time: 4 weeks with 1 developer*
+*Research completed: 2026-02-03*
+*Ready for roadmap: YES*

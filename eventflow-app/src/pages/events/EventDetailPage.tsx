@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
-import { Calendar, Users, Plus, Edit2, Trash2, Clock, X, Loader2, Coffee, User, FileText, AlertTriangle, ArrowLeft, Grid3X3, List, CalendarDays, Mic, Monitor, Video, Building2, Save, Eye, Target, Shield, Zap, UserCheck, Download } from 'lucide-react'
+import { Calendar, Users, Plus, Edit2, Trash2, Clock, X, Loader2, Coffee, User, FileText, AlertTriangle, ArrowLeft, Grid3X3, List, CalendarDays, Mic, Monitor, Video, Building2, Save, Eye, Target, Shield, Zap, UserCheck, Download, Play } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import * as XLSX from 'xlsx'
 import { EventSettingsPanel } from '../../modules/events/components/EventSettingsPanel'
@@ -8,6 +8,8 @@ import type { Event, ProgramDay, Track, Room, Speaker, Contingency, ScheduleChan
 import { formatDate, getStatusColor, getStatusLabel } from '../../utils'
 import { SeatingPlanView } from '../../components/networking/SeatingPlanView'
 import type { SeatingParticipant } from '../../modules/networking/types'
+import { SimulationTrigger, type SuggestedFix } from '../../modules/simulation'
+import { ContingencyPanel } from '../../modules/contingency'
 
 export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: string }) {
   const { eventId } = useParams<{ eventId: string }>()
@@ -89,6 +91,10 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     setToast({ show: true, message, type })
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
   }
+
+  // Contingency State
+  const [showContingencyPanel, setShowContingencyPanel] = useState(false)
+  const [selectedScheduleForContingency, setSelectedScheduleForContingency] = useState<ExtendedSchedule | null>(null)
 
   async function loadSeatingData() {
     if (!eventId) return
@@ -227,6 +233,65 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, eventId])
+
+  // Simulation and Contingency Handlers
+  const handleSimulationFix = useCallback((fix: SuggestedFix) => {
+    const scheduleId = fix.action_data.schedule_id as string | undefined
+    if (!scheduleId) return
+
+    switch (fix.type) {
+      case 'reassign_room':
+      case 'adjust_time':
+      case 'extend_break': {
+        // Navigate to schedule and highlight the item
+        setActiveTab('program')
+        setTimeout(() => {
+          const element = document.getElementById(`schedule-${scheduleId}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.classList.add('ring-2', 'ring-blue-500')
+            setTimeout(() => element.classList.remove('ring-2', 'ring-blue-500'), 3000)
+          }
+        }, 100)
+        break
+      }
+
+      case 'activate_backup': {
+        // Open contingency panel for the schedule
+        const schedule = sessions?.find(s => s.id === scheduleId)
+        if (schedule) {
+          setSelectedScheduleForContingency(schedule)
+          setShowContingencyPanel(true)
+        }
+        break
+      }
+    }
+  }, [sessions])
+
+  const handleScheduleClick = useCallback((scheduleId: string) => {
+    setActiveTab('program')
+    setTimeout(() => {
+      const element = document.getElementById(`schedule-${scheduleId}`)
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        element.classList.add('ring-2', 'ring-blue-500', 'transition-all')
+        setTimeout(() => element.classList.remove('ring-2', 'ring-blue-500'), 3000)
+      }
+    }, 100)
+  }, [])
+
+  const handleOpenContingency = useCallback((schedule: ExtendedSchedule) => {
+    setSelectedScheduleForContingency(schedule)
+    setShowContingencyPanel(true)
+  }, [])
+
+  const handleContingencySuccess = useCallback(() => {
+    setShowContingencyPanel(false)
+    setSelectedScheduleForContingency(null)
+    loadProgramData()
+    showToast('תוכנית מגירה הופעלה בהצלחה', 'success')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // CRUD Operations for Program Days
   async function saveProgramDay() {
@@ -657,6 +722,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           { id: 'program', label: 'בניית תוכנית', icon: <Calendar size={18} /> },
           { id: 'contingencies', label: 'תכניות חירום', icon: <Shield size={18} /> },
           { id: 'seating', label: 'שיבוץ לשולחנות', icon: <Grid3X3 size={18} /> },
+          { id: 'simulation', label: 'סימולציה', icon: <Play size={18} /> },
           { id: 'changes', label: 'יומן שינויים', icon: <Clock size={18} /> },
           { id: 'settings', label: 'הגדרות תזכורות', icon: <Zap size={18} /> }
         ].map(tab => (
@@ -1217,6 +1283,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                       </div>
                       <div className="flex gap-1">
                         <button
+                          onClick={() => handleOpenContingency(session)}
+                          className="p-1 hover:bg-orange-500/10 rounded text-orange-500"
+                          title="הפעל תוכנית מגירה"
+                          data-testid="contingency-session-button"
+                        >
+                          <AlertTriangle size={16} />
+                        </button>
+                        <button
                           onClick={() => {
                             setEditingSession(session)
                             setSessionForm({
@@ -1471,6 +1545,16 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               onAssignmentsSaved={() => showToast('שיבוצים נשמרו בהצלחה')}
             />
           )}
+        </div>
+      )}
+
+      {activeTab === 'simulation' && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <SimulationTrigger
+            eventId={eventId!}
+            onFixClick={handleSimulationFix}
+            onScheduleClick={handleScheduleClick}
+          />
         </div>
       )}
 
@@ -2182,6 +2266,50 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
                   מחק
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Contingency Panel Drawer */}
+      {showContingencyPanel && selectedScheduleForContingency && (
+        <div className="fixed inset-0 z-50 flex justify-end" dir="rtl">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 transition-opacity"
+            onClick={() => setShowContingencyPanel(false)}
+          />
+
+          {/* Drawer */}
+          <div className="relative w-full max-w-md bg-white shadow-xl flex flex-col">
+            {/* Header */}
+            <div className="p-4 border-b flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-500" />
+                <h2 className="font-semibold text-gray-900">תוכנית מגירה</h2>
+              </div>
+              <button
+                onClick={() => setShowContingencyPanel(false)}
+                className="p-1 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-auto p-4">
+              <ContingencyPanel
+                eventId={eventId!}
+                schedule={{
+                  id: selectedScheduleForContingency.id,
+                  title: selectedScheduleForContingency.title,
+                  speaker_id: selectedScheduleForContingency.session_speakers?.[0]?.speaker_id || null,
+                  speaker_name: selectedScheduleForContingency.session_speakers?.[0]?.speaker?.name || null,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  backup_speaker_id: (selectedScheduleForContingency as any).backup_speaker_id || null,
+                }}
+                onSuccess={handleContingencySuccess}
+              />
             </div>
           </div>
         </div>

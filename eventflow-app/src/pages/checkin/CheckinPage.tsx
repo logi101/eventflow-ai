@@ -3,10 +3,14 @@ import { ScanLine, CheckCircle, XCircle, UserCheck, Search, Loader2, Users, Cloc
 import { supabase } from '../../lib/supabase'
 import type { CheckinParticipant, SimpleEvent } from '../../types'
 import { useEvent } from '../../contexts/EventContext'
+import { useOnlineStatus } from '../../modules/checkin/hooks/useOnlineStatus'
+import { useOfflineCheckIn } from '../../modules/checkin/hooks/useOfflineCheckIn'
+import { ConnectionStatus } from '../../modules/checkin/components/ConnectionStatus'
 import {
   cacheParticipants,
   getCachedParticipants,
   clearExpiredCache,
+  updateCachedParticipantStatus
 } from '../../modules/checkin/db'
 
 export function CheckinPage() {
@@ -21,7 +25,9 @@ export function CheckinPage() {
   const [checkInResult, setCheckInResult] = useState<{ success: boolean; message: string; participant?: CheckinParticipant } | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'checked_in' | 'not_checked_in'>('all')
 
-
+  // Offline hooks
+  const { isOnline } = useOnlineStatus()
+  const offlineCheckIn = useOfflineCheckIn(selectedEventId)
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
@@ -132,24 +138,33 @@ export function CheckinPage() {
   }, [selectedEventId])
 
   async function checkInParticipant(participantId: string) {
-    const { error } = await supabase
-      .from('participants')
-      .update({
-        status: 'checked_in',
-        checked_in_at: new Date().toISOString()
-      })
-      .eq('id', participantId)
+    try {
+      const result = await offlineCheckIn.mutateAsync(participantId)
 
-    if (error) {
-      setCheckInResult({ success: false, message: 'שגיאה בצ\'ק-אין' })
-    } else {
       const participant = participants.find(p => p.id === participantId)
+
       setCheckInResult({
         success: true,
-        message: `${participant?.first_name} ${participant?.last_name} נרשם/ה בהצלחה!`,
+        message: `${participant?.first_name} ${participant?.last_name} נרשם/ה בהצלחה!${
+          !result.synced ? ' (ממתין לסנכרון)' : ''
+        }`,
         participant
       })
-      fetchParticipants()
+
+      // Update local state immediately for UI
+      setParticipants(prev =>
+        prev.map(p =>
+          p.id === participantId
+            ? { ...p, status: 'checked_in', checked_in_at: new Date().toISOString() }
+            : p
+        )
+      )
+
+    } catch {
+      setCheckInResult({
+        success: false,
+        message: 'שגיאה בצ\'ק-אין'
+      })
     }
 
     setTimeout(() => setCheckInResult(null), 3000)
@@ -175,7 +190,7 @@ export function CheckinPage() {
 
   async function undoCheckIn(participantId: string) {
     // Undo only works when online (prevents sync conflicts)
-    if (!navigator.onLine) {
+    if (!isOnline) {
       setCheckInResult({
         success: false,
         message: 'ביטול צ\'ק-אין זמין רק במצב מקוון'
@@ -208,6 +223,7 @@ export function CheckinPage() {
       )
 
       // Also update cache
+      await updateCachedParticipantStatus(participantId, 'confirmed')
     }
 
     setTimeout(() => setCheckInResult(null), 3000)
@@ -253,18 +269,23 @@ export function CheckinPage() {
             <h1 className="text-3xl font-bold text-white" data-testid="checkin-title">צ'ק-אין</h1>
             <p className="text-zinc-400 mt-1">ניהול הגעה וסריקת QR</p>
           </div>
-          <button
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
-              scanMode
-                ? 'bg-[#1a1d27] border border-white/5 text-zinc-300 border border-white/10 hover:bg-white/5'
-                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5'
-            }`}
-            onClick={() => setScanMode(!scanMode)}
-            data-testid="toggle-scan-mode"
-          >
-            <ScanLine className="w-4 h-4" />
-            {scanMode ? 'חזרה לרשימה' : 'מצב סריקה'}
-          </button>
+          <div className="flex items-center gap-4">
+            {/* Connection Status */}
+            <ConnectionStatus eventId={selectedEventId} />
+
+            <button
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
+                scanMode
+                  ? 'bg-[#1a1d27] border border-white/5 text-zinc-300 border border-white/10 hover:bg-white/5'
+                  : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5'
+              }`}
+              onClick={() => setScanMode(!scanMode)}
+              data-testid="toggle-scan-mode"
+            >
+              <ScanLine className="w-4 h-4" />
+              {scanMode ? 'חזרה לרשימה' : 'מצב סריקה'}
+            </button>
+          </div>
         </div>
 
         {/* Event Selector */}
@@ -487,9 +508,14 @@ export function CheckinPage() {
                     <div className="flex items-center gap-2">
                       {participant.status === 'checked_in' ? (
                         <button
-                          className="px-4 py-2 bg-[#1a1d27]/80 text-zinc-400 text-sm rounded-xl border border-white/10 hover:bg-white/5 hover:border-white/20 transition-all duration-300"
+                          className={`px-4 py-2 rounded-xl border transition-all duration-300 ${
+                            !isOnline
+                              ? 'bg-zinc-800/50 text-zinc-500 border-zinc-700 cursor-not-allowed'
+                              : 'bg-[#1a1d27]/80 text-zinc-400 border-white/10 hover:bg-white/5 hover:border-white/20'
+                          }`}
                           onClick={() => undoCheckIn(participant.id)}
-                          title="בטל צ'ק-אין"
+                          disabled={!isOnline}
+                          title={!isOnline ? 'ביטול זמין רק במצב מקוון' : 'בטל צ\'ק-אין'}
                         >
                           ביטול
                         </button>

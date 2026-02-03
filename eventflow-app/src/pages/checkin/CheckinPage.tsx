@@ -3,6 +3,11 @@ import { ScanLine, CheckCircle, XCircle, UserCheck, Search, Loader2, Users, Cloc
 import { supabase } from '../../lib/supabase'
 import type { CheckinParticipant, SimpleEvent } from '../../types'
 import { useEvent } from '../../contexts/EventContext'
+import {
+  cacheParticipants,
+  getCachedParticipants,
+  clearExpiredCache,
+} from '../../modules/checkin/db'
 
 export function CheckinPage() {
   const { selectedEvent: contextEvent } = useEvent()
@@ -15,6 +20,8 @@ export function CheckinPage() {
   const [manualCode, setManualCode] = useState('')
   const [checkInResult, setCheckInResult] = useState<{ success: boolean; message: string; participant?: CheckinParticipant } | null>(null)
   const [filterStatus, setFilterStatus] = useState<'all' | 'checked_in' | 'not_checked_in'>('all')
+
+
 
   // Sync with EventContext when selected event changes
   useEffect(() => {
@@ -41,20 +48,74 @@ export function CheckinPage() {
 
   async function fetchParticipants() {
     setLoading(true)
-    const { data } = await supabase
-      .from('participants')
-      .select('*')
-      .eq('event_id', selectedEventId)
-      .order('last_name', { ascending: true })
 
-    if (data) {
-      // Generate QR codes for each participant
-      const participantsWithQR = data.map(p => ({
-        ...p,
-        qr_code: `EF-${p.id.substring(0, 8).toUpperCase()}`
-      }))
-      setParticipants(participantsWithQR)
+    // Clear expired cache on each load
+    await clearExpiredCache()
+
+    // Try online first
+    if (navigator.onLine) {
+      try {
+        const { data } = await supabase
+          .from('participants')
+          .select('*')
+          .eq('event_id', selectedEventId)
+          .order('last_name', { ascending: true })
+
+        if (data) {
+          // Generate QR codes and cache
+          const participantsWithQR = data.map(p => ({
+            ...p,
+            qr_code: `EF-${p.id.substring(0, 8).toUpperCase()}`
+          }))
+
+          // Cache for offline use
+          const now = new Date()
+          await cacheParticipants(
+            participantsWithQR.map(p => ({
+              id: p.id,
+              eventId: p.event_id,
+              firstName: p.first_name,
+              lastName: p.last_name,
+              phone: p.phone,
+              status: p.status,
+              isVip: p.is_vip || false,
+              hasCompanion: p.has_companion || false,
+              qrCode: p.qr_code,
+              cachedAt: now,
+              expiresAt: now
+            })),
+            selectedEventId
+          )
+
+          setParticipants(participantsWithQR)
+          setLoading(false)
+          return
+        }
+      } catch (e) {
+        console.warn('[CheckIn] Online fetch failed, trying cache:', e)
+      }
     }
+
+    // Fallback to cached data
+    const cached = await getCachedParticipants(selectedEventId)
+    if (cached.length > 0) {
+      // Convert cached format back to component format
+      const participantsFromCache = cached.map(p => ({
+        id: p.id,
+        event_id: p.eventId,
+        first_name: p.firstName,
+        last_name: p.lastName,
+        phone: p.phone,
+        status: p.status,
+        is_vip: p.isVip,
+        has_companion: p.hasCompanion,
+        qr_code: p.qrCode
+      }))
+      setParticipants(participantsFromCache as CheckinParticipant[])
+    } else {
+      setParticipants([])
+    }
+
     setLoading(false)
   }
 
@@ -113,6 +174,16 @@ export function CheckinPage() {
   }
 
   async function undoCheckIn(participantId: string) {
+    // Undo only works when online (prevents sync conflicts)
+    if (!navigator.onLine) {
+      setCheckInResult({
+        success: false,
+        message: 'ביטול צ\'ק-אין זמין רק במצב מקוון'
+      })
+      setTimeout(() => setCheckInResult(null), 3000)
+      return
+    }
+
     const { error } = await supabase
       .from('participants')
       .update({
@@ -121,9 +192,25 @@ export function CheckinPage() {
       })
       .eq('id', participantId)
 
-    if (!error) {
-      fetchParticipants()
+    if (error) {
+      setCheckInResult({
+        success: false,
+        message: 'שגיאה בביטול צ\'ק-אין'
+      })
+    } else {
+      // Update local state
+      setParticipants(prev =>
+        prev.map(p =>
+          p.id === participantId
+            ? { ...p, status: 'confirmed', checked_in_at: null }
+            : p
+        )
+      )
+
+      // Also update cache
     }
+
+    setTimeout(() => setCheckInResult(null), 3000)
   }
 
   // Filter participants

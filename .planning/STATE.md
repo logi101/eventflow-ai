@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 8 (Offline & Vendor Intelligence)
-Plan: 2 of 9 (in progress)
-Status: Phase 8 in progress - IndexedDB foundation complete
-Last activity: 2026-02-03 — Completed 08-02 (Dexie.js IndexedDB setup)
+Plan: 1 of 9 (complete)
+Status: Phase 8 in progress - Budget alerts database foundation complete
+Last activity: 2026-02-03 — Completed 08-01 (budget alerts migration)
 
 Progress: ███████████░░░░░░░░░ 58% (11/19 total plans)
 
@@ -77,6 +77,11 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8: Store participants individually (not as array) to avoid UI blocking
 - Phase 8: synced boolean and syncRetries number for sync tracking
 - Phase 8: Use 0 instead of false for Dexie indexed boolean fields (IndexableType constraint)
+- Phase 8: Budget alerts use two-tier thresholds (80% warning, 100% critical)
+- Phase 8: BudgetAlertThreshold as const object (not enum) for erasableSyntaxOnly compatibility
+- Phase 8: Separate budget_alert_history table for alert deduplication and acknowledgment tracking
+- Phase 8: Trigger-based duplicate prevention - one unacknowledged alert per item+type
+- Phase 8: Alert delivery tracking via sent_via field (app, whatsapp, or both)
 
 ### Blockers
 (None currently)
@@ -144,6 +149,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 7, Plan 4: Seating algorithm with drag-drop (07-04-SUMMARY.md)
 - Phase 7, Plan 5: AI room assignments + grid/list views (07-05-SUMMARY.md)
 - Phase 7, Plan 6: UI integration gap closure (07-06-SUMMARY.md)
+- Phase 8, Plan 1: Database foundation for budget alerts (08-01-SUMMARY.md)
 - Phase 8, Plan 2: Dexie.js IndexedDB setup (08-02-SUMMARY.md)
 
 ### Quick Tasks Completed
@@ -155,9 +161,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-02 (Dexie.js IndexedDB setup)
+Stopped at: Completed 08-01 (budget alerts database foundation)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Continue Phase 8 - Plan 08-03 (Sync Service & Hooks) ready to execute*
+*Next: Continue Phase 8 - Plan 08-02 onwards (already partially complete), or resume with 08-03+*

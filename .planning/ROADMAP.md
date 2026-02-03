@@ -17,7 +17,7 @@ This roadmap delivers the v2.0 milestone: Intelligent Production & Networking En
 
 - [x] **Phase 6: AI Write Foundation** - AI manages schedules and rooms with human confirmation
 - [x] **Phase 7: Networking & VIP Infrastructure** - Intelligent seating, VIP priority, room assignments
-- [ ] **Phase 8: Offline & Vendor Intelligence** - Offline check-in with sync, budget alerts
+- [x] **Phase 8: Offline & Vendor Intelligence** - Offline check-in with sync, budget alerts *(deployment pending)*
 - [ ] **Phase 9: Day Simulation & Real-Time Operations** - Stress testing and contingency management
 
 ## Phase Details
@@ -85,12 +85,14 @@ Plans:
 **Plans**: 6 plans (3 waves)
 
 Plans:
-- [ ] 08-01-PLAN.md -- Database foundation: budget_allocation column, budget_alert_history table, approved_amount on event_vendors
-- [ ] 08-02-PLAN.md -- Dexie.js IndexedDB setup: offline check-in schema, participant cache with 24h TTL
-- [ ] 08-03-PLAN.md -- Sync service and online status: useOnlineStatus, useSyncQueue, rate-limited background sync, ConnectionStatus component
-- [ ] 08-04-PLAN.md -- Budget alerts backend: budget-alerts Edge Function, threshold detection (80%/100%), WhatsApp + in-app notifications
-- [ ] 08-05-PLAN.md -- AI vendor analysis: vendor-analysis Edge Function (Gemini), VendorIntelligence component, BudgetAlertBadge
-- [ ] 08-06-PLAN.md -- Offline check-in UI integration: wire hooks into CheckinPage, auto-sync setup, offline-first data loading
+- [x] 08-01-PLAN.md -- Database foundation: budget_allocation column, budget_alert_history table, approved_amount on event_vendors
+- [x] 08-02-PLAN.md -- Dexie.js IndexedDB setup: offline check-in schema, participant cache with 24h TTL
+- [x] 08-03-PLAN.md -- Sync service and online status: useOnlineStatus, useSyncQueue, rate-limited background sync, ConnectionStatus component
+- [x] 08-04-PLAN.md -- Budget alerts backend: budget-alerts Edge Function, threshold detection (80%/100%), WhatsApp + in-app notifications
+- [x] 08-05-PLAN.md -- AI vendor analysis: vendor-analysis Edge Function (Gemini), VendorIntelligence component, BudgetAlertBadge
+- [x] 08-06-PLAN.md -- Offline check-in UI integration: wire hooks into CheckinPage, auto-sync setup, offline-first data loading
+
+**Deployment Required:** Run `supabase login` then deploy budget-alerts and vendor-analysis Edge Functions
 
 ### Phase 9: Day Simulation & Real-Time Operations
 **Goal**: Manager can run day simulation to detect issues before event day (room conflicts, speaker overlaps, capacity problems) and activate contingency plans when issues occur
@@ -121,11 +123,11 @@ Phases execute in numeric order: 6 → 6.1 (if inserted) → 6.2 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 6. AI Write Foundation | 4/4 | Complete | 2026-02-02 |
 | 7. Networking & VIP Infrastructure | 6/6 | Complete | 2026-02-03 |
-| 8. Offline & Vendor Intelligence | 0/6 | Planned | - |
+| 8. Offline & Vendor Intelligence | 6/6 | Complete (deploy pending) | 2026-02-03 |
 | 9. Day Simulation & Real-Time Operations | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-02-02*
-*Roadmap updated: 2026-02-03 (Phase 8 planned: 6 plans in 3 waves)*
+*Roadmap updated: 2026-02-03 (Phase 8 complete: 6/6 plans, Edge Function deployment pending)*
 *Milestone: v2.0 Intelligent Production & Networking Engine*
 *Coverage: 36/36 v2.0 requirements mapped*

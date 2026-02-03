@@ -134,10 +134,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 9: Type assertion used for backup_speaker_id pending migration 009 application
 
 ### Blockers
-- budget-alerts Edge Function deployment pending (supabase login required)
-- vendor-analysis Edge Function deployment pending (supabase login required)
-- Database migration 008_budget_alerts.sql needs to be applied via Supabase Dashboard
-- Database migration 009_simulation_contingency.sql needs to be applied via Supabase Dashboard
+None - all deployments complete! ✅
 
 ### Technical Notes
 - Edge Function send-reminder deployed as v14 with template engine + all 8 handlers + throttle + retry

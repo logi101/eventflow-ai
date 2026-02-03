@@ -32,6 +32,8 @@
     "crypto-js": "^4.2.0",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
+    "dexie": "^4.3.0",
+    "dexie-react-hooks": "^4.2.0",
     "framer-motion": "^12.27.1",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.562.0",

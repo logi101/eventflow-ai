@@ -14,8 +14,9 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 
 ### Validated
 
-<!-- Shipped and confirmed working (v1.0) -->
+<!-- Shipped and confirmed working -->
 
+**v1.0 — Automated Reminders:**
 - [x] Event creation and management (events table + CRUD)
 - [x] Participant registration with companion support
 - [x] Vendor management with quote tracking
@@ -28,31 +29,33 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 - [x] Excel import/export for participants
 - [x] Multi-tenant architecture (organizations)
 - [x] Supabase Auth with RLS policies
-- [x] Automatic reminder scheduling via pg_cron (v1.0)
-- [x] 8 reminder types working automatically (v1.0)
-- [x] Dynamic template system — templates from DB, variable substitution (v1.0)
-- [x] Manager-controlled follow-up reminders — 3mo, 6mo approval (v1.0)
-- [x] Deduplication — unique constraint prevents duplicate messages (v1.0)
-- [x] Rate limiting — 2.1s throttle, ~28 msgs/min (v1.0)
-- [x] Retry logic — one retry for transient failures (v1.0)
-- [x] iOS PWA push notifications (v1.0)
-- [x] Room assignment — participant_rooms with room details (v1.0)
-- [x] Program management — tracks, rooms, speakers, time_blocks tables (v1.0)
+- [x] Automatic reminder scheduling via pg_cron
+- [x] 8 reminder types working automatically
+- [x] Dynamic template system — templates from DB, variable substitution
+- [x] Manager-controlled follow-up reminders — 3mo, 6mo approval
+- [x] Deduplication — unique constraint prevents duplicate messages
+- [x] Rate limiting — 2.1s throttle, ~28 msgs/min
+- [x] Retry logic — one retry for transient failures
+- [x] iOS PWA push notifications
+- [x] Room assignment — participant_rooms with room details
+- [x] Program management — tracks, rooms, speakers, time_blocks tables
+
+**v2.0 — Intelligent Production & Networking Engine:**
+- [x] AI agent with DB write access (suggest + confirm pattern)
+- [x] Real-time schedule management + conflict detection
+- [x] Contingency plan activation (backup speakers)
+- [x] Advanced WhatsApp templates (room_number, table_number variables)
+- [x] Smart room assignment based on preferences
+- [x] VIP priority handling with badges throughout system
+- [x] Day simulation with 8 validators (stress test for logistics)
+- [x] Offline-first check-in with IndexedDB and background sync
+- [x] Networking engine — table seating by shared interests with VIP spread
+- [x] Vendor intelligence — quote analysis + budget alerts + AI suggestions
 
 ### Active
 
-<!-- Current scope - v2.0 milestone -->
+<!-- Next scope - v2.1 milestone -->
 
-- [ ] AI agent with DB write access (suggest + confirm pattern)
-- [ ] Real-time schedule management + conflict detection
-- [ ] Contingency plan activation (backup speakers)
-- [ ] Advanced WhatsApp templates (room_number, table_number variables)
-- [ ] Smart room assignment based on preferences
-- [ ] VIP priority handling
-- [ ] Day simulation (stress test for logistics)
-- [ ] Offline-first check-in with local sync
-- [ ] Networking engine — table seating by shared interests
-- [ ] Vendor intelligence — quote analysis + budget alerts
 - [ ] SaaS tier structure (Base + Premium)
 
 ### Out of Scope
@@ -81,20 +84,22 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 - Program management (tracks, rooms, speakers, time_blocks tables)
 - Check-in page (list mode, manual QR entry, VIP highlighting)
 
-**Key Existing Files:**
-- `eventflow-app/supabase/functions/send-reminder/index.ts` — 1,375 lines, v14
-- `eventflow-app/src/services/chatService.ts` — AI routing, Gemini, slash commands
-- `eventflow-app/src/types/chat.ts` — 80+ action types defined
-- `eventflow-app/src/pages/checkin/CheckinPage.tsx` — QR check-in
-- `eventflow-app/src/components/rooms/RoomAssignmentPanel.tsx` — Room management
+**Key Files (v2.0):**
+- `eventflow-app/supabase/functions/send-reminder/index.ts` — v21, 8 reminder types
+- `eventflow-app/supabase/functions/ai-chat/index.ts` — v25, schedule management tools
+- `eventflow-app/supabase/functions/budget-alerts/index.ts` — v1, threshold notifications
+- `eventflow-app/supabase/functions/vendor-analysis/index.ts` — v1, Gemini analysis
+- `eventflow-app/src/services/chatService.ts` — AI routing with confirmation flow
+- `eventflow-app/src/modules/simulation/` — 8 validators, simulation engine
+- `eventflow-app/src/modules/contingency/` — backup speaker management
+- `eventflow-app/src/modules/checkin/db/` — IndexedDB offline schema
 
-**What Needs to Be Built (v2.0):**
-- AI chat → DB write capability with confirmation flow
-- New tables: table_assignments, ai_insights_log
-- New fields: networking_opt_in on participants, vendor_id on checklist_items
-- Service Worker for offline check-in
-- Stress simulation AI analysis
-- Networking/seating algorithm
+**Current State:**
+- 14 Edge Functions deployed
+- 29,352 lines of TypeScript
+- 7 database migrations applied
+- Offline check-in with background sync
+- AI suggest+confirm pattern established
 
 ## Constraints
 
@@ -116,21 +121,28 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 | message_type enum for dedup | Clean deduplication without string matching | ✓ Good |
 | Follow-up defaults to false | Opt-in by manager, safer for users | ✓ Good |
 | Template engine with fallback chain | Org-specific → system → hardcoded ensures reliability | ✓ Good |
-| Enhanced AI chat (not autonomous) | Safer, maintains user control, builds on existing | — Pending |
-| Manager assigns tracks | Simpler UX, manager controls networking quality | — Pending |
-| Offline check-in only | 80/20 — check-in is the only field-critical feature | — Pending |
+| Enhanced AI chat (not autonomous) | Safer, maintains user control, builds on existing | ✓ Good |
+| Manager assigns tracks | Simpler UX, manager controls networking quality | ✓ Good |
+| Offline check-in only | 80/20 — check-in is the only field-critical feature | ✓ Good |
+| Greedy seating algorithm | Sufficient for <500 participants, avoids CSP complexity | ✓ Good |
+| Dexie.js for IndexedDB | Ecosystem standard for React/TypeScript offline | ✓ Good |
+| Append-only audit log | RLS INSERT/SELECT only ensures integrity | ✓ Good |
+| 8 simulation validators | Comprehensive coverage of event logistics | ✓ Good |
 
-## Current Milestone: v2.0 Intelligent Production & Networking Engine
+## Completed Milestone: v2.0 Intelligent Production & Networking Engine
 
-**Goal:** Transform EventFlow AI from a static data manager to an active real-time event concierge — AI manages logistics, networking engine optimizes participant connections, and the system works even offline at the venue.
+**Shipped:** 2026-02-03
 
-**Target features:**
-- AI agent with DB write access (schedule changes, room assignments, messaging)
-- Day simulation (stress test logistics before the event)
-- Networking engine (seat participants by shared interests)
-- Vendor intelligence (quote analysis, budget alerts)
-- Offline-first check-in
-- VIP concierge handling
+**Delivered:**
+- AI manages schedules with suggest → confirm → execute pattern
+- Day simulation detects issues before event day with 8 validators
+- Networking engine assigns tables by shared interests with VIP spread
+- Vendor intelligence analyzes quotes and suggests alternatives
+- Offline-first check-in with IndexedDB and background sync
+- VIP concierge handling with badges and priority throughout system
+- Contingency management with backup speaker activation
+
+**Stats:** 4 phases, 22 plans, 36 requirements, 29,352 LOC TypeScript
 
 ---
-*Last updated: 2026-02-02 after milestone v2.0 initialization*
+*Last updated: 2026-02-03 after v2.0 milestone completion*

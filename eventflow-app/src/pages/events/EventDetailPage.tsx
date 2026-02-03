@@ -6,6 +6,8 @@ import * as XLSX from 'xlsx'
 import { EventSettingsPanel } from '../../modules/events/components/EventSettingsPanel'
 import type { Event, ProgramDay, Track, Room, Speaker, Contingency, ScheduleChange, TimeBlock, BlockType, ContingencyType, ContingencyStatus, RiskLevel, ExtendedSchedule } from '../../types'
 import { formatDate, getStatusColor, getStatusLabel } from '../../utils'
+import { SeatingPlanView } from '../../components/networking/SeatingPlanView'
+import type { SeatingParticipant } from '../../modules/networking/types'
 
 export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: string }) {
   const { eventId } = useParams<{ eventId: string }>()
@@ -74,6 +76,10 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   // Conflicts State
   const [conflicts, setConflicts] = useState<{ type: string; message: string; scheduleId: string }[]>([])
 
+  // Seating State
+  const [seatingParticipants, setSeatingParticipants] = useState<SeatingParticipant[]>([])
+  const [numberOfTables, setNumberOfTables] = useState(10)
+
   // Toast State
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' | 'warning' }>({
     show: false, message: '', type: 'success'
@@ -82,6 +88,35 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   const showToast = (message: string, type: 'success' | 'error' | 'warning' = 'success') => {
     setToast({ show: true, message, type })
     setTimeout(() => setToast(t => ({ ...t, show: false })), 3000)
+  }
+
+  async function loadSeatingData() {
+    if (!eventId) return
+
+    const { data, error } = await supabase
+      .from('participants')
+      .select(`
+        id, first_name, last_name, is_vip, networking_opt_in,
+        participant_tracks(track_id)
+      `)
+      .eq('event_id', eventId)
+      .eq('status', 'confirmed')
+
+    if (error) {
+      console.error('Error loading seating data:', error)
+      return
+    }
+
+    const participants: SeatingParticipant[] = (data || []).map(p => ({
+      id: p.id,
+      first_name: p.first_name,
+      last_name: p.last_name,
+      is_vip: p.is_vip,
+      networking_opt_in: p.networking_opt_in || false,
+      tracks: p.participant_tracks?.map((pt: { track_id: string }) => pt.track_id) || []
+    }))
+
+    setSeatingParticipants(participants)
   }
 
   async function loadEventData() {
@@ -181,6 +216,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   useEffect(() => {
     if (activeTab === 'program' && eventId) {
       loadProgramData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, eventId])
+
+  // Load seating data when switching to seating tab
+  useEffect(() => {
+    if (activeTab === 'seating' && eventId) {
+      loadSeatingData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, eventId])
@@ -613,6 +656,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
           { id: 'overview', label: 'סקירה', icon: <Eye size={18} /> },
           { id: 'program', label: 'בניית תוכנית', icon: <Calendar size={18} /> },
           { id: 'contingencies', label: 'תכניות חירום', icon: <Shield size={18} /> },
+          { id: 'seating', label: 'שיבוץ לשולחנות', icon: <Grid3X3 size={18} /> },
           { id: 'changes', label: 'יומן שינויים', icon: <Clock size={18} /> },
           { id: 'settings', label: 'הגדרות תזכורות', icon: <Zap size={18} /> }
         ].map(tab => (
@@ -1393,6 +1437,40 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {activeTab === 'seating' && (
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold">שיבוץ לשולחנות</h2>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-zinc-400">מספר שולחנות:</label>
+              <input
+                type="number"
+                value={numberOfTables}
+                onChange={(e) => setNumberOfTables(Math.max(1, parseInt(e.target.value) || 10))}
+                className="w-20 px-2 py-1 bg-zinc-800 rounded border border-white/10"
+                min="1"
+                max="100"
+              />
+            </div>
+          </div>
+
+          {seatingParticipants.length === 0 ? (
+            <div className="text-center py-8 text-zinc-500">
+              <p>אין משתתפים מאושרים לשיבוץ</p>
+              <p className="text-sm mt-2">רק משתתפים עם סטטוס "אישר הגעה" יופיעו כאן</p>
+            </div>
+          ) : (
+            <SeatingPlanView
+              eventId={eventId!}
+              participants={seatingParticipants}
+              numberOfTables={numberOfTables}
+              defaultTableCapacity={8}
+              onAssignmentsSaved={() => showToast('שיבוצים נשמרו בהצלחה')}
+            />
+          )}
         </div>
       )}
 

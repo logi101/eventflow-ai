@@ -3,11 +3,11 @@
 ## Current Position
 
 Phase: 7 (Networking & VIP Infrastructure) IN PROGRESS
-Plan: 2 of 5
-Status: Phase 7 in progress - Plan 02 complete
-Last activity: 2026-02-03 — Completed 07-02-PLAN.md (VIP visual treatment & templates)
+Plan: 4 of 5 (Wave 2 in progress)
+Status: Wave 2 in progress - 07-04 complete, 07-03 and 07-05 remaining
+Last activity: 2026-02-03 — Completed 07-04 (seating algorithm + UI)
 
-Progress: ██████░░░░░░░░░░░░░░ 32% (1.4/4 phases complete)
+Progress: ███████░░░░░░░░░░░░░ 37% (7/19 total plans)
 
 ## Project Reference
 
@@ -52,16 +52,18 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 6: Risk levels: critical (error conflicts) > high (VIPs/warnings) > medium (notifications) > low
 - Phase 6: Full suggest → confirm → execute flow complete end-to-end
 - Phase 7: networking_opt_in defaults to false (explicit opt-in, privacy-first)
-- Phase 7: Event-level networking default in events.settings JSONB: default_networking_opt_in
-- Phase 7: table_assignments tracks both table_number (required) and seat_number (optional)
+- Phase 7: table_assignments tracks table_number (required), seat_number (optional)
 - Phase 7: assigned_by field tracks source: 'ai', 'manager', or 'auto'
-- Phase 7: is_vip_table separate from participant.is_vip (table vs. individual designation)
-- Phase 7: track_statistics view filters only is_active tracks for distribution analysis
-- Phase 7: VIP indicator uses subtle diamond emoji (💎) with purple-600 color at 70% opacity
-- Phase 7: VIPBadge component has three size variants: xs (tables), sm (lists), md (cards)
+- Phase 7: VIP indicator uses subtle diamond emoji (💎) with purple-600 at 70% opacity
+- Phase 7: VIPBadge component has three size variants: xs, sm, md
 - Phase 7: useVIPSorting hook is generic - works with any type having is_vip field
-- Phase 7: VIP WhatsApp templates include room variables (building, number, floor, checkin_time)
-- Phase 7: Template file created in 07-01 but specified in 07-02 (plan overlap)
+- Phase 7: Greedy seating algorithm chosen over CSP library for v1 (sufficient for <500 participants)
+- Phase 7: Companions processed as atomic groups (cannot be separated during assignment)
+- Phase 7: VIP spread with max 2 VIPs per table distributes networking opportunities
+- Phase 7: Shared interests scoring based on track overlap count
+- Phase 7: Manual override requires edit mode toggle (disabled by default for safety)
+- Phase 7: 8px pointer activation distance prevents accidental drags
+- Phase 7: Manual moves attributed as 'manager' in assigned_by for audit trail
 
 ### Blockers
 (None currently)
@@ -85,7 +87,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Idempotent migration with validation queries - safe to run multiple times
 - Migration 007 ready: networking_opt_in column, table_assignments table, track_statistics view
 - table_assignments has RLS policies for multi-tenant isolation
-- Performance indexes on table_assignments: event_id, (event_id, table_number), participant_id, (event_id, is_vip_table)
+- VIPBadge.tsx and useVIPSorting.ts created for VIP visual treatment
+- VIP WhatsApp templates created in seed-vip-templates.sql
+- Seating algorithm: O(n² × t) greedy with companion grouping and constraint satisfaction
+- SeatingService provides 6 CRUD operations: fetch, save, saveAll, update, delete, deleteAll
+- DndContext with @dnd-kit/core enables drag-drop seating plan UI
+- SeatingPlanView: 3-column responsive grid with algorithm generation button
 
 ### Completed Milestones
 - v1.0: Automated Reminders (5 phases, 20 requirements, all complete — shipped 2026-02-02)
@@ -102,8 +109,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 6, Plan 2: AI chat schedule management tools (06-02-SUMMARY.md)
 - Phase 6, Plan 3: Execute AI action Edge Function (06-03-SUMMARY.md)
 - Phase 6, Plan 4: Frontend confirmation UI (06-04-SUMMARY.md)
-- Phase 7, Plan 1: Database foundation for networking & VIP infrastructure (07-01-SUMMARY.md)
-- Phase 7, Plan 2: VIP visual treatment components and templates (07-02-SUMMARY.md)
+- Phase 7, Plan 1: Database foundation for networking & VIP (07-01-SUMMARY.md)
+- Phase 7, Plan 2: VIP visual treatment components (07-02-SUMMARY.md)
+- Phase 7, Plan 4: Seating algorithm and table management UI (07-04-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -114,9 +122,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Completed 07-04 (seating algorithm + UI), continuing Wave 2
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Continue Phase 7 - Plan 03 (Participant networking UI)*
+*Next: Execute Phase 7 Wave 2 remaining plans (07-03, 07-05)*

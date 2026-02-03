@@ -6,8 +6,8 @@ This roadmap delivers the v2.0 milestone: Intelligent Production & Networking En
 
 ## Milestones
 
-- ✅ **v1.0 Automated Reminders** - Phases 1-5 (shipped 2026-02-02)
-- 🚧 **v2.0 Intelligent Production & Networking Engine** - Phases 6-9 (in progress)
+- **v1.0 Automated Reminders** - Phases 1-5 (shipped 2026-02-02)
+- **v2.0 Intelligent Production & Networking Engine** - Phases 6-9 (in progress)
 
 ## Phases
 
@@ -58,14 +58,15 @@ Plans:
   4. Manager can review AI-generated seating plan and manually override specific table assignments
   5. AI suggests room assignments based on VIP status, bed preferences, and accessibility needs with availability preview
 
-**Plans**: 5 plans
+**Plans**: 6 plans (5 core + 1 gap closure)
 
 Plans:
-- [ ] 07-01-PLAN.md -- Database foundation: networking_opt_in column, table_assignments table, track_statistics view
-- [ ] 07-02-PLAN.md -- VIP visual treatment: VIPBadge component, useVIPSorting hook, VIP WhatsApp templates
-- [ ] 07-03-PLAN.md -- Track assignment UI: TrackChip, bulk assignment, useTrackAssignment hook
-- [ ] 07-04-PLAN.md -- Seating system: seating algorithm, seating service, drag-drop seating plan UI
-- [ ] 07-05-PLAN.md -- AI room suggestions: ai-chat room tool, RoomGridView, enhanced RoomAssignmentPanel
+- [x] 07-01-PLAN.md -- Database foundation: networking_opt_in column, table_assignments table, track_statistics view
+- [x] 07-02-PLAN.md -- VIP visual treatment: VIPBadge component, useVIPSorting hook, WhatsApp VIP templates
+- [x] 07-03-PLAN.md -- Track assignment UI: TrackChip component, useTrackAssignment hook, TrackAssignmentBulk component
+- [x] 07-04-PLAN.md -- Seating algorithm: greedy optimization with VIP spread, companion grouping, shared interests scoring
+- [x] 07-05-PLAN.md -- AI room assignments: suggest_room_assignments tool, RoomGridView, RoomListView, RoomAssignmentPanel
+- [ ] 07-06-PLAN.md -- Gap closure: Wire TrackAssignmentBulk into GuestsPage, add seating tab to EventDetailPage
 
 ### Phase 8: Offline & Vendor Intelligence
 **Goal**: Check-in works without internet connection and syncs when connection returns, while AI analyzes vendor quotes against budget and suggests alternatives
@@ -114,12 +115,13 @@ Phases execute in numeric order: 6 → 6.1 (if inserted) → 6.2 → 7 → 8 →
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 6. AI Write Foundation | 4/4 | ✓ Complete | 2026-02-02 |
-| 7. Networking & VIP Infrastructure | 0/5 | Planned | - |
+| 6. AI Write Foundation | 4/4 | Complete | 2026-02-02 |
+| 7. Networking & VIP Infrastructure | 5/6 | Gap closure pending | - |
 | 8. Offline & Vendor Intelligence | 0/TBD | Not started | - |
 | 9. Day Simulation & Real-Time Operations | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-02-02*
+*Roadmap updated: 2026-02-03 (Phase 7 gap closure plan added)*
 *Milestone: v2.0 Intelligent Production & Networking Engine*
 *Coverage: 36/36 v2.0 requirements mapped*

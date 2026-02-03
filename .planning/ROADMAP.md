@@ -7,7 +7,7 @@ This roadmap delivers the v2.0 milestone: Intelligent Production & Networking En
 ## Milestones
 
 - **v1.0 Automated Reminders** - Phases 1-5 (shipped 2026-02-02)
-- **v2.0 Intelligent Production & Networking Engine** - Phases 6-9 (in progress)
+- **v2.0 Intelligent Production & Networking Engine** - Phases 6-9 (complete)
 
 ## Phases
 
@@ -17,7 +17,7 @@ This roadmap delivers the v2.0 milestone: Intelligent Production & Networking En
 
 - [x] **Phase 6: AI Write Foundation** - AI manages schedules and rooms with human confirmation
 - [x] **Phase 7: Networking & VIP Infrastructure** - Intelligent seating, VIP priority, room assignments
-- [x] **Phase 8: Offline & Vendor Intelligence** - Offline check-in with sync, budget alerts *(deployment pending)*
+- [x] **Phase 8: Offline & Vendor Intelligence** - Offline check-in with sync, budget alerts
 - [x] **Phase 9: Day Simulation & Real-Time Operations** - Stress testing and contingency management
 
 ## Phase Details
@@ -127,7 +127,7 @@ Phases execute in numeric order: 6 → 6.1 (if inserted) → 6.2 → 7 → 8 →
 |-------|----------------|--------|-----------|
 | 6. AI Write Foundation | 4/4 | Complete | 2026-02-02 |
 | 7. Networking & VIP Infrastructure | 6/6 | Complete | 2026-02-03 |
-| 8. Offline & Vendor Intelligence | 6/6 | Complete (deploy pending) | 2026-02-03 |
+| 8. Offline & Vendor Intelligence | 6/6 | Complete | 2026-02-03 |
 | 9. Day Simulation & Real-Time Operations | 6/6 | Complete | 2026-02-03 |
 
 ---

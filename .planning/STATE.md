@@ -237,4 +237,4 @@ Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Apply database migration 009, deploy pending Edge Functions, begin v2.0 production testing*
+*Next: Run /gsd:audit-milestone to verify all requirements, then /gsd:complete-milestone to archive v2.0*

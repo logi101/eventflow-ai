@@ -9,6 +9,8 @@ import * as XLSX from 'xlsx'
 import type { Participant, ParticipantFormData, ParticipantStatus } from '../../types'
 import { getParticipantStatusColor, getParticipantStatusLabel, normalizePhone } from '../../utils'
 import { useEvent } from '../../contexts/EventContext'
+import { TrackAssignmentBulk } from '../../components/participants/TrackAssignmentBulk'
+import { useVIPSorting } from '../../hooks/useVIPSorting'
 
 export function GuestsPage() {
   const { selectedEvent } = useEvent()
@@ -21,6 +23,7 @@ export function GuestsPage() {
   const [statusFilter, setStatusFilter] = useState<ParticipantStatus | 'all'>('all')
   const [searchTerm, setSearchTerm] = useState('')
   const [saving, setSaving] = useState(false)
+  const [selectedParticipantIds, setSelectedParticipantIds] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [formData, setFormData] = useState<ParticipantFormData>({
     first_name: '',
@@ -220,6 +223,26 @@ export function GuestsPage() {
     }
   }
 
+  function handleSelectParticipant(id: string, selected: boolean) {
+    if (selected) {
+      setSelectedParticipantIds(prev => [...prev, id])
+    } else {
+      setSelectedParticipantIds(prev => prev.filter(p => p !== id))
+    }
+  }
+
+  function handleSelectAll(selected: boolean) {
+    if (selected) {
+      setSelectedParticipantIds(sortedParticipants.map(p => p.id))
+    } else {
+      setSelectedParticipantIds([])
+    }
+  }
+
+  function handleClearSelection() {
+    setSelectedParticipantIds([])
+  }
+
   // Excel Import
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -272,7 +295,7 @@ export function GuestsPage() {
 
   // Excel Export
   function handleExport() {
-    const exportData = filteredParticipants.map(p => ({
+    const exportData = sortedParticipants.map(p => ({
       'שם פרטי': p.first_name,
       'שם משפחה': p.last_name,
       'טלפון': p.phone,
@@ -301,6 +324,9 @@ export function GuestsPage() {
       (p.email && p.email.includes(searchTerm))
     return matchesStatus && matchesSearch
   })
+
+  // Apply VIP sorting
+  const sortedParticipants = useVIPSorting(filteredParticipants)
 
   // Stats
   const stats = {
@@ -394,6 +420,17 @@ export function GuestsPage() {
         {/* Filters */}
         <div className="bg-[#1a1d27]/60 backdrop-blur-sm rounded-2xl p-4 border border-white/10 mb-6">
           <div className="flex gap-4 flex-wrap items-center">
+            {/* Select All Checkbox */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={selectedParticipantIds.length === sortedParticipants.length && sortedParticipants.length > 0}
+                onChange={(e) => handleSelectAll(e.target.checked)}
+                className="w-4 h-4 rounded border-white/20"
+              />
+              <span className="text-sm text-zinc-400">בחר הכל</span>
+            </label>
+
             {/* Event Filter */}
             <select
               className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 transition-all"
@@ -447,7 +484,7 @@ export function GuestsPage() {
               </div>
               <p className="text-zinc-400 font-medium">טוען אורחים...</p>
             </div>
-          ) : filteredParticipants.length === 0 ? (
+          ) : sortedParticipants.length === 0 ? (
             <div className="bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 text-center py-16">
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-blue-400/20 blur-2xl rounded-full" />
@@ -457,7 +494,7 @@ export function GuestsPage() {
               <p className="text-zinc-500 text-sm mt-2">לחץ על "הוסף אורח" או ייבא מ-Excel</p>
             </div>
           ) : (
-            filteredParticipants.map(participant => (
+            sortedParticipants.map(participant => (
               <div
                 key={participant.id}
                 className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
@@ -466,6 +503,16 @@ export function GuestsPage() {
               >
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
+                    <input
+                      type="checkbox"
+                      checked={selectedParticipantIds.includes(participant.id)}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        handleSelectParticipant(participant.id, e.target.checked)
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-5 h-5 rounded border-white/20 flex-shrink-0"
+                    />
                     <div className="w-14 h-14 bg-gradient-to-br from-blue-400 to-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-blue-500/20 group-hover:scale-105 group-hover:rotate-2 transition-all duration-300">
                       {participant.first_name[0]}{participant.last_name[0]}
                     </div>
@@ -527,6 +574,15 @@ export function GuestsPage() {
             ))
           )}
         </div>
+
+      {/* Track Assignment Bulk Bar */}
+      {selectedEventId && (
+        <TrackAssignmentBulk
+          eventId={selectedEventId}
+          selectedParticipantIds={selectedParticipantIds}
+          onClearSelection={handleClearSelection}
+        />
+      )}
 
       {/* Create/Edit Modal */}
       {showModal && (

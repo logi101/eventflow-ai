@@ -2,12 +2,12 @@
 
 ## Current Position
 
-Phase: 7 (Networking & VIP Infrastructure) COMPLETE
-Plan: 6 of 6 (all complete)
-Status: Phase 7 complete - all 11 requirements SATISFIED
-Last activity: 2026-02-03 — Completed 07-06 (UI integration gap closure)
+Phase: 8 (Offline & Vendor Intelligence)
+Plan: 2 of 9 (in progress)
+Status: Phase 8 in progress - IndexedDB foundation complete
+Last activity: 2026-02-03 — Completed 08-02 (Dexie.js IndexedDB setup)
 
-Progress: ██████████░░░░░░░░░░ 53% (10/19 total plans)
+Progress: ███████████░░░░░░░░░ 58% (11/19 total plans)
 
 ## Project Reference
 
@@ -71,6 +71,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 7: RoomAssignmentPanel has 3 view modes: participant | list | grid
 - Phase 7: Room-centric data transformation for grid/list visualization
 - Phase 7: VIP prioritization in room matching (VIP room type → accessible → standard)
+- Phase 8: Dexie.js 4.x chosen as IndexedDB wrapper (ecosystem standard for React/TypeScript)
+- Phase 8: 24-hour TTL for cached data to comply with Safari ITP
+- Phase 8: Last-wins rule for duplicate check-ins (update timestamp on conflict)
+- Phase 8: Store participants individually (not as array) to avoid UI blocking
+- Phase 8: synced boolean and syncRetries number for sync tracking
+- Phase 8: Use 0 instead of false for Dexie indexed boolean fields (IndexableType constraint)
 
 ### Blockers
 (None currently)
@@ -110,6 +116,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Seating tab only loads confirmed participants (status='confirmed')
 - VIP sorting applied to entire filtered list in GuestsPage
 - Tab-specific data loading via useEffect on activeTab change pattern
+- Dexie.js 4.3.0 and dexie-react-hooks 4.2.0 installed for IndexedDB
+- IndexedDB schema: OfflineCheckIn (auto-increment ID, sync tracking) and CachedParticipant (24h TTL)
+- src/modules/checkin/db: schema.ts, db.ts, operations.ts, index.ts
+- CRUD operations: addOfflineCheckIn, getPendingCheckIns, markCheckInSynced, cacheParticipants, getCachedParticipants
+- TTL pattern: expiresAt = cachedAt + PARTICIPANT_TTL_MS (24 hours)
+- TypeScript verbatimModuleSyntax: use type-only imports (import { type ... })
 
 ### Completed Milestones
 - v1.0: Automated Reminders (5 phases, 20 requirements, all complete — shipped 2026-02-02)
@@ -132,6 +144,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 7, Plan 4: Seating algorithm with drag-drop (07-04-SUMMARY.md)
 - Phase 7, Plan 5: AI room assignments + grid/list views (07-05-SUMMARY.md)
 - Phase 7, Plan 6: UI integration gap closure (07-06-SUMMARY.md)
+- Phase 8, Plan 2: Dexie.js IndexedDB setup (08-02-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -142,9 +155,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 07-06 (UI integration gap closure), Phase 7 COMPLETE
+Stopped at: Completed 08-02 (Dexie.js IndexedDB setup)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Phase 7 complete (all 11 requirements SATISFIED) - ready for Phase 8 (Feedback & Post-Event) or consolidation*
+*Next: Continue Phase 8 - Plan 08-03 (Sync Service & Hooks) ready to execute*

@@ -96,9 +96,13 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8: Check-in success shows "(ממתין לסנכרון)" suffix when offline
 - Phase 8: Per-participant sync indicators skipped (expensive IndexedDB lookups, global count sufficient)
 - Phase 8: setupAutoSync() called in main.tsx for app-wide initialization
+- Phase 8: AI vendor analysis is on-demand (manager clicks "Analyze") not automatic
+- Phase 8: Gemini prompts and responses in Hebrew for Israeli market
+- Phase 8: Vendor alternatives include past event usage context ("You used X for Event Y")
+- Phase 8: Budget alert badges show two-tier states (warning yellow, critical red)
 
 ### Blockers
-(None currently)
+- vendor-analysis Edge Function deployment pending user authentication (supabase login required)
 
 ### Technical Notes
 - Edge Function send-reminder deployed as v14 with template engine + all 8 handlers + throttle + retry
@@ -173,6 +177,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8, Plan 2: Dexie.js IndexedDB setup (08-02-SUMMARY.md)
 - Phase 8, Plan 3: Offline sync service and online status (08-03-SUMMARY.md)
 - Phase 8, Plan 4: Budget threshold alert system (08-04-SUMMARY.md)
+- Phase 8, Plan 5: AI vendor analysis and intelligence UI (08-05-SUMMARY.md)
+- Phase 8, Plan 3: Offline sync service and online status (08-03-SUMMARY.md)
+- Phase 8, Plan 4: Budget threshold alert system (08-04-SUMMARY.md)
 - Phase 8, Plan 5: Vendor budget tracking UI (08-05-SUMMARY.md)
 - Phase 8, Plan 6: Offline check-in UI integration (08-06-SUMMARY.md)
 
@@ -185,9 +192,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-06 (offline check-in UI integration)
+Stopped at: Completed 08-05 (AI vendor analysis and intelligence UI) - vendor-analysis Edge Function deployment pending
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Continue Phase 8 - Plan 08-07 onwards (smart vendor ranking algorithm)*
+*Next: User deploys vendor-analysis Edge Function with `supabase login`, then continue Phase 8 - Plan 08-06 onwards*

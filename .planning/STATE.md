@@ -2,12 +2,12 @@
 
 ## Current Position
 
-Phase: 6 (AI Write Foundation) ✓ COMPLETE
-Plan: 4 of 4
-Status: Phase 6 complete - ready for Phase 7
-Last activity: 2026-02-03 — Phase 6 verified and marked complete
+Phase: 7 (Networking & VIP Infrastructure) IN PROGRESS
+Plan: 1 of 5
+Status: Phase 7 started - Plan 01 complete
+Last activity: 2026-02-03 — Completed 07-01-PLAN.md (database foundation)
 
-Progress: █████░░░░░░░░░░░░░░░ 25% (1/4 phases complete)
+Progress: ██████░░░░░░░░░░░░░░ 30% (1.2/4 phases complete)
 
 ## Project Reference
 
@@ -51,6 +51,12 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 6: Approve button disabled when error-level conflicts exist (safety first)
 - Phase 6: Risk levels: critical (error conflicts) > high (VIPs/warnings) > medium (notifications) > low
 - Phase 6: Full suggest → confirm → execute flow complete end-to-end
+- Phase 7: networking_opt_in defaults to false (explicit opt-in, privacy-first)
+- Phase 7: Event-level networking default in events.settings JSONB: default_networking_opt_in
+- Phase 7: table_assignments tracks both table_number (required) and seat_number (optional)
+- Phase 7: assigned_by field tracks source: 'ai', 'manager', or 'auto'
+- Phase 7: is_vip_table separate from participant.is_vip (table vs. individual designation)
+- Phase 7: track_statistics view filters only is_active tracks for distribution analysis
 
 ### Blockers
 (None currently)
@@ -72,6 +78,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Program management tables exist: tracks, rooms, speakers, time_blocks
 - Migration 006 ready: ai_insights_log table, btree_gist extension, no_room_overlap constraint, check_speaker_conflicts function
 - Idempotent migration with validation queries - safe to run multiple times
+- Migration 007 ready: networking_opt_in column, table_assignments table, track_statistics view
+- table_assignments has RLS policies for multi-tenant isolation
+- Performance indexes on table_assignments: event_id, (event_id, table_number), participant_id, (event_id, is_vip_table)
 
 ### Completed Milestones
 - v1.0: Automated Reminders (5 phases, 20 requirements, all complete — shipped 2026-02-02)
@@ -88,6 +97,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 6, Plan 2: AI chat schedule management tools (06-02-SUMMARY.md)
 - Phase 6, Plan 3: Execute AI action Edge Function (06-03-SUMMARY.md)
 - Phase 6, Plan 4: Frontend confirmation UI (06-04-SUMMARY.md)
+- Phase 7, Plan 1: Database foundation for networking & VIP infrastructure (07-01-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -98,9 +108,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 6 complete and verified
+Stopped at: Completed 07-01-PLAN.md
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Begin Phase 7 (Networking & VIP Infrastructure)*
+*Next: Continue Phase 7 - Plan 02 (Table assignment UI components)*

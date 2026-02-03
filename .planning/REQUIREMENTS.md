@@ -25,24 +25,24 @@ Requirements for intelligent production features. Each maps to roadmap phases.
 
 ### Networking Engine (NETW)
 
-- [ ] **NETW-01**: Manager can assign interest tracks to participants (participant_tracks linking)
-- [ ] **NETW-02**: Participants have networking_opt_in flag (default false, manager toggles)
-- [ ] **NETW-03**: Seating algorithm assigns participants to tables based on shared interests + diversity constraints
-- [ ] **NETW-04**: Table assignments stored in table_assignments table with event_id, participant_id, table_number
-- [ ] **NETW-05**: Manager can view and manually override AI-generated seating plan
-- [ ] **NETW-06**: VIP participants get priority seating (table 1 or designated VIP tables)
+- [x] **NETW-01**: Manager can assign interest tracks to participants (participant_tracks linking)
+- [x] **NETW-02**: Participants have networking_opt_in flag (default false, manager toggles)
+- [x] **NETW-03**: Seating algorithm assigns participants to tables based on shared interests + diversity constraints
+- [x] **NETW-04**: Table assignments stored in table_assignments table with event_id, participant_id, table_number
+- [x] **NETW-05**: Manager can view and manually override AI-generated seating plan
+- [x] **NETW-06**: VIP participants get priority seating (table 1 or designated VIP tables)
 
 ### VIP Handling (VIP)
 
-- [ ] **VIP-01**: VIP participants visually distinguished throughout the system (badges, priority indicators)
-- [ ] **VIP-02**: VIP-specific WhatsApp templates with personalized variables (room_number, table_number)
+- [x] **VIP-01**: VIP participants visually distinguished throughout the system (badges, priority indicators)
+- [x] **VIP-02**: VIP-specific WhatsApp templates with personalized variables (room_number, table_number)
 - [x] **VIP-03**: AI prioritizes VIP requests and concerns in chat responses
 
 ### Smart Room Assignment (ROOM)
 
-- [ ] **ROOM-01**: AI can suggest room assignments based on VIP status, bed preferences, accessibility needs
-- [ ] **ROOM-02**: Manager sees room availability and capacity before approving AI suggestion
-- [ ] **ROOM-03**: WhatsApp templates include room details (room_number, building, floor) as dynamic variables
+- [x] **ROOM-01**: AI can suggest room assignments based on VIP status, bed preferences, accessibility needs
+- [x] **ROOM-02**: Manager sees room availability and capacity before approving AI suggestion
+- [x] **ROOM-03**: WhatsApp templates include room details (room_number, building, floor) as dynamic variables
 
 ### Day Simulation (SIM)
 
@@ -120,18 +120,18 @@ Deferred to future milestone.
 | SCHED-07 | Phase 6 | Complete |
 | SCHED-08 | Phase 9 | Pending |
 | SCHED-09 | Phase 9 | Pending |
-| NETW-01 | Phase 7 | Pending |
-| NETW-02 | Phase 7 | Pending |
-| NETW-03 | Phase 7 | Pending |
-| NETW-04 | Phase 7 | Pending |
-| NETW-05 | Phase 7 | Pending |
-| NETW-06 | Phase 7 | Pending |
-| VIP-01 | Phase 7 | Pending |
-| VIP-02 | Phase 7 | Pending |
+| NETW-01 | Phase 7 | Complete |
+| NETW-02 | Phase 7 | Complete |
+| NETW-03 | Phase 7 | Complete |
+| NETW-04 | Phase 7 | Complete |
+| NETW-05 | Phase 7 | Complete |
+| NETW-06 | Phase 7 | Complete |
+| VIP-01 | Phase 7 | Complete |
+| VIP-02 | Phase 7 | Complete |
 | VIP-03 | Phase 6 | Complete |
-| ROOM-01 | Phase 7 | Pending |
-| ROOM-02 | Phase 7 | Pending |
-| ROOM-03 | Phase 7 | Pending |
+| ROOM-01 | Phase 7 | Complete |
+| ROOM-02 | Phase 7 | Complete |
+| ROOM-03 | Phase 7 | Complete |
 | SIM-01 | Phase 9 | Pending |
 | SIM-02 | Phase 9 | Pending |
 | SIM-03 | Phase 9 | Pending |
@@ -157,4 +157,4 @@ Deferred to future milestone.
 
 ---
 *Requirements defined: 2026-02-02*
-*Last updated: 2026-02-02 after Phase 6 completion*
+*Last updated: 2026-02-02 after roadmap creation*

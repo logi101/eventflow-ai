@@ -7,14 +7,14 @@ Plan: 6 of 6 (all complete)
 Status: Phase 7 complete - all 11 requirements SATISFIED
 Last activity: 2026-02-03 — Completed 07-06 (UI integration gap closure)
 
-Progress: █████████░░░░░░░░░░░ 47% (9/19 total plans)
+Progress: ██████████░░░░░░░░░░ 53% (10/19 total plans)
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-02-02)
 
 **Core value:** The event manager has full control while AI handles the complexity
-**Current focus:** Milestone v2.0 — Intelligent Production & Networking Engine (Phase 6/9)
+**Current focus:** Milestone v2.0 — Intelligent Production & Networking Engine (Phase 7 done, ready for Phase 8)
 
 ## Accumulated Context
 
@@ -129,6 +129,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 7, Plan 1: Database foundation for networking & VIP (07-01-SUMMARY.md)
 - Phase 7, Plan 2: VIP visual treatment components (07-02-SUMMARY.md)
 - Phase 7, Plan 3: Track assignment UI (07-03-SUMMARY.md)
+- Phase 7, Plan 4: Seating algorithm with drag-drop (07-04-SUMMARY.md)
 - Phase 7, Plan 5: AI room assignments + grid/list views (07-05-SUMMARY.md)
 - Phase 7, Plan 6: UI integration gap closure (07-06-SUMMARY.md)
 

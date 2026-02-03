@@ -77,7 +77,8 @@ serve(async (req) => {
       if (!item.event_vendors) continue
 
       // Use approved_amount if available, otherwise quoted_amount
-      const vendorData = item.event_vendors as any
+      const vendorData = item.event_vendors as { approved_amount?: number; quoted_amount?: number } | null
+      if (!vendorData) continue
       const currentAmount = vendorData.approved_amount || vendorData.quoted_amount || 0
       const percentage = (currentAmount / item.budget_allocation) * 100
 
@@ -142,7 +143,8 @@ serve(async (req) => {
         .eq('id', eventId)
         .single()
 
-      const managerPhone = (event?.user_profiles as any)?.phone_normalized
+      const userProfile = event?.user_profiles as { phone_normalized?: string } | null
+      const managerPhone = userProfile?.phone_normalized
 
       for (const alert of newAlertsToSend) {
         // Record in alert history

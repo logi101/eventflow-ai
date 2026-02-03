@@ -3,9 +3,9 @@
 ## Current Position
 
 Phase: 9 (Day Simulation & Real-Time Operations) IN PROGRESS
-Plan: 3 of 3 (services complete)
-Status: Contingency services ready - suggest+confirm lifecycle with WhatsApp notifications
-Last activity: 2026-02-03 — Completed 09-03 (Contingency Services)
+Plan: 2 of 3 (validators complete)
+Status: Simulation engine with 8 validators ready for UI integration
+Last activity: 2026-02-03 — Completed 09-02 (Simulation Validators & Engine)
 
 Progress: ███████████████████░ 95% (18/19 total plans)
 
@@ -105,6 +105,13 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 9: Eight issue categories: room, speaker, capacity, timing, equipment, vip, catering, backtoback
 - Phase 9: Execution status lifecycle: suggested → approved → executed (or rejected/failed)
 - Phase 9: Backup speaker tracking: backup_speaker_id + original_speaker_id on schedules table
+- Phase 9: Supabase foreign key relationships return arrays - extract first element in transformers
+- Phase 9: Validators are pure functions with deterministic IDs (hash of content, not random UUID)
+- Phase 9: Parallel validator execution via Promise.all for performance
+- Phase 9: Three-level deterministic sorting: severity > category > id
+- Phase 9: date-fns areIntervalsOverlapping() with inclusive:false (back-to-back sessions OK)
+- Phase 9: Unused vendors parameter in validateCateringGaps kept for API consistency
+- Phase 9: Equipment validation uses placeholder empty assigned array (table doesn't exist yet)
 - Phase 9: Promise.allSettled for parallel WhatsApp notifications (graceful failure handling)
 - Phase 9: VIP-first notification sorting with personalized messages (first name prefix)
 - Phase 9: Impact summary calculated twice: before suggestion (estimated) and after execution (actual)
@@ -198,6 +205,7 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8, Plan 5: Vendor budget tracking UI (08-05-SUMMARY.md)
 - Phase 8, Plan 6: Offline check-in UI integration (08-06-SUMMARY.md)
 - Phase 9, Plan 1: Database & Types Foundation (09-01-SUMMARY.md)
+- Phase 9, Plan 2: Simulation Validators & Engine (09-02-SUMMARY.md)
 - Phase 9, Plan 3: Contingency Services (09-03-SUMMARY.md)
 
 ### Quick Tasks Completed
@@ -209,9 +217,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Phase 9, Plan 3 complete (Contingency Services)
+Stopped at: Phase 9, Plan 2 complete (Simulation Validators & Engine)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: Execute Phase 9, Plan 2 (Validators) - types foundation ready*
+*Next: Execute Phase 9, Plan 3 (Contingency Services) - validation engine ready*

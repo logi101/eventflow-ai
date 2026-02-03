@@ -3,11 +3,11 @@
 ## Current Position
 
 Phase: 8 (Offline & Vendor Intelligence)
-Plan: 4 of 9 (complete, deployment pending)
-Status: Phase 8 in progress - Budget alerts system complete (Edge Function deployment pending)
-Last activity: 2026-02-03 — Completed 08-04 (budget threshold alert system)
+Plan: 5 of 9 (complete, deployment pending)
+Status: Phase 8 in progress - AI vendor analysis system complete
+Last activity: 2026-02-03 — Completed 08-05 (AI vendor analysis and intelligence UI)
 
-Progress: █████████████░░░░░░░ 68% (13/19 total plans)
+Progress: █████████████░░░░░░░ 74% (14/19 total plans)
 
 ## Project Reference
 
@@ -92,6 +92,10 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8: checkNow flag controls whether alerts trigger WhatsApp (prevents spam on read-only checks)
 - Phase 8: useBudgetAlertCount as lightweight hook for badge-only UI (1min stale time)
 - Phase 8: 5-minute polling interval for budget alerts (balances freshness with API quota)
+- Phase 8: Undo check-in is online-only to prevent sync conflicts (safest approach)
+- Phase 8: Check-in success shows "(ממתין לסנכרון)" suffix when offline
+- Phase 8: Per-participant sync indicators skipped (expensive IndexedDB lookups, global count sufficient)
+- Phase 8: setupAutoSync() called in main.tsx for app-wide initialization
 
 ### Blockers
 (None currently)
@@ -169,6 +173,8 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 - Phase 8, Plan 2: Dexie.js IndexedDB setup (08-02-SUMMARY.md)
 - Phase 8, Plan 3: Offline sync service and online status (08-03-SUMMARY.md)
 - Phase 8, Plan 4: Budget threshold alert system (08-04-SUMMARY.md)
+- Phase 8, Plan 5: Vendor budget tracking UI (08-05-SUMMARY.md)
+- Phase 8, Plan 6: Offline check-in UI integration (08-06-SUMMARY.md)
 
 ### Quick Tasks Completed
 
@@ -179,9 +185,9 @@ See: .planning/PROJECT.md (updated 2026-02-02)
 ## Session Continuity
 
 Last session: 2026-02-03
-Stopped at: Completed 08-04 (budget threshold alert system) - Edge Function deployment pending user auth
+Stopped at: Completed 08-06 (offline check-in UI integration)
 Resume file: None
 
 ---
 *State updated: 2026-02-03*
-*Next: User deploys budget-alerts Edge Function, then continue Phase 8 - Plan 08-05 onwards (vendor budget UI)*
+*Next: Continue Phase 8 - Plan 08-07 onwards (smart vendor ranking algorithm)*

@@ -54,9 +54,12 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 
 ### Active
 
-<!-- Next scope - v2.1 milestone -->
+<!-- Current scope - v2.1 milestone -->
 
-- [ ] SaaS tier structure (Base + Premium)
+- [ ] SaaS tier structure — Base + Premium tiers
+- [ ] Feature gating — Premium-only features (AI, simulation, networking)
+- [ ] Usage limits — Free tier limits (events, participants, messages)
+- [ ] Admin tier control — Admin marks accounts as Premium
 
 ### Out of Scope
 
@@ -64,7 +67,7 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 
 - Email/SMS reminders — WhatsApp only for now
 - Google Calendar sync — deferred to v3
-- Payment processing — deferred to v3
+- Payment processing — deferred to v2.2 (Stripe integration)
 - Mobile native app — Web PWA approach
 - Full offline mode — only check-in is offline-capable
 - Autonomous AI agent — AI always suggests, user confirms
@@ -129,7 +132,18 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 | Append-only audit log | RLS INSERT/SELECT only ensures integrity | ✓ Good |
 | 8 simulation validators | Comprehensive coverage of event logistics | ✓ Good |
 
-## Completed Milestone: v2.0 Intelligent Production & Networking Engine
+## Current Milestone: v2.1 SaaS Tier Structure
+
+**Goal:** Enable multi-tenant monetization with feature gating and usage limits, admin-controlled tier assignments (payment integration deferred to v2.2).
+
+**Target features:**
+- Base + Premium tier definitions
+- Feature gating (AI, simulation, networking Premium-only)
+- Usage limits (events, participants, messages per tier)
+- Admin tier control panel
+- Tier-aware UI (upgrade prompts, feature locks)
+
+## Previous Milestone: v2.0 Intelligent Production & Networking Engine
 
 **Shipped:** 2026-02-03
 
@@ -145,4 +159,4 @@ EventFlow AI is a comprehensive Hebrew-first event production management system 
 **Stats:** 4 phases, 22 plans, 36 requirements, 29,352 LOC TypeScript
 
 ---
-*Last updated: 2026-02-03 after v2.0 milestone completion*
+*Last updated: 2026-02-03 after v2.1 milestone initialization*

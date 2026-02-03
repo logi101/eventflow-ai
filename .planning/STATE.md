@@ -2,19 +2,19 @@
 
 ## Current Position
 
-Phase: v2.0 MILESTONE COMPLETE 🎉
+Phase: Not started (defining requirements)
 Plan: —
-Status: Milestone v2.0 archived, ready for v2.1
-Last activity: 2026-02-03 — v2.0 milestone complete and archived
+Status: Researching v2.1 features
+Last activity: 2026-02-03 — Milestone v2.1 started
 
-Progress: ████████████████████ 100% — v2.0 shipped
+Progress: ░░░░░░░░░░░░░░░░░░░░ 0% — v2.1 SaaS Tier Structure
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-02-03)
 
 **Core value:** The event manager has full control while AI handles the complexity
-**Current focus:** v2.0 shipped — Ready for `/gsd:new-milestone` to start v2.1
+**Current focus:** Milestone v2.1 — SaaS Tier Structure (Base + Premium)
 
 ## Accumulated Context
 

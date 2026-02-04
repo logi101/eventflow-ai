@@ -32,6 +32,9 @@ import {
   ForgotPasswordPage,
   ResetPasswordPage,
   TestWhatsAppPage,
+  SimulationPage,
+  NetworkingPage,
+  ContingencyPage,
 } from './pages'
 import { UserManagementPage } from './pages/admin/UserManagementPage'
 
@@ -66,6 +69,9 @@ function AppLayout() {
           <Route path="/event/checkin" element={<CheckinPage />} />
           <Route path="/event/reports" element={<ReportsPage />} />
           <Route path="/event/reminder-settings" element={<ReminderSettingsPage />} />
+          <Route path="/event/simulation" element={<SimulationPage />} />
+          <Route path="/event/networking" element={<NetworkingPage />} />
+          <Route path="/event/contingency" element={<ContingencyPage />} />
 
           {/* Global Routes (no event required) */}
           <Route path="/ai" element={<AIAssistantPage />} />

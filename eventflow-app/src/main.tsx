@@ -8,6 +8,7 @@ import { ChatProvider } from './contexts/ChatContext'
 import { AuthProvider } from './contexts/AuthContext'
 import { EventProvider } from './contexts/EventContext'
 import { GracePeriodProvider } from './contexts/GracePeriodContext'
+import { TierProvider } from './contexts/TierContext'
 import { setupAutoSync } from './modules/checkin/services/syncService'
 import { ErrorBoundary } from './ErrorBoundary'
 
@@ -30,11 +31,13 @@ createRoot(document.getElementById('root')!).render(
         <BrowserRouter>
           <AuthProvider>
             <EventProvider>
-              <GracePeriodProvider>
-                <ChatProvider>
-                  <App />
-                </ChatProvider>
-              </GracePeriodProvider>
+              <TierProvider>
+                <GracePeriodProvider>
+                  <ChatProvider>
+                    <App />
+                  </ChatProvider>
+                </GracePeriodProvider>
+              </TierProvider>
             </EventProvider>
           </AuthProvider>
         </BrowserRouter>

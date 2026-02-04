@@ -30,11 +30,15 @@ import {
   PanelLeftOpen,
   PanelLeftClose,
   Menu,
-  X
+  X,
+  PlayCircle,
+  Share2,
+  AlertTriangle,
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { PushNotificationSettings } from '../PushNotificationSettings'
+import { TierBadge } from '../ui/TierBadge'
 
 // Links for when NO event is selected (home view)
 const homeLinks = [
@@ -54,6 +58,9 @@ const eventLinks = [
   { to: '/event/feedback', icon: FileQuestion, label: 'משוב' },
   { to: '/event/reports', icon: PieChart, label: 'דוחות' },
   { to: '/event/reminder-settings', icon: Zap, label: 'הגדרות תזכורות' },
+  { to: '/event/simulation', icon: PlayCircle, label: 'סימולציה' },
+  { to: '/event/networking', icon: Share2, label: 'נטוורקינג' },
+  { to: '/event/contingency', icon: AlertTriangle, label: 'תקלות ומשברים' },
 ]
 
 // Global links (always visible)
@@ -163,16 +170,21 @@ export function Sidebar() {
           {/* ── Logo + Toggle ── */}
           <div className={`mb-8 pt-2 flex items-center ${isOpen ? 'justify-between' : 'justify-center'}`}>
             {isOpen && (
-              <Link to="/" className="block group flex-1 min-w-0">
-                <h1
-                  className="text-2xl font-bold text-gradient glow-text transition-all duration-300 group-hover:scale-[1.02]"
-                  style={{ textShadow: '0 0 30px rgba(249, 115, 22, 0.3)' }}
-                  data-testid="app-logo"
-                >
-                  EventFlow AI
-                </h1>
-                <p className="text-zinc-500 text-sm mt-1.5 tracking-wide">מערכת הפקת אירועים</p>
-              </Link>
+              <div className="flex-1 min-w-0">
+                <Link to="/" className="block group">
+                  <h1
+                    className="text-2xl font-bold text-gradient glow-text transition-all duration-300 group-hover:scale-[1.02]"
+                    style={{ textShadow: '0 0 30px rgba(249, 115, 22, 0.3)' }}
+                    data-testid="app-logo"
+                  >
+                    EventFlow AI
+                  </h1>
+                  <p className="text-zinc-500 text-sm mt-1.5 tracking-wide">מערכת הפקת אירועים</p>
+                </Link>
+                <div className="mt-2">
+                  <TierBadge />
+                </div>
+              </div>
             )}
             <button
               onClick={() => setIsOpen(prev => !prev)}

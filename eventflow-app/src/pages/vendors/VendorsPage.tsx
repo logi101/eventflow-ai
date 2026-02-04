@@ -3,8 +3,11 @@ import { Plus, Edit2, Trash2, MapPin, X, Loader2, Search, Phone, Mail, Globe, Tr
 import { supabase } from '../../lib/supabase'
 import type { Vendor, VendorCategory, VendorFormData, VendorStatus } from '../../types'
 import { getVendorStatusColor, getVendorStatusLabel, normalizePhone, renderStars } from '../../utils'
+import { useEvent } from '../../contexts/EventContext'
+import { BudgetAlertBadge } from '../../modules/vendors/components'
 
 export function VendorsPage() {
+  const { selectedEvent } = useEvent()
   const [vendors, setVendors] = useState<Vendor[]>([])
   const [categories, setCategories] = useState<VendorCategory[]>([])
   const [loading, setLoading] = useState(true)
@@ -209,7 +212,10 @@ export function VendorsPage() {
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-white" data-testid="vendors-title">ספקים</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-white" data-testid="vendors-title">ספקים</h1>
+              {selectedEvent && <BudgetAlertBadge eventId={selectedEvent.id} />}
+            </div>
             <p className="text-zinc-400 mt-1">{vendors.length} ספקים במערכת</p>
           </div>
           <button
@@ -225,11 +231,10 @@ export function VendorsPage() {
         {/* Category Cards */}
         <div className="grid grid-cols-4 lg:grid-cols-8 gap-3 mb-8">
           <button
-            className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${
-              categoryFilter === 'all'
+            className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${categoryFilter === 'all'
                 ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
                 : 'bg-[#1a1d27] border border-white/5 border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
-            }`}
+              }`}
             onClick={() => setCategoryFilter('all')}
           >
             <p className="text-2xl mb-1">📋</p>
@@ -238,11 +243,10 @@ export function VendorsPage() {
           {categoryStats.slice(0, 7).map(cat => (
             <button
               key={cat.id}
-              className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${
-                categoryFilter === cat.id
+              className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${categoryFilter === cat.id
                   ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
                   : 'bg-[#1a1d27] border border-white/5 border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
-              }`}
+                }`}
               onClick={() => setCategoryFilter(cat.id)}
               data-testid="category-filter"
             >
@@ -260,11 +264,10 @@ export function VendorsPage() {
               {(['all', 'pending', 'approved', 'confirmed'] as const).map(status => (
                 <button
                   key={status}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    statusFilter === status
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${statusFilter === status
                       ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-sm'
                       : 'text-zinc-400 hover:bg-white/5'
-                  }`}
+                    }`}
                   onClick={() => setStatusFilter(status)}
                 >
                   {status === 'all' ? 'הכל' : getVendorStatusLabel(status)}
@@ -393,205 +396,205 @@ export function VendorsPage() {
                       title="מחיקה"
                     >
                       <Trash2 size={16} className="text-red-500" />
-                  </button>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
 
-      {/* Create/Edit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="glass-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-[#1a1d27]">
-              <h2 className="text-2xl font-bold">
-                {editingVendor ? 'עריכת ספק' : 'ספק חדש'}
-              </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
-                <X size={24} />
-              </button>
-            </div>
+        {/* Create/Edit Modal */}
+        {showModal && (
+          <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="glass-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-[#1a1d27]">
+                <h2 className="text-2xl font-bold">
+                  {editingVendor ? 'עריכת ספק' : 'ספק חדש'}
+                </h2>
+                <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
+                  <X size={24} />
+                </button>
+              </div>
 
-            <div className="p-6 space-y-4">
-              {/* Category & Name */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">קטגוריה</label>
-                  <select
-                    className="input"
-                    value={formData.category_id}
-                    onChange={e => setFormData({ ...formData, category_id: e.target.value })}
-                  >
-                    <option value="">בחר קטגוריה</option>
-                    {categories.map(cat => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.icon} {cat.name}
-                      </option>
-                    ))}
-                  </select>
+              <div className="p-6 space-y-4">
+                {/* Category & Name */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">קטגוריה</label>
+                    <select
+                      className="input"
+                      value={formData.category_id}
+                      onChange={e => setFormData({ ...formData, category_id: e.target.value })}
+                    >
+                      <option value="">בחר קטגוריה</option>
+                      {categories.map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.icon} {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">שם הספק *</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.name}
+                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    />
+                  </div>
                 </div>
+
+                {/* Contact Info */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">איש קשר</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.contact_name}
+                      onChange={e => setFormData({ ...formData, contact_name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">טלפון</label>
+                    <input
+                      type="tel"
+                      className="input"
+                      value={formData.phone}
+                      onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">אימייל</label>
+                    <input
+                      type="email"
+                      className="input"
+                      value={formData.email}
+                      onChange={e => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">אתר אינטרנט</label>
+                    <input
+                      type="url"
+                      className="input"
+                      placeholder="https://"
+                      value={formData.website}
+                      onChange={e => setFormData({ ...formData, website: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Location */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">עיר</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.city}
+                      onChange={e => setFormData({ ...formData, city: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">כתובת</label>
+                    <input
+                      type="text"
+                      className="input"
+                      value={formData.address}
+                      onChange={e => setFormData({ ...formData, address: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Status & Rating */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">סטטוס</label>
+                    <select
+                      className="input"
+                      value={formData.status}
+                      onChange={e => setFormData({ ...formData, status: e.target.value as VendorStatus })}
+                    >
+                      <option value="pending">ממתין</option>
+                      <option value="quote_requested">נשלחה בקשה</option>
+                      <option value="quoted">התקבלה הצעה</option>
+                      <option value="approved">אושר</option>
+                      <option value="rejected">נדחה</option>
+                      <option value="confirmed">מאושר סופי</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">דירוג (1-5)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="5"
+                      step="0.5"
+                      className="input"
+                      value={formData.rating}
+                      onChange={e => setFormData({ ...formData, rating: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                {/* Tags */}
                 <div>
-                  <label className="block text-sm font-medium mb-2">שם הספק *</label>
+                  <label className="block text-sm font-medium mb-2">תגיות (מופרד בפסיקים)</label>
                   <input
                     type="text"
                     className="input"
-                    value={formData.name}
-                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="חתונות, בר מצווה, כשר..."
+                    value={formData.tags}
+                    onChange={e => setFormData({ ...formData, tags: e.target.value })}
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">תיאור</label>
+                  <textarea
+                    className="input min-h-[80px]"
+                    value={formData.description}
+                    onChange={e => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+
+                {/* Notes */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">הערות פנימיות</label>
+                  <textarea
+                    className="input min-h-[60px]"
+                    value={formData.notes}
+                    onChange={e => setFormData({ ...formData, notes: e.target.value })}
                   />
                 </div>
               </div>
 
-              {/* Contact Info */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">איש קשר</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={formData.contact_name}
-                    onChange={e => setFormData({ ...formData, contact_name: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">טלפון</label>
-                  <input
-                    type="tel"
-                    className="input"
-                    value={formData.phone}
-                    onChange={e => setFormData({ ...formData, phone: e.target.value })}
-                  />
-                </div>
+              <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 bg-[#1a1d27] rounded-b-2xl">
+                <button
+                  className="px-6 py-2.5 border border-white/10 rounded-xl hover:bg-white/5 transition-colors font-medium"
+                  onClick={() => setShowModal(false)}
+                >
+                  ביטול
+                </button>
+                <button
+                  className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
+                  onClick={handleSave}
+                  disabled={saving}
+                >
+                  {saving && <Loader2 className="animate-spin" size={20} />}
+                  {editingVendor ? 'שמור שינויים' : 'הוסף ספק'}
+                </button>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">אימייל</label>
-                  <input
-                    type="email"
-                    className="input"
-                    value={formData.email}
-                    onChange={e => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">אתר אינטרנט</label>
-                  <input
-                    type="url"
-                    className="input"
-                    placeholder="https://"
-                    value={formData.website}
-                    onChange={e => setFormData({ ...formData, website: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Location */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">עיר</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={formData.city}
-                    onChange={e => setFormData({ ...formData, city: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">כתובת</label>
-                  <input
-                    type="text"
-                    className="input"
-                    value={formData.address}
-                    onChange={e => setFormData({ ...formData, address: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Status & Rating */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2">סטטוס</label>
-                  <select
-                    className="input"
-                    value={formData.status}
-                    onChange={e => setFormData({ ...formData, status: e.target.value as VendorStatus })}
-                  >
-                    <option value="pending">ממתין</option>
-                    <option value="quote_requested">נשלחה בקשה</option>
-                    <option value="quoted">התקבלה הצעה</option>
-                    <option value="approved">אושר</option>
-                    <option value="rejected">נדחה</option>
-                    <option value="confirmed">מאושר סופי</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2">דירוג (1-5)</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="5"
-                    step="0.5"
-                    className="input"
-                    value={formData.rating}
-                    onChange={e => setFormData({ ...formData, rating: e.target.value })}
-                  />
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div>
-                <label className="block text-sm font-medium mb-2">תגיות (מופרד בפסיקים)</label>
-                <input
-                  type="text"
-                  className="input"
-                  placeholder="חתונות, בר מצווה, כשר..."
-                  value={formData.tags}
-                  onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-sm font-medium mb-2">תיאור</label>
-                <textarea
-                  className="input min-h-[80px]"
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              {/* Notes */}
-              <div>
-                <label className="block text-sm font-medium mb-2">הערות פנימיות</label>
-                <textarea
-                  className="input min-h-[60px]"
-                  value={formData.notes}
-                  onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="p-6 border-t flex justify-end gap-3 sticky bottom-0 bg-[#1a1d27] rounded-b-2xl">
-              <button
-                className="px-6 py-2.5 border border-white/10 rounded-xl hover:bg-white/5 transition-colors font-medium"
-                onClick={() => setShowModal(false)}
-              >
-                ביטול
-              </button>
-              <button
-                className="px-6 py-2.5 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-xl font-medium shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-2"
-                onClick={handleSave}
-                disabled={saving}
-              >
-                {saving && <Loader2 className="animate-spin" size={20} />}
-                {editingVendor ? 'שמור שינויים' : 'הוסף ספק'}
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   )

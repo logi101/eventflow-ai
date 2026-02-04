@@ -13,7 +13,7 @@
 
 ## Runtime
 
-**Environment:**
+**ironment:**
 - Node.js - Backend and build tooling (version via npm, ESNext module system)
 
 **Package Manager:**

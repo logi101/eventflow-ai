@@ -6,6 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { checkOrgQuota, hasPremiumAccess } from '../_shared/quota-check.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -174,13 +175,14 @@ serve(async (req) => {
         channel: 'whatsapp',
       }).select().single()
 
-      // Send via sendWhatsApp helper (same as production)
+      // Send via sendWhatsApp helper (same as production, but skip quota for test mode)
       const sendResult = await sendWhatsApp(
         supabase,
         event.organization_id,
         normalizedPhone,
         message,
-        msgData?.id
+        msgData?.id,
+        true  // skipQuotaCheck for test mode
       )
 
       return new Response(JSON.stringify({
@@ -196,7 +198,10 @@ serve(async (req) => {
     // ─────────────────────────────────────────────────────────
     const { type }: ReminderJob = body
     const now = new Date()
-    let results = { processed: 0, sent: 0, errors: 0 }
+    let results = { processed: 0, sent: 0, errors: 0, quotaExceeded: 0 }
+
+    // Track orgs that have exceeded quota this run (skip further sends)
+    const quotaExceededOrgs = new Set<string>()
 
     // ─────────────────────────────────────────────────────────
     // 1. ACTIVATION — when event becomes active
@@ -217,10 +222,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_activation) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_activation')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed') continue
+
+            // Skip if quota exceeded for this org (from previous participant)
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -267,6 +278,10 @@ serve(async (req) => {
             )
 
             if (sendResult.success) results.sent++
+            else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
+            }
             else results.errors++
           }
         }
@@ -301,10 +316,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_week_before) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_week_before')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed') continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -351,6 +372,10 @@ serve(async (req) => {
             )
 
             if (sendResult.success) results.sent++
+            else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
+            }
             else results.errors++
           }
         }
@@ -386,10 +411,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_day_before) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_day_before')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed') continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -437,12 +468,15 @@ serve(async (req) => {
 
             if (sendResult.success) {
               results.sent++
+            } else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
             } else {
               results.errors++
             }
 
-            // Send to companion if exists
-            if (participant.has_companion && participant.companion_phone_normalized) {
+            // Send to companion if exists (skip if quota exceeded)
+            if (participant.has_companion && participant.companion_phone_normalized && !quotaExceededOrgs.has(event.organization_id)) {
               const companionMessage = template
                 ? substituteVariables(template, buildEventVariableMap(event, {
                     first_name: participant.companion_name || 'אורח/ת',
@@ -464,12 +498,16 @@ serve(async (req) => {
                   status: 'pending',
                 })
 
-              await sendWhatsApp(
+              const companionResult = await sendWhatsApp(
                 supabase,
                 event.organization_id,
                 participant.companion_phone_normalized,
                 companionMessage
               )
+              if (companionResult.quotaExceeded) {
+                quotaExceededOrgs.add(event.organization_id)
+                results.quotaExceeded++
+              }
             }
           }
         }
@@ -503,10 +541,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_morning) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_morning')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed') continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -548,6 +592,10 @@ serve(async (req) => {
             )
 
             if (sendResult.success) results.sent++
+            else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
+            }
             else results.errors++
           }
         }
@@ -581,10 +629,16 @@ serve(async (req) => {
         for (const schedule of schedules) {
           if (!schedule.events?.settings?.reminder_15min) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(schedule.events.organization_id)) continue
+
           const template15 = await getMessageTemplate(supabase, schedule.events.organization_id, 'reminder_15min')
 
           for (const ps of schedule.participant_schedules || []) {
             if (ps.reminder_sent) continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(schedule.events.organization_id)) break
 
             results.processed++
 
@@ -644,6 +698,9 @@ serve(async (req) => {
                 .from('participant_schedules')
                 .update({ reminder_sent: true, reminder_sent_at: now.toISOString() })
                 .eq('id', ps.id)
+            } else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(schedule.events.organization_id)
+              results.quotaExceeded++
             } else {
               results.errors++
             }
@@ -672,10 +729,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_event_end) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_event_end')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed' && participant.status !== 'checked_in') continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -722,6 +785,10 @@ serve(async (req) => {
             )
 
             if (sendResult.success) results.sent++
+            else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
+            }
             else results.errors++
           }
         }
@@ -755,10 +822,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_follow_up_3mo) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_follow_up_3mo')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed' && participant.status !== 'checked_in') continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -805,6 +878,10 @@ serve(async (req) => {
             )
 
             if (sendResult.success) results.sent++
+            else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
+            }
             else results.errors++
           }
         }
@@ -838,10 +915,16 @@ serve(async (req) => {
         for (const event of events) {
           if (!event.settings?.reminder_follow_up_6mo) continue
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) continue
+
           const template = await getMessageTemplate(supabase, event.organization_id, 'reminder_follow_up_6mo')
 
           for (const participant of event.participants || []) {
             if (participant.status !== 'confirmed' && participant.status !== 'checked_in') continue
+
+            // Skip if quota exceeded for this org
+            if (quotaExceededOrgs.has(event.organization_id)) break
 
             results.processed++
 
@@ -888,6 +971,10 @@ serve(async (req) => {
             )
 
             if (sendResult.success) results.sent++
+            else if (sendResult.quotaExceeded) {
+              quotaExceededOrgs.add(event.organization_id)
+              results.quotaExceeded++
+            }
             else results.errors++
           }
         }
@@ -929,6 +1016,12 @@ serve(async (req) => {
             continue
           }
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) {
+            results.quotaExceeded++
+            continue
+          }
+
           const sendResult = await sendWhatsApp(
             supabase,
             event.organization_id,
@@ -939,6 +1032,9 @@ serve(async (req) => {
 
           if (sendResult.success) {
             results.sent++
+          } else if (sendResult.quotaExceeded) {
+            quotaExceededOrgs.add(event.organization_id)
+            results.quotaExceeded++
           } else {
             results.errors++
             await supabase.from('messages').update({
@@ -981,6 +1077,12 @@ serve(async (req) => {
             continue
           }
 
+          // Skip if this org has already exceeded quota
+          if (quotaExceededOrgs.has(event.organization_id)) {
+            results.quotaExceeded++
+            continue
+          }
+
           const sendResult = await sendWhatsApp(
             supabase,
             event.organization_id,
@@ -991,6 +1093,9 @@ serve(async (req) => {
 
           if (sendResult.success) {
             results.sent++
+          } else if (sendResult.quotaExceeded) {
+            quotaExceededOrgs.add(event.organization_id)
+            results.quotaExceeded++
           } else {
             results.errors++
             await supabase.from('messages').update({
@@ -1319,8 +1424,26 @@ async function sendWhatsApp(
   organizationId: string,
   phone: string,
   message: string,
-  messageId?: string
-): Promise<{ success: boolean; error?: string }> {
+  messageId?: string,
+  skipQuotaCheck = false  // For test mode
+): Promise<{ success: boolean; error?: string; quotaExceeded?: boolean }> {
+  // Phase 2.1: Check tier quota before sending (unless skipped for test mode)
+  if (!skipQuotaCheck) {
+    const quotaResult = await checkOrgQuota(supabase, organizationId, 'whatsapp_messages')
+    if (!quotaResult.allowed) {
+      console.log(`WhatsApp quota exceeded for org ${organizationId}, tier: ${quotaResult.tier}, remaining: ${quotaResult.remaining}`)
+      // Update message status to quota_exceeded if we have a messageId
+      if (messageId) {
+        await supabase.from('messages').update({
+          status: 'failed',
+          error_message: `Quota exceeded: ${quotaResult.remaining ?? 0} messages remaining in this period`,
+          updated_at: new Date().toISOString()
+        }).eq('id', messageId)
+      }
+      return { success: false, error: 'quota_exceeded', quotaExceeded: true }
+    }
+  }
+
   // Phase 5: Throttle — 2.1s between sends (~28 msgs/min, safely under 30/min limit)
   await new Promise(r => setTimeout(r, 2100))
 

@@ -1,5 +1,10 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+  getOrganizationData,
+  hasPremiumAccess,
+  createPremiumRequiredResponse
+} from '../_shared/quota-check.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -33,6 +38,26 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
+    }
+
+    // Phase 2.1: Premium feature check — budget alerts require Premium tier
+    let orgIdToCheck = organizationId
+    if (!orgIdToCheck) {
+      // Get organization from event
+      const { data: event } = await supabase
+        .from('events')
+        .select('organization_id')
+        .eq('id', eventId)
+        .single()
+      orgIdToCheck = event?.organization_id
+    }
+
+    if (orgIdToCheck) {
+      const org = await getOrganizationData(supabase, orgIdToCheck)
+      if (org && !hasPremiumAccess(org.tier)) {
+        console.log(`Budget alerts blocked for org ${orgIdToCheck}, tier: ${org.tier}`)
+        return createPremiumRequiredResponse('budget_alerts')
+      }
     }
 
     // Fetch checklist items with budgets and linked vendor quotes

@@ -1,6 +1,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { GoogleGenerativeAI } from 'npm:@google/generative-ai'
+import {
+  getOrganizationData,
+  hasPremiumAccess,
+  createPremiumRequiredResponse
+} from '../_shared/quota-check.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +32,23 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
+    }
+
+    // Phase 2.1: Premium feature check — vendor analysis requires Premium tier
+    if (eventId) {
+      const { data: event } = await supabase
+        .from('events')
+        .select('organization_id')
+        .eq('id', eventId)
+        .single()
+
+      if (event?.organization_id) {
+        const org = await getOrganizationData(supabase, event.organization_id)
+        if (org && !hasPremiumAccess(org.tier)) {
+          console.log(`Vendor analysis blocked for org ${event.organization_id}, tier: ${org.tier}`)
+          return createPremiumRequiredResponse('vendor_analysis')
+        }
+      }
     }
 
     // Fetch checklist item with budget and assigned vendor

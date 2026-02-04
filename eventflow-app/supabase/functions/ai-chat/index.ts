@@ -4,6 +4,12 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import {
+  checkQuota,
+  createQuotaExceededResponse,
+  hasPremiumAccess,
+  type Tier
+} from '../_shared/quota-check.ts'
 
 // ============================================================================
 // CORS Configuration
@@ -2491,6 +2497,22 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // ========================================================================
+    // TIER CHECK - AI Chat is a Premium feature for unlimited use
+    // Base tier gets limited AI messages per month
+    // ========================================================================
+    if (userId) {
+      const quotaResult = await checkQuota(supabase, userId, 'ai_messages')
+
+      if (!quotaResult.allowed) {
+        console.log(`AI chat quota exceeded for user ${userId}, tier: ${quotaResult.tier}`)
+        return createQuotaExceededResponse('ai_messages', quotaResult)
+      }
+
+      console.log(`AI chat allowed for user ${userId}, tier: ${quotaResult.tier}, remaining: ${quotaResult.remaining ?? 'unlimited'}`)
+    }
+    // ========================================================================
 
     // Build system instruction (separate from messages - Gemini processes this as true system prompt)
     let systemInstruction = SYSTEM_PROMPT

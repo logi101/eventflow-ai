@@ -3,15 +3,16 @@
 ## Current Position
 
 Phase: 10-Foundation
-Plan: 04 (Next - Existing User Migration) - Tier schema, TierContext, tiers.ts, TierBadge, usage triggers)
-Status: Executing Phase 10, RLS policies complete - Premium tables created
-Last activity: 2026-02-04 — RLS policies applied to 3 Premium tables
+Plan: 05 (Next - Monthly Reset Cron Job) - Tier schema, TierContext, tiers.ts, TierBadge, usage triggers)
+Status: Executing Phase 10, Existing orgs migrated to Base tier
+Last activity: 2026-02-04 — User migration complete (simple + grandfathering options)
 
-Progress: ███░░░░░░░░░░░░░░░ 30% — v2.1 (3 complete) SaaS Tier Structure
+Progress: ███░░░░░░░░░░░░░░░ 40% — v2.1 (4 complete) SaaS Tier Structure
 
 **Completed:**
 - ✅ P1.1: Database schema with tier columns (migration 010)
 - ✅ P1.3: Premium tables created + RLS policies (simulations, vendor_analysis, ai_chat_sessions)
+- ✅ P1.4: Existing User Migration (simple + grandfathering options, email template, admin queries)
 - ✅ TierContext with real-time usage tracking
 - ✅ tiers.ts central configuration
 - ✅ TierBadge component
@@ -21,11 +22,11 @@ Progress: ███░░░░░░░░░░░░░░░ 30% — v2.1 (3
 - ✅ Phase 13: All 6 plans created (UI/UX & admin)
 
 **In Progress:**
-- 🔄 Phase 10: Foundation (3/5 complete, 2 pending)
+- 🔄 Phase 10: Foundation (4/5 complete))
   - 10-01: ✅ Complete (migration 010, TierContext, tiers.ts, TierBadge)
   - 10-02: ✅ Complete (4 functions, 4 triggers, bonus AI tracking)
   - 10-03: ✅ Complete (simulations, vendor_analysis tables created + RLS policies on 3 tables)
-  - 10-04: ⏳ Existing User Migration
+  - 10-04: ✅ Complete (migration with simple + grandfathering options, email template)
   - 10-05: ⏳ Monthly Reset Cron Job
 
 **Pending:**

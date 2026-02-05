@@ -295,7 +295,7 @@ async function handleOutgoingStatus(body: Record<string, unknown>): Promise<Resp
     const { data, error } = await supabase
       .from('messages')
       .update(updateData)
-      .eq('external_id', idMessage)
+      .eq('external_message_id', idMessage)
       .select('id')
 
     if (error) {
@@ -386,7 +386,7 @@ async function handleIncomingMessage(body: Record<string, unknown>): Promise<Res
         content: messageText,
         status: 'delivered',
         delivered_at: new Date().toISOString(),
-        external_id: (body.idMessage as string) || null,
+        external_message_id: (body.idMessage as string) || null,
         auto_reply: false,
         variables_used: {
           sender_name: senderName,
@@ -674,7 +674,7 @@ async function handleIncomingMessage(body: Record<string, unknown>): Promise<Res
     if (sendResult.success) {
       replyRecord.status = 'sent'
       replyRecord.sent_at = new Date().toISOString()
-      replyRecord.external_id = sendResult.idMessage
+      replyRecord.external_message_id = sendResult.idMessage
       console.log(
         `[webhook-${WEBHOOK_VERSION}] Auto-reply sent to ${senderPhone}: ` +
         `${intent} (${sendResult.idMessage})`

@@ -57,7 +57,7 @@ export const messageSchema = z.object({
   read_at: z.string().nullable(),
   failed_at: z.string().nullable(),
   error_message: z.string().nullable(),
-  external_id: z.string().nullable(),
+  external_message_id: z.string().nullable(),
   response_content: z.string().nullable(),
   response_at: z.string().nullable(),
   direction: messageDirectionSchema.default('outgoing'),

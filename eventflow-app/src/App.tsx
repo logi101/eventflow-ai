@@ -11,6 +11,7 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
 import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPopup'
 import { FeatureGuard } from './components/guards/FeatureGuard'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 // Pages
 import { HomePage } from './pages/home/HomePage'
@@ -40,6 +41,27 @@ import {
 import { UserManagementPage } from './pages/admin/UserManagementPage'
 import { TierComparisonPage } from './app/routes/settings/tiers'
 import { AdminTiersPage } from './app/routes/admin/tiers'
+import { isSupabaseConfigured, supabaseConfigError } from './lib/supabase'
+
+function SupabaseSetupNotice() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-6" dir="rtl">
+      <div className="max-w-2xl w-full text-center">
+        <h1 className="text-3xl font-bold text-white mb-4">חסרות הגדרות Supabase</h1>
+        <p className="text-zinc-300 mb-6">
+          האפליקציה לא יכולה לעלות בלי משתני סביבה. יש להגדיר את הערכים הבאים בקובץ <span className="font-mono">.env</span> ולהפעיל מחדש את השרת.
+        </p>
+        <div className="bg-zinc-900/70 border border-zinc-700 rounded-xl p-4 text-left text-sm text-zinc-200">
+          <div className="font-mono">VITE_SUPABASE_URL=...</div>
+          <div className="font-mono">VITE_SUPABASE_ANON_KEY=...</div>
+        </div>
+        {supabaseConfigError && (
+          <p className="text-red-400 mt-4 text-sm">{supabaseConfigError}</p>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Main App Layout (with Sidebar)
@@ -47,10 +69,11 @@ import { AdminTiersPage } from './app/routes/admin/tiers'
 
 function AppLayout() {
   return (
-    <div className="flex" dir="rtl" data-testid="app-container">
-      <Sidebar />
-      <main className="flex-1 min-h-screen min-w-0" data-testid="main-content">
-        <Routes>
+    <ErrorBoundary>
+      <div className="flex" dir="rtl" data-testid="app-container">
+        <Sidebar />
+        <main className="flex-1 min-h-screen min-w-0" data-testid="main-content">
+          <Routes>
           {/* Home - Event Selection */}
           <Route path="/" element={<HomePage />} />
 
@@ -110,7 +133,8 @@ function AppLayout() {
       {/* Grace Period System */}
       <GracePeriodBanner />
       <GracePeriodConfirmationPopup />
-    </div>
+      </div>
+    </ErrorBoundary>
   )
 }
 
@@ -121,6 +145,10 @@ function AppLayout() {
 export default function App() {
   const location = useLocation()
   const isAuthPage = ['/login', '/forgot-password', '/reset-password'].includes(location.pathname)
+
+  if (!isSupabaseConfigured) {
+    return <SupabaseSetupNotice />
+  }
 
   // Auth pages - full screen without sidebar
   if (isAuthPage) {

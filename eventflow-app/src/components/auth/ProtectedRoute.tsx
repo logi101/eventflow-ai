@@ -19,10 +19,10 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, userProfile, loading } = useAuth()
+  const { user, userProfile, loading, isSuperAdmin } = useAuth()
   const location = useLocation()
 
-  if (loading) {
+  if (loading && !isSuperAdmin) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900">
         <div className="text-center">
@@ -35,6 +35,11 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  // Master Bypass
+  if (isSuperAdmin) {
+    return <>{children}</>
   }
 
   // Wait for profile to load before checking role

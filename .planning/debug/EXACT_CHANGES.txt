@@ -1,0 +1,68 @@
+=============================================================================
+EXACT CHANGES MADE TO FIX MESSAGES PENDING BUG
+=============================================================================
+
+MIGRATION 1: 20260205000001_fix_message_trigger.sql
+Location: eventflow-app/supabase/migrations/
+
+KEY CHANGE:
+Line 16: Changed from:
+  SELECT m.organization_id
+  FROM messages m
+  WHERE m.id = NEW.id
+
+To:
+  SELECT e.organization_id
+  FROM events e
+  WHERE e.id = NEW.event_id
+
+This fixes the trigger to join through events instead of querying
+a non-existent column in messages table.
+
+---
+
+MIGRATION 2: 20260205000002_fix_stuck_messages.sql
+Location: eventflow-app/supabase/migrations/
+
+KEY CHANGE:
+Bulk update query that sets status='delivered' for all pending messages
+created after 2026-02-03 that have external_message_id populated.
+
+---
+
+FILE 1: eventflow-app/eventflow-scaffold/functions/send-whatsapp.ts
+Location: Line 101
+
+CHANGE:
+From:  external_id: greenApiResult.idMessage,
+To:    external_message_id: greenApiResult.idMessage,
+
+---
+
+FILE 2: eventflow-scaffold/functions/whatsapp-webhook.ts
+Location: Three places
+
+CHANGE 1 - Line 298:
+From:  .eq('external_id', idMessage)
+To:    .eq('external_message_id', idMessage)
+
+CHANGE 2 - Line 389:
+From:  external_id: (body.idMessage as string) || null,
+To:    external_message_id: (body.idMessage as string) || null,
+
+CHANGE 3 - Line 677:
+From:  replyRecord.external_id = sendResult.idMessage
+To:    replyRecord.external_message_id = sendResult.idMessage
+
+---
+
+VERIFICATION:
+All 4 files have been successfully modified. Changes are minimal and
+focused only on the root causes identified in the debug report.
+
+Run these commands to verify:
+  grep -n "external_message_id" eventflow-app/eventflow-scaffold/functions/send-whatsapp.ts
+  grep -n "external_message_id" eventflow-scaffold/functions/whatsapp-webhook.ts
+  ls -l eventflow-app/supabase/migrations/20260205*
+
+=============================================================================

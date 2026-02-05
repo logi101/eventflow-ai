@@ -234,7 +234,7 @@ export function useSendMessage() {
           status: 'delivered',
           sent_at: new Date().toISOString(),
           delivered_at: new Date().toISOString(),
-          external_id: result.id
+          external_message_id: result.id
         })
         .eq('id', messageRecord.id)
 
@@ -439,7 +439,7 @@ export function useRetryMessage() {
           status: 'delivered',
           sent_at: new Date().toISOString(),
           delivered_at: new Date().toISOString(),
-          external_id: result.id
+          external_message_id: result.id
         })
         .eq('id', messageId)
 

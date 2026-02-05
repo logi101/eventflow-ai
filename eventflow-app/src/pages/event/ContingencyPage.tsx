@@ -9,8 +9,8 @@ interface Schedule {
     id: string
     title: string
     start_time: string
-    speaker_id: string | null
     speaker_name: string | null
+    speaker_id: string | null
     backup_speaker_id: string | null
 }
 
@@ -27,7 +27,7 @@ export function ContingencyPage() {
             setLoading(true)
             const { data, error } = await supabase
                 .from('schedules')
-                .select('id, title, start_time, speaker_id, speaker_name, backup_speaker_id')
+                .select('id, title, start_time, speaker_name, speaker_id, backup_speaker_id')
                 .eq('event_id', selectedEvent!.id)
                 .order('start_time', { ascending: true })
 
@@ -90,9 +90,6 @@ export function ContingencyPage() {
                                                 {schedule.speaker_name && ` | ד: ${schedule.speaker_name}`}
                                             </div>
                                         </div>
-                                        {schedule.backup_speaker_id && (
-                                            <span className="w-2 h-2 rounded-full bg-green-500" title="יש גיבוי" />
-                                        )}
                                     </button>
                                 ))
                             )}

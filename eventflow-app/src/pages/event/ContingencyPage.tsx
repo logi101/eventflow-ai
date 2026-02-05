@@ -27,14 +27,19 @@ export function ContingencyPage() {
             setLoading(true)
             const { data, error } = await supabase
                 .from('schedules')
-                .select('id, title, start_time, speaker_name, speaker_id, backup_speaker_id')
+                .select('id, title, start_time, speaker_name, original_speaker_id, backup_speaker_id')
                 .eq('event_id', selectedEvent!.id)
                 .order('start_time', { ascending: true })
 
             if (error) {
                 console.error('Error loading schedules:', error)
             } else {
-                setSchedules(data || [])
+                // Map original_speaker_id to speaker_id for component compatibility
+                const mapped = (data || []).map(s => ({
+                    ...s,
+                    speaker_id: s.original_speaker_id,
+                }))
+                setSchedules(mapped)
             }
             setLoading(false)
         }

@@ -25,15 +25,16 @@ export function NetworkingPage() {
             // In production this would call a specific service method
             const { data: participants, error: fetchError } = await supabase
                 .from('participants')
-                .select('id, first_name, last_name, is_vip, networking_opt_in, organization_id')
+                .select('id, first_name, last_name, is_vip, networking_opt_in')
                 .eq('event_id', selectedEvent.id)
 
             if (fetchError) throw fetchError
 
-            // Mock tracks for algorithm since DB might not have them populated yet
+            // Use event's organization for track grouping
+            const orgTrack = selectedEvent.organization_id || 'general'
             const algorithmParticipants: SeatingParticipant[] = (participants || []).map(p => ({
                 ...p,
-                tracks: [p.organization_id || 'general'], // Simple track by org
+                tracks: [orgTrack],
                 companion_id: undefined
             }))
 

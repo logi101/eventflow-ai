@@ -952,32 +952,35 @@ export function MessagesPage() {
     const rows = table.getRowModel().rows
     const now = currentTime.getTime()
 
-    // Collect rows that have scheduled_for values
-    const scheduledRows = rows
-      .map((row, idx) => ({ idx, sf: row.original.scheduled_for }))
-      .filter(r => r.sf)
+    // Collect rows with a time reference: prefer scheduled_for, fall back to sent_at or created_at
+    const timedRows = rows
+      .map((row, idx) => ({
+        idx,
+        time: row.original.scheduled_for || row.original.sent_at || row.original.created_at
+      }))
+      .filter(r => r.time)
 
-    if (scheduledRows.length === 0) return -1
+    if (timedRows.length === 0) return -1
 
     // Determine visual sort direction from the data
-    const firstSf = new Date(scheduledRows[0].sf!).getTime()
-    const lastSf = new Date(scheduledRows[scheduledRows.length - 1].sf!).getTime()
-    const isAscending = firstSf <= lastSf
+    const firstTime = new Date(timedRows[0].time!).getTime()
+    const lastTime = new Date(timedRows[timedRows.length - 1].time!).getTime()
+    const isAscending = firstTime <= lastTime
 
     if (isAscending) {
       // Find first future row — now line goes before it
-      for (const { idx, sf } of scheduledRows) {
-        if (new Date(sf!).getTime() > now) return idx
+      for (const { idx, time } of timedRows) {
+        if (new Date(time!).getTime() > now) return idx
       }
-      // All in the past — line goes after the last scheduled row
-      return scheduledRows[scheduledRows.length - 1].idx + 1
+      // All in the past — line goes after the last row
+      return timedRows[timedRows.length - 1].idx + 1
     } else {
       // Descending: find first past row — now line goes before it
-      for (const { idx, sf } of scheduledRows) {
-        if (new Date(sf!).getTime() <= now) return idx
+      for (const { idx, time } of timedRows) {
+        if (new Date(time!).getTime() <= now) return idx
       }
-      // All in the future — line goes after the last scheduled row
-      return scheduledRows[scheduledRows.length - 1].idx + 1
+      // All in the future — line goes after the last row
+      return timedRows[timedRows.length - 1].idx + 1
     }
   }, [table.getRowModel().rows, currentTime])
 

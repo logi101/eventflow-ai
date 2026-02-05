@@ -42,7 +42,6 @@ SELECT cron.schedule('reset-monthly-usage-limits', '0 0 1 * *', $$
   WHERE tier != 'premium';  -- Only reset Base and legacy tiers (Premium has unlimited)
 
   -- Log reset operation
-  INSERT INTO admin_logs (action, details, created_at)
   VALUES (
     'monthly_usage_reset',
     'Reset usage counters for ' || (SELECT COUNT(*) FROM organizations WHERE tier != 'premium') || ' organizations',
@@ -56,7 +55,6 @@ $$);
 -- ====================================================================
 SELECT cron.schedule('check-soft-limits', '0 9 * * *', $$
   -- Check all Base tier organizations for 80% usage
-  INSERT INTO notifications (user_id, organization_id, type, message, data, read, created_at)
   SELECT
     up.user_id,
     o.id,
@@ -103,9 +101,7 @@ $$);
 -- ====================================================================
 -- COMMENTS
 -- ====================================================================
-COMMENT ON TABLE admin_logs IS 'Audit trail for admin operations and automated jobs. Usage reset cron logs here.';
 
-COMMENT ON TABLE notifications IS 'User notifications (in-app, email, WhatsApp). Usage warnings inserted here by check-soft-limits cron.';
 
 -- ====================================================================
 -- ROLLBACK PLAN (if cron jobs cause issues)

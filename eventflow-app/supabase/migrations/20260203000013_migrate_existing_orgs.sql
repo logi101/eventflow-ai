@@ -25,15 +25,20 @@ SET tier = 'base'
 WHERE tier IS NULL;
 
 -- Log migration completion (admin_logs table should exist)
-INSERT INTO admin_logs (action, details, organization_id, created_at)
-SELECT
-  'migration_010_tier_columns',
-  'Migrated organization ' || o.id || ' to base tier',
-  o.id,
-  NOW()
-FROM organizations o
-WHERE o.tier = 'base'
-AND o.created_at < '2026-02-03';
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'admin_logs') THEN
+    INSERT INTO admin_logs (action, details, organization_id, created_at)
+    SELECT
+      'migration_010_tier_columns',
+      'Migrated organization ' || o.id || ' to base tier',
+      o.id,
+      NOW()
+    FROM organizations o
+    WHERE o.tier = 'base'
+    AND o.created_at < '2026-02-03';
+  END IF;
+END $$;
 
 -- ====================================================================
 -- VERIFICATION QUERY

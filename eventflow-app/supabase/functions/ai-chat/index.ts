@@ -2187,16 +2187,15 @@ async function getGeminiApiKey(): Promise<string | null> {
 
 // ============================================================================
 // Gemini API Call with Tool Support
-// ============================================================================
-
 async function callGemini(
   apiKey: string,
   messages: GeminiMessage[],
-  systemInstruction?: string
+  systemInstruction: string,
+  tools: typeof TOOL_DECLARATIONS = TOOL_DECLARATIONS
 ): Promise<{ parts: GeminiPart[]; usageMetadata?: { totalTokenCount?: number } }> {
   const requestBody: Record<string, unknown> = {
     contents: messages,
-    tools: [{ functionDeclarations: TOOL_DECLARATIONS }],
+    tools: [{ functionDeclarations: tools }],
     toolConfig: {
       functionCallingConfig: {
         mode: 'AUTO',
@@ -2502,6 +2501,7 @@ serve(async (req) => {
     // TIER CHECK - AI Chat is a Premium feature for unlimited use
     // Base tier gets limited AI messages per month
     // ========================================================================
+    let userTier: 'base' | 'premium' | 'legacy_premium' = 'base'
     if (userId) {
       const quotaResult = await checkQuota(supabase, userId, 'ai_messages')
 
@@ -2510,12 +2510,45 @@ serve(async (req) => {
         return createQuotaExceededResponse('ai_messages', quotaResult)
       }
 
+      userTier = quotaResult.tier
       console.log(`AI chat allowed for user ${userId}, tier: ${quotaResult.tier}, remaining: ${quotaResult.remaining ?? 'unlimited'}`)
     }
     // ========================================================================
 
     // Build system instruction (separate from messages - Gemini processes this as true system prompt)
     let systemInstruction = SYSTEM_PROMPT
+
+    // Add tier-specific instructions
+    if (userTier === 'base') {
+      systemInstruction += `\n\n--- מגבלות התוכנית (Base Tier) ---\n`
+      systemInstruction += `הנך על גרסת ה-Basic של EventFlow AI. יש לך גישה מוגבלת לתכונות מסוימות:\n\n`
+      systemInstruction += `**תכונות Premium שאינן זמינות:**\n`
+      systemInstruction += `- סימולציית יום האירוע (Day Simulation)\n`
+      systemInstruction += `- מנוע הנטוורקינג (Networking Engine)\n`
+      systemInstruction += `- התראות תקציב (Budget Alerts)\n`
+      systemInstruction += `- ניתוח ספקים (Vendor Analysis)\n\n`
+      systemInstruction += `**הנחיות חשובות:**\n`
+      systemInstruction += `- אל תציעי פתרונות הקשורים לתכונות Premium הללו\n`
+      systemInstruction += `- אם המשתמש מבקש תכונת Premium, תודיעי לו בנימוס שזו תכונת Premium\n`
+      systemInstruction += `- הציעי לו לשדרג ל-Premium אם הוא מעוניין\n\n`
+    } else if (userTier === 'premium' || userTier === 'legacy_premium') {
+      systemInstruction += `\n\n--- מצב Premium ---\n`
+      systemInstruction += `הנך על גרסת ה-Premium של EventFlow AI. יש לך גישה מלאה לכל התכונות, כולל:\n`
+      systemInstruction += `- סימולציית יום האירוע\n`
+      systemInstruction += `- מנוע הנטוורקינג\n`
+      systemInstruction += `- התראות תקציב\n`
+      systemInstruction += `- ניתוח ספקים\n\n`
+    }
+
+    if (context) {
+      systemInstruction += `\n\n--- הקשר נוכחי ---\n${context}`
+    }
+    if (eventId) {
+      systemInstruction += `\n\n--- אירוע נוכחי ---\nמזהה אירוע: ${eventId}`
+      if (eventName) systemInstruction += `\nשם האירוע: ${eventName}`
+      systemInstruction += `\n\n**חשוב מאוד:** המשתמש כרגע עובד על האירוע הזה. כשהוא מבקש לבצע פעולות (הוספת משתתפים, עדכון, שליחת הודעות, סימון משימות, צ'קליסט וכו'), השתמשי במזהה האירוע הזה (${eventId}) אוטומטית - אל תשאלי אותו מהו מזהה האירוע.`
+    }
+
     if (context) {
       systemInstruction += `\n\n--- הקשר נוכחי ---\n${context}`
     }
@@ -2558,6 +2591,23 @@ serve(async (req) => {
     messages.push({ role: 'user', parts: [{ text: message }] })
 
     // ====================================================================
+    // Filter tools based on tier (Base tier can't access Premium features)
+    // ====================================================================
+
+    const PREMIUM_ONLY_TOOLS = new Set([
+      'suggest_room_assignments',  // Networking Engine - Premium only
+    ])
+
+    let availableTools = TOOL_DECLARATIONS
+    if (userTier === 'base') {
+      // Filter out Premium-only tools
+      availableTools = TOOL_DECLARATIONS.filter(tool => !PREMIUM_ONLY_TOOLS.has(tool.name))
+      console.log(`Base tier: filtered ${TOOL_DECLARATIONS.length} tools to ${availableTools.length} (removed ${TOOL_DECLARATIONS.length - availableTools.length} Premium tools)`)
+    } else {
+      console.log(`Premium tier: all ${TOOL_DECLARATIONS.length} tools available`)
+    }
+
+    // ====================================================================
     // Tool Call Loop (max 3 iterations to prevent infinite loops)
     // ====================================================================
 
@@ -2570,7 +2620,7 @@ serve(async (req) => {
 
     for (let iteration = 0; iteration < MAX_TOOL_ITERATIONS + 1; iteration++) {
       console.log(`Tool call iteration ${iteration}/${MAX_TOOL_ITERATIONS}`)
-      const geminiResult = await callGemini(geminiApiKey, messages, systemInstruction)
+      const geminiResult = await callGemini(geminiApiKey, messages, systemInstruction, availableTools)
 
       if (geminiResult.usageMetadata?.totalTokenCount) {
         totalTokens += geminiResult.usageMetadata.totalTokenCount

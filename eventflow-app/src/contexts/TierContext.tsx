@@ -28,11 +28,13 @@ export interface UsageMetrics {
 // Interface for TierContext
 interface TierContextValue {
     tier: Tier;
+    effectiveTier: Tier; // Trial treated as premium
     loading: boolean;
     canAccess: (feature: Feature) => boolean;
     hasQuota: (quotaType: keyof TierLimits) => boolean;
     usage: UsageMetrics | null;
     limits: TierLimits;
+    trialDaysRemaining: number | null; // Days remaining in trial
     refreshQuota: () => Promise<void>;
 }
 
@@ -51,7 +53,7 @@ export function TierProvider({ children }: { children: ReactNode }) {
 
             const { data, error } = await supabase
                 .from('organizations')
-                .select('tier, tier_limits, current_usage')
+                .select('tier, tier_limits, current_usage, trial_ends_at, trial_started_at')
                 .eq('id', orgId)
                 .single();
 
@@ -71,10 +73,16 @@ export function TierProvider({ children }: { children: ReactNode }) {
     // Prefer limits from DB if they exist (custom overrides), otherwise use config defaults
     const limits: TierLimits = (orgData?.tier_limits as TierLimits) || getTierLimits(tier);
 
+    // Check if user is in trial mode (has active trial)
+    const now = new Date();
+    const trialEndsAt = orgData?.trial_ends_at ? new Date(orgData.trial_ends_at) : null;
+    const isInTrial = trialEndsAt && trialEndsAt > now;
+
+    // Effective tier: if in trial, treat as premium; otherwise use actual tier
+    const effectiveTier: Tier = isInTrial ? 'premium' : tier;
+
     const canAccess = (feature: Feature): boolean => {
-        // If we are still loading, default to false or handle gracefully.
-        // However, loading state is exposed.
-        return hasFeature(tier, feature);
+        return hasFeature(effectiveTier, feature);
     };
 
     const hasQuota = (quotaType: keyof TierLimits): boolean => {
@@ -107,13 +115,20 @@ export function TierProvider({ children }: { children: ReactNode }) {
         await queryClient.invalidateQueries({ queryKey: ['organization', orgId, 'tier'] });
     };
 
+    // Calculate remaining trial days
+    const trialDaysRemaining = isInTrial && trialEndsAt
+        ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+        : null;
+
     const value: TierContextValue = {
-        tier,
+        tier: effectiveTier,
+        effectiveTier,
         loading: authLoading || orgLoading,
         canAccess,
         hasQuota,
         usage,
         limits,
+        trialDaysRemaining,
         refreshQuota
     };
 

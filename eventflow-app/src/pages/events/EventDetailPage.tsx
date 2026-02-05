@@ -10,6 +10,7 @@ import { SeatingPlanView } from '../../components/networking/SeatingPlanView'
 import type { SeatingParticipant } from '../../modules/networking/types'
 import { SimulationTrigger, type SuggestedFix } from '../../modules/simulation'
 import { ContingencyPanel } from '../../modules/contingency'
+import { FeatureGuard } from '../../components/guards'
 
 export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: string }) {
   const { eventId } = useParams<{ eventId: string }>()
@@ -1537,24 +1538,28 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               <p className="text-sm mt-2">רק משתתפים עם סטטוס "אישר הגעה" יופיעו כאן</p>
             </div>
           ) : (
-            <SeatingPlanView
-              eventId={eventId!}
-              participants={seatingParticipants}
-              numberOfTables={numberOfTables}
-              defaultTableCapacity={8}
-              onAssignmentsSaved={() => showToast('שיבוצים נשמרו בהצלחה')}
-            />
+            <FeatureGuard feature="networking">
+              <SeatingPlanView
+                eventId={eventId!}
+                participants={seatingParticipants}
+                numberOfTables={numberOfTables}
+                defaultTableCapacity={8}
+                onAssignmentsSaved={() => showToast('שיבוצים נשמרו בהצלחה')}
+              />
+            </FeatureGuard>
           )}
         </div>
       )}
 
       {activeTab === 'simulation' && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <SimulationTrigger
-            eventId={eventId!}
-            onFixClick={handleSimulationFix}
-            onScheduleClick={handleScheduleClick}
-          />
+          <FeatureGuard feature="simulation">
+            <SimulationTrigger
+              eventId={eventId!}
+              onFixClick={handleSimulationFix}
+              onScheduleClick={handleScheduleClick}
+            />
+          </FeatureGuard>
         </div>
       )}
 

@@ -10,6 +10,7 @@ import { FloatingChat } from './components/chat'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
 import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPopup'
+import { FeatureGuard } from './components/guards/FeatureGuard'
 
 // Pages
 import { HomePage } from './pages/home/HomePage'
@@ -37,6 +38,8 @@ import {
   ContingencyPage,
 } from './pages'
 import { UserManagementPage } from './pages/admin/UserManagementPage'
+import { TierComparisonPage } from './app/routes/settings/tiers'
+import { AdminTiersPage } from './app/routes/admin/tiers'
 
 // ═══════════════════════════════════════════════════════════════════════════
 // Main App Layout (with Sidebar)
@@ -76,6 +79,8 @@ function AppLayout() {
           {/* Global Routes (no event required) */}
           <Route path="/ai" element={<AIAssistantPage />} />
           <Route path="/settings" element={<DashboardPage />} />
+          <Route path="/settings/tiers" element={<TierComparisonPage />} />
+          <Route path="/admin/tiers" element={<AdminTiersPage />} />
           <Route path="/admin/test-whatsapp" element={<TestWhatsAppPage />} />
           <Route path="/admin/users" element={
             <ProtectedRoute requiredRole="super_admin">
@@ -98,7 +103,9 @@ function AppLayout() {
       </main>
 
       {/* Floating AI Chat */}
-      <FloatingChat />
+      <FeatureGuard feature="ai">
+        <FloatingChat />
+      </FeatureGuard>
 
       {/* Grace Period System */}
       <GracePeriodBanner />

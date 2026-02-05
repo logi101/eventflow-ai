@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Sparkles, Loader2, AlertTriangle, Star, ChevronDown, ChevronUp } from 'lucide-react'
 import { useVendorAnalysis } from '../hooks/useVendorAnalysis'
 import type { VendorAlternative } from '../services/vendorAnalysisService'
+import { FeatureGuard } from '../../../components/guards'
 
 interface VendorIntelligenceProps {
   checklistItemId: string
@@ -28,7 +29,8 @@ export function VendorIntelligence({
   const isOverBudget = budgetPercent && budgetPercent >= 80
 
   return (
-    <div className="bg-[#1a1d27] rounded-xl border border-white/10 overflow-hidden">
+    <FeatureGuard feature="vendor_analysis">
+      <div className="bg-[#1a1d27] rounded-xl border border-white/10 overflow-hidden">
       {/* Header - always visible */}
       <button
         onClick={expanded ? () => setExpanded(!expanded) : handleAnalyze}
@@ -118,6 +120,7 @@ export function VendorIntelligence({
         </div>
       )}
     </div>
+    </FeatureGuard>
   )
 }
 

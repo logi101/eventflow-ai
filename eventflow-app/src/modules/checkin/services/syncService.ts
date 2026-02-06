@@ -69,7 +69,6 @@ async function delay(ms: number): Promise<void> {
 
 async function syncSingleCheckIn(checkIn: OfflineCheckIn): Promise<boolean> {
   if (!canMakeRequest()) {
-    console.log('[Sync] Rate limited, will retry later')
     return false
   }
 
@@ -98,7 +97,6 @@ async function syncSingleCheckIn(checkIn: OfflineCheckIn): Promise<boolean> {
     }
 
     await markCheckInSynced(checkIn.id!)
-    console.log(`[Sync] Check-in ${checkIn.id} synced successfully`)
     return true
 
   } catch (error) {
@@ -119,8 +117,6 @@ export async function syncPendingCheckIns(eventId?: string): Promise<{
     return { synced: 0, failed: 0, rateLimited: false }
   }
 
-  console.log(`[Sync] Starting sync of ${pending.length} pending check-ins`)
-
   let synced = 0
   let failed = 0
   let rateLimited = false
@@ -128,7 +124,6 @@ export async function syncPendingCheckIns(eventId?: string): Promise<{
   for (const checkIn of pending) {
     if (!canMakeRequest()) {
       rateLimited = true
-      console.log('[Sync] Rate limited, stopping batch')
       break
     }
 
@@ -143,14 +138,12 @@ export async function syncPendingCheckIns(eventId?: string): Promise<{
     await delay(100)
   }
 
-  console.log(`[Sync] Complete: ${synced} synced, ${failed} failed, rateLimited: ${rateLimited}`)
   return { synced, failed, rateLimited }
 }
 
 // Auto-sync when coming online
 export function setupAutoSync() {
   window.addEventListener('online', async () => {
-    console.log('[Sync] Connection restored, starting auto-sync')
     // Small delay to ensure stable connection
     await delay(1000)
     await syncPendingCheckIns()

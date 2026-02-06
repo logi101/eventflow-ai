@@ -110,6 +110,7 @@ export function FloatingChat() {
                 : `0 4px 20px ${settings.accentColor}40`
             }}
             data-testid="chat-open-button"
+            aria-label="פתח צ'אט AI"
           >
             <MessageCircle className="h-6 w-6 text-white" />
 
@@ -182,6 +183,7 @@ export function FloatingChat() {
                     onClick={openChat}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
                     data-testid="chat-maximize-button"
+                    aria-label="הגדל חלון צ'אט"
                   >
                     <Maximize2 className="h-4 w-4" />
                   </motion.button>
@@ -192,6 +194,7 @@ export function FloatingChat() {
                     onClick={minimizeChat}
                     className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
                     data-testid="chat-minimize-button"
+                    aria-label="מזער חלון צ'אט"
                   >
                     <Minus className="h-4 w-4" />
                   </motion.button>
@@ -202,6 +205,7 @@ export function FloatingChat() {
                   onClick={closeChat}
                   className="flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-800 hover:text-red-400"
                   data-testid="chat-close-button"
+                  aria-label="סגור צ'אט"
                 >
                   <X className="h-4 w-4" />
                 </motion.button>

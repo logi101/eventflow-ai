@@ -31,13 +31,13 @@ export function EventForm({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="event-form-title">
       <div className="glass-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl">
         <div className="p-6 border-b border-white/10 flex justify-between items-center sticky top-0 bg-[#0f1117]/95 backdrop-blur-xl rounded-t-2xl">
-          <h2 className="text-2xl font-semibold text-white">
+          <h2 id="event-form-title" className="text-2xl font-semibold text-white">
             {event ? 'עריכת אירוע' : 'אירוע חדש'}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-[#1a1d27]/10 rounded-xl transition-colors">
+          <button onClick={onClose} className="p-2 hover:bg-[#1a1d27]/10 rounded-xl transition-colors" aria-label="סגור טופס אירוע">
             <X size={24} className="text-zinc-400" />
           </button>
         </div>
@@ -71,6 +71,7 @@ export function EventForm({
               onChange={e => setFormData({ ...formData, name: e.target.value })}
               data-testid="event-name-input"
               required
+              aria-required="true"
             />
           </div>
 
@@ -97,6 +98,7 @@ export function EventForm({
                 onChange={e => setFormData({ ...formData, start_date: e.target.value })}
                 data-testid="event-start-date"
                 required
+                aria-required="true"
               />
             </div>
             <div>

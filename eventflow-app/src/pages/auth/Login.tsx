@@ -63,7 +63,7 @@ export function LoginPage() {
           <h2 className="text-2xl font-bold text-white mb-6 text-center">התחברות</h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg flex items-center gap-2 text-red-400" role="alert" aria-live="assertive">
               <AlertCircle className="w-5 h-5 flex-shrink-0" />
               <span className="text-sm">{error}</span>
             </div>
@@ -83,6 +83,8 @@ export function LoginPage() {
                   className="input-field pr-10 w-full"
                   placeholder="your@email.com"
                   required
+                  aria-required="true"
+                  aria-invalid={error ? 'true' : undefined}
                   autoComplete="email"
                 />
               </div>
@@ -101,12 +103,15 @@ export function LoginPage() {
                   className="input-field pr-10 pl-10 w-full"
                   placeholder="••••••••"
                   required
+                  aria-required="true"
+                  aria-invalid={error ? 'true' : undefined}
                   autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-200"
+                  aria-label={showPassword ? 'הסתר סיסמה' : 'הצג סיסמה'}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>

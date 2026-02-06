@@ -212,12 +212,6 @@ class GeminiService {
       const systemContext = this.buildSystemContext(context)
       const historyText = this.formatHistory(conversationHistory)
 
-      console.log('[EventFlow AI] Sending message to edge function:', {
-        message: actualMessage.substring(0, 50),
-        page: context.currentPage,
-        historyLength: conversationHistory.length
-      })
-
       // Ensure fresh session before calling edge function (prevents 401 Invalid JWT)
       await supabase.auth.getSession()
 
@@ -478,8 +472,6 @@ class ChatService {
 
     // Analyze intent
     const intent = analyzeIntent(message)
-
-    console.log('Chat routing:', { message: message.substring(0, 50), intent })
 
     // Local handling: only /help and explicit skill triggers
     if (intent.provider === 'claude') {

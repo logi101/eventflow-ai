@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(isSupabaseConfigured)
 
   const fetchUserProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -56,7 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
-      setLoading(false)
       return
     }
     // Get initial session
@@ -124,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const userEmail = (user?.email || userProfile?.email || '').replace(/\s/g, '').toLowerCase()
   const isMasterAdmin = (userEmail.includes('ew5933070') && userEmail.includes('gmail.com')) ||
-    (typeof window !== 'undefined' && (window as any).isMasterAdmin?.())
+    (typeof window !== 'undefined' && (window as unknown as Record<string, (() => boolean) | undefined>).isMasterAdmin?.())
 
   const isSuperAdmin = isMasterAdmin || userProfile?.role === 'super_admin'
   const isAdmin = isSuperAdmin || userProfile?.role === 'admin'
@@ -148,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {

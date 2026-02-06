@@ -5,7 +5,7 @@ import { User, ChevronDown, Check } from 'lucide-react'
 
 interface Speaker {
   id: string
-  name: string
+  full_name: string
   email: string | null
   phone: string | null
 }
@@ -33,7 +33,7 @@ export function BackupSpeakerSelector({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('speakers')
-        .select('id, name, email, phone')
+        .select('id, full_name, email, phone')
         .eq('event_id', eventId)
         .order('name')
 
@@ -71,7 +71,7 @@ export function BackupSpeakerSelector({
         <div className="flex items-center gap-2">
           <User className="h-4 w-4 text-gray-400" />
           <span className={selectedSpeaker ? 'text-gray-900' : 'text-gray-500'}>
-            {selectedSpeaker?.name || 'בחר דובר...'}
+            {selectedSpeaker?.full_name || 'בחר דובר...'}
           </span>
         </div>
         <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -105,7 +105,7 @@ export function BackupSpeakerSelector({
                     `}
                   >
                     <div>
-                      <div className="font-medium text-gray-900">{preassignedBackup.name}</div>
+                      <div className="font-medium text-gray-900">{preassignedBackup.full_name}</div>
                       {preassignedBackup.email && (
                         <div className="text-xs text-gray-500">{preassignedBackup.email}</div>
                       )}
@@ -139,7 +139,7 @@ export function BackupSpeakerSelector({
                     `}
                   >
                     <div>
-                      <div className="font-medium text-gray-900">{speaker.name}</div>
+                      <div className="font-medium text-gray-900">{speaker.full_name}</div>
                       {speaker.email && (
                         <div className="text-xs text-gray-500">{speaker.email}</div>
                       )}

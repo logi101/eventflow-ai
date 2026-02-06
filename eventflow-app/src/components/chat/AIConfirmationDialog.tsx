@@ -70,6 +70,9 @@ export function AIConfirmationDialog({
           onClick={(e) => e.stopPropagation()}
           className="relative mx-4 w-full max-w-lg overflow-hidden rounded-2xl border border-gray-800 bg-gray-950 shadow-2xl"
           dir="rtl"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="ai-confirmation-title"
         >
           {/* Header */}
           <div className={`flex items-center gap-3 border-b p-4 ${config.border} ${config.bg}`}>
@@ -77,7 +80,7 @@ export function AIConfirmationDialog({
               <RiskIcon className={`h-5 w-5 ${config.color}`} />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-semibold text-white">{action.label}</h3>
+              <h3 id="ai-confirmation-title" className="text-lg font-semibold text-white">{action.label}</h3>
               <p className="text-xs text-gray-400">
                 {risk === 'critical' && 'דורש אישור קריטי'}
                 {risk === 'high' && 'דורש אישור עם זהירות'}

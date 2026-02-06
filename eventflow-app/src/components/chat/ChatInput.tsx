@@ -149,6 +149,7 @@ export function ChatInput() {
           style={{ scrollbarWidth: 'thin' }}
           dir="auto"
           data-testid="chat-input"
+          aria-label="הקלד הודעה לצ'אט AI"
         />
 
         <motion.button
@@ -162,6 +163,7 @@ export function ChatInput() {
             color: inputValue.trim() ? 'white' : '#6b7280'
           }}
           data-testid="send-button"
+          aria-label="שלח הודעה"
         >
           <Send className="h-4 w-4" />
         </motion.button>

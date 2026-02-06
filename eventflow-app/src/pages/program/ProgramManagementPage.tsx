@@ -188,8 +188,6 @@ export function ProgramManagementPage() {
 
       // 2. If Standard Mapping Failed, Try AI Import
       if (schedulesToInsert.length === 0) {
-        console.log('Standard import failed (0 items), attempting AI smart import...')
-
         // We need the event date to help the AI with relative times
         const currentEvent = events.find(e => e.id === selectedEventId)
         const eventDateStr = currentEvent?.start_date?.split('T')[0] || new Date().toISOString().split('T')[0]

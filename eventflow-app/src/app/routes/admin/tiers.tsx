@@ -1,9 +1,28 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Search, Edit2, ShieldCheck, AlertTriangle, ChevronLeft, ChevronRight, RefreshCw, X } from 'lucide-react'
 import { useAuth } from '../../../contexts/AuthContext'
 import { useTier } from '../../../contexts/TierContext'
 import type { Tier } from '../../../config/tiers'
 import { supabase } from '../../../lib/supabase'
+
+interface Organization {
+  id: string
+  name: string
+  tier: Tier
+  trial_ends_at: string | null
+  trial_started_at: string | null
+  current_usage: {
+    events_count?: number
+    participants_count?: number
+    messages_sent?: number
+    ai_messages_sent?: number
+    period_start?: string
+  } | null
+  tier_limits: Record<string, unknown> | null
+  tier_updated_at: string | null
+  tier_updated_by: string | null
+  created_at: string
+}
 
 export function AdminTiersPage() {
   const { userProfile, loading: authLoading } = useAuth()
@@ -13,13 +32,13 @@ export function AdminTiersPage() {
   const isAdmin = userProfile?.role === 'super_admin'
 
   // State
-  const [organizations, setOrganizations] = useState<any[]>([])
+  const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
-  const [selectedOrg, setSelectedOrg] = useState<any>(null)
+  const [selectedOrg, setSelectedOrg] = useState<Organization | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingTier, setEditingTier] = useState<Tier>('base')
   const [editReason, setEditReason] = useState('')
@@ -27,7 +46,7 @@ export function AdminTiersPage() {
   const PAGE_SIZE = 20
 
   // Load organizations
-  const loadOrganizations = async () => {
+  const loadOrganizations = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -73,14 +92,14 @@ export function AdminTiersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [currentPage, searchTerm])
 
   // Load organizations on mount and when page/search changes
   useEffect(() => {
     if (isAdmin && !authLoading) {
       loadOrganizations()
     }
-  }, [isAdmin, authLoading, currentPage, searchTerm])
+  }, [isAdmin, authLoading, loadOrganizations])
 
   // Refresh quota after tier changes
   const handleRefreshQuota = async (orgId: string) => {
@@ -105,7 +124,7 @@ export function AdminTiersPage() {
   }
 
   // Open edit modal
-  const openEditModal = (org: any) => {
+  const openEditModal = (org: Organization) => {
     setSelectedOrg(org)
     setEditingTier(org.tier)
     setEditReason('')
@@ -148,9 +167,9 @@ export function AdminTiersPage() {
       if (selectedOrg.id) {
         await handleRefreshQuota(selectedOrg.id)
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error updating tier:', err)
-      setError(err.message || 'שגיאה בעדכון המדרג')
+      setError(err instanceof Error ? err.message : 'שגיאה בעדכון המדרג')
     } finally {
       setLoading(false)
     }
@@ -174,7 +193,7 @@ export function AdminTiersPage() {
     }
   }
 
-  const getTrialStatus = (org: any): { status: string; days: number | null } => {
+  const getTrialStatus = (org: Organization): { status: string; days: number | null } => {
     if (!org.trial_ends_at) {
       return { status: 'ללא בניסיון', days: null }
     }

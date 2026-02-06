@@ -205,12 +205,12 @@ export function ChecklistPage() {
 
   if (loading) {
     return (
-      <div className="p-8 relative z-10 flex justify-center items-center">
+      <div className="p-8 relative z-10 flex justify-center items-center" role="status" aria-busy="true" aria-live="polite">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <div className="absolute inset-0 bg-emerald-400/30 blur-2xl rounded-full animate-pulse" />
             <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center shadow-lg shadow-emerald-500/30">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
+              <Loader2 className="w-8 h-8 text-white animate-spin" aria-hidden="true" />
             </div>
           </div>
           <p className="text-zinc-400 font-medium">טוען משימות...</p>
@@ -287,12 +287,14 @@ export function ChecklistPage() {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2.5 pr-10 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+                aria-label="חיפוש משימות"
               />
             </div>
             <select
               value={selectedEvent}
               onChange={(e) => setSelectedEvent(e.target.value)}
               className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all min-w-[180px]"
+              aria-label="סנן לפי אירוע"
             >
               <option value="">בחר אירוע</option>
               {events.map(event => (
@@ -303,6 +305,7 @@ export function ChecklistPage() {
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
               className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+              aria-label="סנן לפי סטטוס"
             >
               <option value="all">כל הסטטוסים</option>
               <option value="pending">ממתין</option>
@@ -314,6 +317,7 @@ export function ChecklistPage() {
               value={selectedPriority}
               onChange={(e) => setSelectedPriority(e.target.value)}
               className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-400 transition-all"
+              aria-label="סנן לפי עדיפות"
             >
               <option value="all">כל העדיפויות</option>
               <option value="critical">קריטית</option>
@@ -352,6 +356,8 @@ export function ChecklistPage() {
                         ? 'bg-gradient-to-br from-emerald-400 to-green-500 border-emerald-400 text-white shadow-md shadow-emerald-500/30'
                         : 'border-white/20 hover:border-emerald-400 hover:bg-emerald-500/10'
                     }`}
+                    aria-label={item.status === 'completed' ? `סמן "${item.title}" כלא הושלם` : `סמן "${item.title}" כהושלם`}
+                    aria-pressed={item.status === 'completed'}
                   >
                     {item.status === 'completed' && <CheckSquare className="w-4 h-4" />}
                   </button>
@@ -394,14 +400,16 @@ export function ChecklistPage() {
                     <button
                       onClick={() => openEditModal(item)}
                       className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                      aria-label={`ערוך משימה "${item.title}"`}
                     >
-                      <Edit2 className="w-4 h-4 text-zinc-400" />
+                      <Edit2 className="w-4 h-4 text-zinc-400" aria-hidden="true" />
                     </button>
                     <button
                       onClick={() => handleDelete(item.id)}
                       className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                      aria-label={`מחק משימה "${item.title}"`}
                     >
-                      <Trash2 className="w-4 h-4 text-red-500" />
+                      <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
                     </button>
                   </div>
                 </div>
@@ -412,14 +420,14 @@ export function ChecklistPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="checklist-modal-title">
           <div className="glass-modal p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 id="checklist-modal-title" className="text-xl font-bold">
                 {editingItem ? 'עריכת משימה' : 'משימה חדשה'}
               </h2>
-              <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-300">
-                <X className="w-6 h-6" />
+              <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-300" aria-label="סגור חלון משימה">
+                <X className="w-6 h-6" aria-hidden="true" />
               </button>
             </div>
 
@@ -431,6 +439,7 @@ export function ChecklistPage() {
                   onChange={(e) => setSelectedEvent(e.target.value)}
                   className="input w-full"
                   required
+                  aria-required="true"
                 >
                   <option value="">בחר אירוע</option>
                   {events.map(event => (
@@ -447,6 +456,7 @@ export function ChecklistPage() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="input w-full"
                   required
+                  aria-required="true"
                 />
               </div>
 

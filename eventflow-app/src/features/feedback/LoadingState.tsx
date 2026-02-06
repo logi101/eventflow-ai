@@ -26,8 +26,8 @@ export function LoadingState({
   }
 
   return (
-    <div className={variantClasses[variant]}>
-      <Loader2 className={`animate-spin ${sizeClasses[size]}`} />
+    <div className={variantClasses[variant]} role="status" aria-busy="true" aria-live="polite">
+      <Loader2 className={`animate-spin ${sizeClasses[size]}`} aria-hidden="true" />
       {message && (
         <p className="mt-4 text-sm">
           {message}

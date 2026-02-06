@@ -25,7 +25,7 @@ export function GracePeriodConfirmationPopup() {
   const hasDeletions = details.deletions.some(d => d.count > 0)
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60]" role="dialog" aria-modal="true" aria-labelledby="confirmation-title">
       <div className="bg-zinc-900 rounded-2xl p-6 w-full max-w-md mx-4 border border-zinc-700 shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -33,9 +33,9 @@ export function GracePeriodConfirmationPopup() {
             <div className="p-2 bg-amber-900/40 rounded-xl">
               <AlertTriangle size={24} className="text-amber-400" />
             </div>
-            <h2 className="text-xl font-bold text-white">{details.title}</h2>
+            <h2 id="confirmation-title" className="text-xl font-bold text-white">{details.title}</h2>
           </div>
-          <button onClick={handleCancel} className="p-1.5 hover:bg-zinc-700 rounded-xl transition-colors">
+          <button onClick={handleCancel} className="p-1.5 hover:bg-zinc-700 rounded-xl transition-colors" aria-label="סגור חלון אישור">
             <X size={20} className="text-zinc-400" />
           </button>
         </div>

@@ -469,6 +469,7 @@ export function GuestsPage() {
                 placeholder="חיפוש..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
+                aria-label="חיפוש אורחים"
               />
             </div>
           </div>
@@ -477,10 +478,10 @@ export function GuestsPage() {
         {/* Participants List */}
         <div className="space-y-3" data-testid="guests-list">
           {loading ? (
-            <div className="text-center py-16">
+            <div className="text-center py-16" role="status" aria-busy="true" aria-live="polite">
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-blue-400/20 blur-2xl rounded-full animate-pulse" />
-                <Loader2 className="relative animate-spin text-blue-500 mb-4" size={40} />
+                <Loader2 className="relative animate-spin text-blue-500 mb-4" size={40} aria-hidden="true" />
               </div>
               <p className="text-zinc-400 font-medium">טוען אורחים...</p>
             </div>
@@ -586,13 +587,13 @@ export function GuestsPage() {
 
       {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true" aria-labelledby="guest-modal-title">
           <div className="glass-modal w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-[#1a1d27]">
-              <h2 className="text-2xl font-bold">
+              <h2 id="guest-modal-title" className="text-2xl font-bold">
                 {editingParticipant ? 'עריכת אורח' : 'אורח חדש'}
               </h2>
-              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-lg">
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-white/5 rounded-lg" aria-label="סגור חלון">
                 <X size={24} />
               </button>
             </div>
@@ -607,6 +608,7 @@ export function GuestsPage() {
                     className="input"
                     value={formData.first_name}
                     onChange={e => setFormData({ ...formData, first_name: e.target.value })}
+                    aria-required="true"
                   />
                 </div>
                 <div>
@@ -616,6 +618,7 @@ export function GuestsPage() {
                     className="input"
                     value={formData.last_name}
                     onChange={e => setFormData({ ...formData, last_name: e.target.value })}
+                    aria-required="true"
                   />
                 </div>
               </div>
@@ -629,6 +632,7 @@ export function GuestsPage() {
                     placeholder="0501234567"
                     value={formData.phone}
                     onChange={e => setFormData({ ...formData, phone: e.target.value })}
+                    aria-required="true"
                   />
                 </div>
                 <div>

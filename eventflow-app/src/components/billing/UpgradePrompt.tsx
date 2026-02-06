@@ -122,7 +122,6 @@ export function UpgradePrompt({ feature, isOpen, onClose }: UpgradePromptProps) 
 
   const handleUpgrade = () => {
     // TODO: Implement upgrade flow
-    console.log('Upgrade clicked for feature:', feature)
     window.location.href = '/settings/tiers'
   }
 

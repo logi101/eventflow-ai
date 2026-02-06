@@ -26,7 +26,7 @@ export class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-zinc-900 text-white" dir="rtl">
+        <div className="min-h-screen flex items-center justify-center bg-zinc-900 text-white" dir="rtl" role="alert" aria-live="assertive">
           <div className="text-center p-8">
             <h1 className="text-2xl font-bold text-red-500 mb-4">שגיאה באפליקצייה</h1>
             <p className="text-zinc-300 mb-4">

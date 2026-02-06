@@ -104,18 +104,12 @@ export function useMessageStats(eventId?: string) {
       }
 
       // Get all messages for accurate stats
-      const { data, error, count } = await query
+      const { data, error } = await query
 
       if (error) {
         console.error('Error fetching message stats:', error)
         throw error
       }
-
-      console.log('Message stats data:', {
-        eventId,
-        totalMessages: count,
-        messagesFetched: data?.length
-      })
 
       const stats: MessageStats = {
         total: data?.length || 0,
@@ -154,7 +148,6 @@ export function useMessageStats(eventId?: string) {
         else stats.byDirection.outgoing++
       })
 
-      console.log('Message stats result:', stats)
       return stats
     },
     staleTime: 0, // Always refetch

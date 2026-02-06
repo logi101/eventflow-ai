@@ -133,7 +133,6 @@ export function EventsPage() {
         .order('sort_order')
 
       if (error) throw error
-      console.log('Event types loaded:', data)
       setEventTypes(data || [])
     } catch (error) {
       console.error('Error fetching event types:', error)

@@ -63,8 +63,6 @@ export function useAIConfirmation() {
     setState(prev => ({ ...prev, isExecuting: true }))
 
     try {
-      console.log('[AIConfirmation] Executing action:', state.pendingAction.action_id)
-
       // Call execute-ai-action Edge Function
       const { data, error } = await supabase.functions.invoke('execute-ai-action', {
         body: {
@@ -82,8 +80,6 @@ export function useAIConfirmation() {
       if (data?.error) {
         throw new Error(data.error)
       }
-
-      console.log('[AIConfirmation] Action executed successfully:', data)
 
       // Close dialog
       setState({
@@ -109,8 +105,6 @@ export function useAIConfirmation() {
     }
 
     try {
-      console.log('[AIConfirmation] Rejecting action:', state.pendingAction.action_id)
-
       // Update audit log to mark as rejected
       const { error } = await supabase
         .from('ai_insights_log')

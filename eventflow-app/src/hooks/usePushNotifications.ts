@@ -96,8 +96,6 @@ export function usePushNotifications() {
         scope: '/'
       })
 
-      console.log('[Push] Service worker registered:', registration)
-
       await navigator.serviceWorker.ready
 
       const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -105,8 +103,6 @@ export function usePushNotifications() {
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer
       })
-
-      console.log('[Push] Push subscription:', subscription)
 
       const p256dhKey = subscription.getKey('p256dh')
       const authKey = subscription.getKey('auth')
@@ -140,7 +136,6 @@ export function usePushNotifications() {
       }
 
       setIsSubscribed(true)
-      console.log('[Push] Successfully subscribed to push notifications')
     } catch (error) {
       console.error('[Push] Error subscribing:', error)
       throw error
@@ -174,7 +169,6 @@ export function usePushNotifications() {
       }
 
       setIsSubscribed(false)
-      console.log('[Push] Successfully unsubscribed from push notifications')
     } catch (error) {
       console.error('[Push] Error unsubscribing:', error)
       throw error

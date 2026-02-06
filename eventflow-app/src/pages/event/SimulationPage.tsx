@@ -89,8 +89,8 @@ export function SimulationPage() {
                     {hasResult && result ? (
                         <SimulationReport
                             result={result}
-                            onFixClick={(fix) => console.log('Fix clicked:', fix)}
-                            onScheduleClick={(id) => console.log('Schedule clicked:', id)}
+                            onFixClick={() => {}}
+                            onScheduleClick={() => {}}
                         />
                     ) : (
                         <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-16 text-center h-full flex flex-col items-center justify-center">

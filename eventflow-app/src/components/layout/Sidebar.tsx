@@ -156,6 +156,8 @@ export function Sidebar() {
       <aside
         className={`sidebar-panel ${isOpen ? 'sidebar-open' : 'sidebar-closed'}`}
         data-testid="sidebar"
+        role="complementary"
+        aria-label="תפריט ראשי"
       >
         {/* Accent line on right edge */}
         <div
@@ -190,6 +192,8 @@ export function Sidebar() {
               onClick={() => setIsOpen(prev => !prev)}
               className="sidebar-toggle-btn"
               title={isOpen ? 'סגור תפריט' : 'פתח תפריט'}
+              aria-label={isOpen ? 'סגור תפריט ניווט' : 'פתח תפריט ניווט'}
+              aria-expanded={isOpen}
             >
               {isOpen ? (
                 <>
@@ -241,6 +245,7 @@ export function Sidebar() {
               <button
                 onClick={clearSelectedEvent}
                 className="mt-4 w-full flex items-center justify-center gap-2.5 py-2.5 text-xs text-zinc-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200"
+                aria-label="חזרה לרשימת כל האירועים"
               >
                 <ChevronLeft size={14} />
                 חזרה לכל האירועים
@@ -249,7 +254,7 @@ export function Sidebar() {
           )}
 
           {/* ── Navigation ── */}
-          <nav className="flex-1">
+          <nav className="flex-1" role="navigation" aria-label="ניווט ראשי">
             {/* Home Links (when no event selected) */}
             {!selectedEvent && (
               <div className="mb-6">
@@ -266,6 +271,7 @@ export function Sidebar() {
                           }`}
                         title={!isOpen ? label : undefined}
                         data-testid={`nav-${to.replace('/', '') || 'home'}`}
+                        aria-current={location.pathname === to ? 'page' : undefined}
                       >
                         {location.pathname === to && (
                           <span
@@ -304,6 +310,7 @@ export function Sidebar() {
                           }`}
                         title={!isOpen ? label : undefined}
                         data-testid={`nav-${to.replace('/event/', '')}`}
+                        aria-current={location.pathname === to ? 'page' : undefined}
                       >
                         {location.pathname === to && (
                           <span
@@ -341,6 +348,7 @@ export function Sidebar() {
                         }`}
                       title={!isOpen ? label : undefined}
                       data-testid={`nav-${to.replace('/', '')}`}
+                      aria-current={location.pathname === to ? 'page' : undefined}
                     >
                       {location.pathname === to && (
                         <span
@@ -377,6 +385,7 @@ export function Sidebar() {
                         }`}
                       title={!isOpen ? 'ניהול משתמשים' : undefined}
                       data-testid="nav-admin-users"
+                      aria-current={location.pathname === '/admin/users' ? 'page' : undefined}
                     >
                       {location.pathname === '/admin/users' && (
                         <span

@@ -614,12 +614,12 @@ export function SchedulesPage() {
 
   if (loading) {
     return (
-      <div className="p-8 relative z-10 flex justify-center items-center">
+      <div className="p-8 relative z-10 flex justify-center items-center" role="status" aria-busy="true" aria-live="polite">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
             <div className="absolute inset-0 bg-amber-400/30 blur-2xl rounded-full animate-pulse" />
             <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-amber-500/30">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
+              <Loader2 className="w-8 h-8 text-white animate-spin" aria-hidden="true" />
             </div>
           </div>
           <p className="text-zinc-400 font-medium">טוען לוח זמנים...</p>
@@ -694,6 +694,7 @@ export function SchedulesPage() {
             value={selectedEvent}
             onChange={(e) => setSelectedEvent(e.target.value)}
             className="px-4 py-2.5 bg-[#1a1d27] rounded-xl border border-white/10 text-zinc-300 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-400 transition-all min-w-[250px]"
+            aria-label="בחר אירוע לסינון לוח זמנים"
           >
             <option value="">בחר אירוע</option>
             {events.map(event => (
@@ -831,14 +832,16 @@ export function SchedulesPage() {
                                 <button
                                   onClick={() => openEditModal(schedule)}
                                   className="p-2.5 hover:bg-white/5 rounded-xl transition-all duration-200 hover:scale-105"
+                                  aria-label={`ערוך ${schedule.title}`}
                                 >
-                                  <Edit2 className="w-4 h-4 text-zinc-400" />
+                                  <Edit2 className="w-4 h-4 text-zinc-400" aria-hidden="true" />
                                 </button>
                                 <button
                                   onClick={() => handleDelete(schedule.id)}
                                   className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-105"
+                                  aria-label={`מחק ${schedule.title}`}
                                 >
-                                  <Trash2 className="w-4 h-4 text-red-500" />
+                                  <Trash2 className="w-4 h-4 text-red-500" aria-hidden="true" />
                                 </button>
                               </div>
                             </div>
@@ -872,14 +875,14 @@ export function SchedulesPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="schedule-modal-title">
           <div className="glass-modal p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">
+              <h2 id="schedule-modal-title" className="text-xl font-bold">
                 {editingSchedule ? 'עריכת פריט' : 'פריט חדש בלו"ז'}
               </h2>
-              <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-300">
-                <X className="w-6 h-6" />
+              <button onClick={closeModal} className="text-zinc-400 hover:text-zinc-300" aria-label="סגור חלון לוח זמנים">
+                <X className="w-6 h-6" aria-hidden="true" />
               </button>
             </div>
 
@@ -891,6 +894,7 @@ export function SchedulesPage() {
                   onChange={(e) => setSelectedEvent(e.target.value)}
                   className="input w-full"
                   required
+                  aria-required="true"
                 >
                   <option value="">בחר אירוע</option>
                   {events.map(event => (
@@ -907,6 +911,7 @@ export function SchedulesPage() {
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="input w-full"
                   required
+                  aria-required="true"
                 />
               </div>
 
@@ -929,6 +934,7 @@ export function SchedulesPage() {
                     onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
                     className="input w-full"
                     required
+                    aria-required="true"
                   />
                 </div>
                 <div>
@@ -939,6 +945,7 @@ export function SchedulesPage() {
                     onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
                     className="input w-full"
                     required
+                    aria-required="true"
                   />
                 </div>
               </div>
@@ -990,6 +997,8 @@ export function SchedulesPage() {
                         }`}
                         style={{ backgroundColor: color.value }}
                         title={color.label}
+                        aria-label={`צבע מסלול: ${color.label}`}
+                        aria-pressed={formData.track_color === color.value}
                       />
                     ))}
                   </div>
@@ -1084,13 +1093,13 @@ export function SchedulesPage() {
 
       {/* Delete All Confirmation Modal */}
       {showDeleteAllConfirm && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="delete-all-schedules-title">
           <div className="glass-modal p-6 w-full max-w-md">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-2xl bg-red-500/20 flex items-center justify-center mb-4">
-                <AlertTriangle className="w-8 h-8 text-red-400" />
+                <AlertTriangle className="w-8 h-8 text-red-400" aria-hidden="true" />
               </div>
-              <h2 className="text-xl font-bold text-white mb-2">מחיקת כל פריטי הלוז</h2>
+              <h2 id="delete-all-schedules-title" className="text-xl font-bold text-white mb-2">מחיקת כל פריטי הלוז</h2>
               <p className="text-zinc-400 mb-1">
                 פעולה זו תמחק <span className="text-red-400 font-bold">{schedules.length}</span> פריטים מלוח הזמנים.
               </p>

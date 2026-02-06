@@ -44,7 +44,7 @@ export function DashboardPage() {
   return (
     <div className="p-8 relative z-10">
       <h1 className="text-3xl font-semibold mb-8 text-gradient glow-text tracking-tight" data-testid="dashboard-title">לוח בקרה</h1>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-list">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-list" aria-busy={loading} aria-live="polite">
         <Link to="/events" className="premium-stats-card orange group" data-testid="events-card">
           <h2 className="text-base font-medium mb-4 text-zinc-400 tracking-wide">אירועים פעילים</h2>
           <p className="text-5xl font-bold text-gradient transition-transform duration-300 group-hover:scale-105">

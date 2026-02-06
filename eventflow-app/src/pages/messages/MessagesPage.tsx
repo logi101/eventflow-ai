@@ -203,11 +203,11 @@ function SendMessageModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="send-message-title">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 border border-zinc-700">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">שליחת הודעה חדשה</h2>
-          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded">
+          <h2 id="send-message-title" className="text-xl font-bold text-white">שליחת הודעה חדשה</h2>
+          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded" aria-label="סגור חלון">
             <X size={20} className="text-white" />
           </button>
         </div>
@@ -296,11 +296,11 @@ function MessageDetailModal({
     : message.to_phone
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="message-detail-title">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[80vh] overflow-y-auto border border-zinc-700">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white">פרטי הודעה</h2>
-          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded">
+          <h2 id="message-detail-title" className="text-xl font-bold text-white">פרטי הודעה</h2>
+          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded" aria-label="סגור פרטי הודעה">
             <X size={20} className="text-white" />
           </button>
         </div>
@@ -433,14 +433,14 @@ function EditMessageModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="edit-message-title">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 border border-zinc-700">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 id="edit-message-title" className="text-xl font-bold text-white flex items-center gap-2">
             <Pencil size={20} />
             עריכת הודעה
           </h2>
-          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded">
+          <button onClick={onClose} className="p-1 hover:bg-zinc-700 rounded" aria-label="סגור עריכת הודעה">
             <X size={20} className="text-white" />
           </button>
         </div>
@@ -515,13 +515,13 @@ function DeleteConfirmModal({
     : message.to_phone
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="delete-message-title">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-sm mx-4 border border-red-700">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-red-900/40 rounded-full">
             <Trash2 size={24} className="text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-white">מחיקת הודעה</h2>
+          <h2 id="delete-message-title" className="text-xl font-bold text-white">מחיקת הודעה</h2>
         </div>
 
         <p className="text-zinc-300 mb-2">
@@ -582,13 +582,13 @@ function DeleteAllConfirmModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" role="dialog" aria-modal="true" aria-labelledby="delete-all-title">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-md mx-4 border border-red-700">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 bg-red-900/40 rounded-full">
             <AlertTriangle size={24} className="text-red-400" />
           </div>
-          <h2 className="text-xl font-bold text-white">מחיקת כל ההודעות</h2>
+          <h2 id="delete-all-title" className="text-xl font-bold text-white">מחיקת כל ההודעות</h2>
         </div>
 
         <div className="space-y-3 mb-4">
@@ -1103,6 +1103,7 @@ export function MessagesPage() {
               value={globalFilter}
               onChange={e => setGlobalFilter(e.target.value)}
               className="w-full pr-10 pl-4 py-2 bg-zinc-700 border border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-white"
+              aria-label="חיפוש הודעות"
             />
           </div>
 
@@ -1173,7 +1174,7 @@ export function MessagesPage() {
       {/* Table */}
       <div className="bg-zinc-800 rounded-lg shadow overflow-hidden border border-zinc-700" data-testid="messages-panel">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full" aria-label="טבלת הודעות">
             <thead className="bg-zinc-700 border-b border-zinc-600">
               {table.getHeaderGroups().map(headerGroup => (
                 <tr key={headerGroup.id}>
@@ -1290,6 +1291,7 @@ export function MessagesPage() {
               onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
               className="p-1 hover:bg-zinc-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="עמוד ראשון"
             >
               <ChevronsRight size={18} className="text-zinc-300" />
             </button>
@@ -1297,6 +1299,7 @@ export function MessagesPage() {
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
               className="p-1 hover:bg-zinc-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="עמוד קודם"
             >
               <ChevronRight size={18} className="text-zinc-300" />
             </button>
@@ -1307,6 +1310,7 @@ export function MessagesPage() {
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
               className="p-1 hover:bg-zinc-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="עמוד הבא"
             >
               <ChevronLeft size={18} className="text-zinc-300" />
             </button>
@@ -1314,6 +1318,7 @@ export function MessagesPage() {
               onClick={() => table.setPageIndex(table.getPageCount() - 1)}
               disabled={!table.getCanNextPage()}
               className="p-1 hover:bg-zinc-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="עמוד אחרון"
             >
               <ChevronsLeft size={18} className="text-zinc-300" />
             </button>

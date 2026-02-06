@@ -107,7 +107,7 @@ export function ContingencyPanel({
         eventId={eventId}
         currentSpeakerId={schedule.speaker_id || undefined}
         preassignedBackupId={schedule.backup_speaker_id || undefined}
-        onSelect={(speaker) => setSelectedSpeaker({ id: speaker.id, name: speaker.name })}
+        onSelect={(speaker) => setSelectedSpeaker({ id: speaker.id, name: speaker.full_name })}
         selectedSpeakerId={selectedSpeaker?.id}
       />
 

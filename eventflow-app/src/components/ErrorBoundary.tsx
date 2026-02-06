@@ -39,11 +39,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       return (
         this.props.fallback || (
-          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-6" dir="rtl">
+          <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-6" dir="rtl" role="alert" aria-live="assertive">
             <div className="max-w-2xl w-full">
               <div className="bg-red-900/20 border border-red-700/50 rounded-xl p-8 text-center">
                 <div className="flex justify-center mb-4">
-                  <AlertTriangle className="w-12 h-12 text-red-400" />
+                  <AlertTriangle className="w-12 h-12 text-red-400" aria-hidden="true" />
                 </div>
                 <h1 className="text-2xl font-bold text-white mb-2">שגיאה בטעינת הדף</h1>
                 <p className="text-zinc-300 mb-6">

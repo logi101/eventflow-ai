@@ -18,7 +18,6 @@ export function TierComparisonPage() {
 
   const handleUpgrade = () => {
     // TODO: Implement upgrade flow
-    console.log('Upgrade clicked')
   }
 
   const features = [

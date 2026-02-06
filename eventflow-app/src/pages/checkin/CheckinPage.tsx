@@ -295,6 +295,7 @@ export function CheckinPage() {
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
             data-testid="checkin-event-select"
+            aria-label="בחר אירוע לצ'ק-אין"
           >
             <option value="">בחר אירוע...</option>
             {events.map(e => (
@@ -363,7 +364,7 @@ export function CheckinPage() {
         {checkInResult && (
           <div className={`fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl ${
             checkInResult.success ? 'bg-gradient-to-r from-green-500 to-emerald-500' : 'bg-gradient-to-r from-red-500 to-rose-500'
-          } text-white flex items-center gap-3`} data-testid="checkin-result">
+          } text-white flex items-center gap-3`} data-testid="checkin-result" role="alert" aria-live="assertive">
             {checkInResult.success ? <CheckCircle className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
             <span className="text-lg font-medium">{checkInResult.message}</span>
           </div>
@@ -388,13 +389,15 @@ export function CheckinPage() {
                   onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && handleManualCheckIn()}
                   data-testid="manual-code-input"
+                  aria-label="הזן קוד QR ידנית"
                 />
                 <button
                   className="px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-xl shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300"
                   onClick={handleManualCheckIn}
                   data-testid="manual-checkin-btn"
+                  aria-label="צ'ק-אין ידני"
                 >
-                  <UserCheck className="w-5 h-5" />
+                  <UserCheck className="w-5 h-5" aria-hidden="true" />
                 </button>
               </div>
 
@@ -417,6 +420,7 @@ export function CheckinPage() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   data-testid="checkin-search"
+                  aria-label="חיפוש משתתפים לצ'ק-אין"
                 />
               </div>
               <select
@@ -424,6 +428,7 @@ export function CheckinPage() {
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as 'all' | 'checked_in' | 'not_checked_in')}
                 data-testid="checkin-filter"
+                aria-label="סנן לפי סטטוס צ'ק-אין"
               >
                 <option value="all">הכל</option>
                 <option value="checked_in">נרשמו</option>
@@ -433,9 +438,9 @@ export function CheckinPage() {
 
             {/* Participants List */}
             {loading ? (
-              <div className="flex justify-center py-12">
+              <div className="flex justify-center py-12" role="status" aria-busy="true" aria-live="polite">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30">
-                  <Loader2 className="w-6 h-6 animate-spin text-white" />
+                  <Loader2 className="w-6 h-6 animate-spin text-white" aria-hidden="true" />
                 </div>
               </div>
             ) : !selectedEventId ? (

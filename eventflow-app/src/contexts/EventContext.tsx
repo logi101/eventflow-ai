@@ -3,7 +3,7 @@
 // Manages the selected event across the application
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
@@ -188,23 +188,24 @@ export function EventProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  function clearSelectedEvent() {
+  const clearSelectedEvent = useCallback(() => {
     setSelectedEvent(null)
     localStorage.removeItem('selectedEventId')
-  }
+  }, [])
+
+  const value = useMemo(() => ({
+    selectedEvent,
+    setSelectedEvent,
+    selectEventById,
+    clearSelectedEvent,
+    loading,
+    allEvents,
+    refreshEvents
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [selectedEvent, loading, allEvents, clearSelectedEvent])
 
   return (
-    <EventContext.Provider
-      value={{
-        selectedEvent,
-        setSelectedEvent,
-        selectEventById,
-        clearSelectedEvent,
-        loading,
-        allEvents,
-        refreshEvents
-      }}
-    >
+    <EventContext.Provider value={value}>
       {children}
     </EventContext.Provider>
   )

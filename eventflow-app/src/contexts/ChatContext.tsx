@@ -1,6 +1,6 @@
 // EventFlow AI Chat System - Global Context
 
-import { createContext, useContext, useReducer, useCallback, useEffect, type ReactNode } from 'react'
+import { createContext, useContext, useReducer, useCallback, useEffect, useMemo, type ReactNode } from 'react'
 import type {
   ChatState,
   ChatMessage,
@@ -444,7 +444,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     })
   }, [])
 
-  const value: ChatContextValue = {
+  const value: ChatContextValue = useMemo(() => ({
     state,
     openChat,
     closeChat,
@@ -466,7 +466,14 @@ export function ChatProvider({ children }: ChatProviderProps) {
       reject: aiConfirmation.reject,
       dismiss: aiConfirmation.dismiss
     }
-  }
+  }), [
+    state, openChat, closeChat, minimizeChat, toggleChat,
+    sendMessage, addSystemMessage, clearMessages, executeAction,
+    markActionCompleted, switchAgent, updateSettings, setPageContext,
+    aiConfirmation.pendingAction, aiConfirmation.isExecuting,
+    aiConfirmation.dialogOpen, aiConfirmation.approve,
+    aiConfirmation.reject, aiConfirmation.dismiss
+  ])
 
   return (
     <ChatContext.Provider value={value}>

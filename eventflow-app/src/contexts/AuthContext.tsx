@@ -2,7 +2,7 @@
 // EventFlow - Authentication Context
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react'
 import type { ReactNode } from 'react'
 import type { User, Session, AuthError } from '@supabase/supabase-js'
 import { isSupabaseConfigured, supabase, supabaseConfigError } from '../lib/supabase'
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = useCallback(async (email: string, password: string) => {
     if (!isSupabaseConfigured) {
       return { error: { message: supabaseConfigError ?? 'Supabase not configured' } as AuthError }
     }
@@ -103,17 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       fetchUserProfile(data.session.user.id)
     }
     return { error }
-  }
+  }, [])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     if (!isSupabaseConfigured) {
       return
     }
     setUserProfile(null)
     await supabase.auth.signOut()
-  }
+  }, [])
 
-  const resetPassword = async (email: string) => {
+  const resetPassword = useCallback(async (email: string) => {
     if (!isSupabaseConfigured) {
       return { error: { message: supabaseConfigError ?? 'Supabase not configured' } as AuthError }
     }
@@ -121,12 +121,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       redirectTo: `${window.location.origin}/reset-password`,
     })
     return { error }
-  }
+  }, [])
 
   const isSuperAdmin = userProfile?.role === 'super_admin'
   const isAdmin = isSuperAdmin || userProfile?.role === 'admin'
 
-  const value = {
+  const value = useMemo(() => ({
     user,
     session,
     userProfile,
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signIn,
     signOut,
     resetPassword,
-  }
+  }), [user, session, userProfile, loading, isSuperAdmin, isAdmin, signIn, signOut, resetPassword])
 
   return (
     <AuthContext.Provider value={value}>

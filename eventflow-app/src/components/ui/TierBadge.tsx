@@ -1,8 +1,8 @@
-
+import React from 'react';
 import { useTier } from '../../contexts/TierContext';
 import { useNavigate } from 'react-router-dom';
 
-export function TierBadge() {
+export const TierBadge = React.memo(function TierBadge() {
     const { tier, loading } = useTier();
     const navigate = useNavigate();
 
@@ -33,4 +33,4 @@ export function TierBadge() {
             </span>
         </div>
     );
-}
+});

@@ -11,6 +11,7 @@ import {
   useCallback,
   useEffect,
   useState,
+  useMemo,
   type ReactNode
 } from 'react'
 import type {
@@ -255,7 +256,7 @@ export function GracePeriodProvider({ children }: { children: ReactNode }) {
     })
   }, [state.pendingChanges])
 
-  const value: GracePeriodContextValue = {
+  const value: GracePeriodContextValue = useMemo(() => ({
     pendingChanges: state.pendingChanges,
     queueChange,
     cancelChange,
@@ -266,7 +267,13 @@ export function GracePeriodProvider({ children }: { children: ReactNode }) {
     hasPendingChangesFor,
     confirmationState,
     tick: state.tick
-  }
+  }), [
+    state.pendingChanges, state.tick,
+    queueChange, cancelChange, cancelAllChanges,
+    requestConfirmation, dismissConfirmation,
+    getRemainingSeconds, hasPendingChangesFor,
+    confirmationState
+  ])
 
   return (
     <GracePeriodContext.Provider value={value}>

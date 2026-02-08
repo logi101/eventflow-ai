@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Link, useParams, useNavigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import * as XLSX from 'xlsx'
+import { writeExcelFile } from '../../utils/excel'
 import { EventSettingsPanel } from '../../modules/events/components/EventSettingsPanel'
 import type { Event, ProgramDay, Track, Room, Speaker, Contingency, ScheduleChange, TimeBlock, BlockType, ContingencyType, ContingencyStatus, RiskLevel, ExtendedSchedule } from '../../types'
 import { SeatingPlanView } from '../../components/networking/SeatingPlanView'
@@ -633,10 +633,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
       'יום': programDays.find(d => d.id === s.program_day_id)?.theme || ''
     }))
 
-    const ws = XLSX.utils.json_to_sheet(exportData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'תוכנית')
-    XLSX.writeFile(wb, `program-${event?.name || 'event'}.xlsx`)
+    await writeExcelFile(exportData, `program-${event?.name || 'event'}.xlsx`, 'תוכנית')
     showToast('קובץ Excel הורד בהצלחה')
   }
 

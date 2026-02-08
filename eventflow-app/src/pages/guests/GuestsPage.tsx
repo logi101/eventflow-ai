@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Users, Edit2, Trash2, X, Loader2, Upload, Download, Search, UserPlus, Star, Phone, Mail } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import * as XLSX from 'xlsx'
+import { readExcelFile, writeExcelFile } from '../../utils/excel'
 import type { Participant, ParticipantFormData, ParticipantStatus } from '../../types'
 import { getParticipantStatusColor, getParticipantStatusLabel, normalizePhone } from '../../utils'
 import { useEvent } from '../../contexts/EventContext'
@@ -256,11 +256,9 @@ export function GuestsPage() {
 
     try {
       const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data)
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, string>>(sheet)
+      const rows = await readExcelFile<Record<string, string>>(data)
 
-      const participants = rows.map(row => ({
+      const participants = rows.map((row: Record<string, string>) => ({
         event_id: eventId,
         first_name: row['שם פרטי'] || row['first_name'] || '',
         last_name: row['שם משפחה'] || row['last_name'] || '',
@@ -273,7 +271,7 @@ export function GuestsPage() {
         notes: row['הערות'] || row['notes'] || null,
         import_source: 'excel',
         import_batch_id: crypto.randomUUID()
-      })).filter(p => p.first_name && p.phone)
+      })).filter((p: { first_name: string; phone: string }) => p.first_name && p.phone)
 
       if (participants.length === 0) {
         alert('לא נמצאו אורחים תקינים בקובץ. וודא שיש עמודות: שם פרטי, שם משפחה, טלפון')
@@ -294,7 +292,7 @@ export function GuestsPage() {
   }
 
   // Excel Export
-  function handleExport() {
+  async function handleExport() {
     const exportData = sortedParticipants.map(p => ({
       'שם פרטי': p.first_name,
       'שם משפחה': p.last_name,
@@ -308,10 +306,7 @@ export function GuestsPage() {
       'אירוע': p.events?.name || ''
     }))
 
-    const ws = XLSX.utils.json_to_sheet(exportData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'אורחים')
-    XLSX.writeFile(wb, `אורחים_${new Date().toLocaleDateString('he-IL')}.xlsx`)
+    await writeExcelFile(exportData, `אורחים_${new Date().toLocaleDateString('he-IL')}.xlsx`, 'אורחים')
   }
 
   // Filter participants

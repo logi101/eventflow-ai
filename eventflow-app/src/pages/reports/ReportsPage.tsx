@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Users, CheckSquare, DollarSign, MessageCircle, FileQuestion, UserCheck, FileText, Download, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { Event, ReportStats } from '../../types'
-import * as XLSX from 'xlsx'
+import { writeExcelFileFromArrays } from '../../utils/excel'
 import { useEvent } from '../../contexts/EventContext'
 
 export function ReportsPage() {
@@ -165,10 +165,7 @@ export function ReportsPage() {
       ['סך הכל תשובות', stats.totalResponses]
     ]
 
-    const ws = XLSX.utils.aoa_to_sheet(reportData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'דוח סיכום')
-    XLSX.writeFile(wb, `eventflow-report-${new Date().toISOString().split('T')[0]}.xlsx`)
+    await writeExcelFileFromArrays(reportData, `eventflow-report-${new Date().toISOString().split('T')[0]}.xlsx`, 'דוח סיכום')
   }
 
   const checklistPercentage = stats && stats.totalChecklistItems > 0

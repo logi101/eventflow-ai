@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useEvent } from '../../contexts/EventContext'
-import * as XLSX from 'xlsx'
+import { readExcelFile, writeExcelFile } from '../../utils/excel'
 import type { Schedule, Participant, ParticipantStatus } from '../../types'
 
 interface ParticipantSchedule {
@@ -162,12 +162,10 @@ export function ProgramManagementPage() {
 
     try {
       const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data)
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
+      const rows = await readExcelFile<Record<string, unknown>>(data)
 
       // 1. Try Standard/Heuristic Mapping first
-      let schedulesToInsert = rows.map((row, index) => ({
+      let schedulesToInsert = rows.map((row: Record<string, unknown>, index: number) => ({
         event_id: selectedEventId,
         title: String(row['כותרת'] || row['title'] || row['שם'] || row['Subject'] || row['נושא'] || ''),
         description: row['תיאור'] || row['description'] || row['Description'] || row['פירוט'] || null,
@@ -184,7 +182,7 @@ export function ProgramManagementPage() {
         send_reminder: true,
         reminder_minutes_before: Number(row['תזכורת דקות'] || row['reminder_minutes'] || 15),
         sort_order: index
-      })).filter(s => s.title && s.start_time && s.end_time)
+      })).filter((s: { title: string; start_time: string; end_time: string }) => s.title && s.start_time && s.end_time)
 
       // 2. If Standard Mapping Failed, Try AI Import
       if (schedulesToInsert.length === 0) {
@@ -277,9 +275,8 @@ export function ProgramManagementPage() {
 
     try {
       const data = await file.arrayBuffer()
-      const workbook = XLSX.read(data)
-      const sheet = workbook.Sheets[workbook.SheetNames[0]]
-      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet)
+      // readExcelFile already cleans BOM/RTL marks from headers
+      const rows = await readExcelFile<Record<string, unknown>>(data)
 
       if (rows.length === 0) {
         alert('הקובץ ריק - לא נמצאו שורות')
@@ -287,18 +284,6 @@ export function ProgramManagementPage() {
         if (participantsFileRef.current) participantsFileRef.current.value = ''
         return
       }
-
-      // Normalize column headers - remove invisible chars (BOM, RTL/LTR marks), trim whitespace
-      const normalizedRows = rows.map(row => {
-        const normalized: Record<string, unknown> = {}
-        for (const [key, value] of Object.entries(row)) {
-          const cleanKey = key
-            .replace(/[\u200F\u200E\uFEFF\u200B\u200C\u200D]/g, '')
-            .trim()
-          normalized[cleanKey] = value
-        }
-        return normalized
-      })
 
       // Helper to find a column value by trying multiple possible names
       function getCol(row: Record<string, unknown>, names: string[]): unknown {
@@ -309,7 +294,7 @@ export function ProgramManagementPage() {
         return undefined
       }
 
-      const participantsToInsert = normalizedRows.map(row => {
+      const participantsToInsert = rows.map((row: Record<string, unknown>) => {
         const firstName = String(getCol(row, ['שם פרטי', 'first_name', 'שם', 'First Name', 'firstName']) || '')
         const lastName = String(getCol(row, ['שם משפחה', 'last_name', 'משפחה', 'Last Name', 'lastName']) || '')
         const phone = String(getCol(row, ['טלפון', 'phone', 'Phone', 'נייד', 'מספר טלפון', 'tel']) || '')
@@ -325,10 +310,10 @@ export function ProgramManagementPage() {
           status: 'confirmed' as ParticipantStatus,
           custom_fields: { track: track ? String(track) : null }
         }
-      }).filter(p => p.first_name && p.phone && p.phone !== '972')
+      }).filter((p: { first_name: string; phone: string }) => p.first_name && p.phone && p.phone !== '972')
 
       if (participantsToInsert.length === 0) {
-        const sampleKeys = Object.keys(normalizedRows[0] || {}).join(', ')
+        const sampleKeys = Object.keys(rows[0] || {}).join(', ')
         alert(`לא נמצאו משתתפים תקינים בקובץ.\n\nעמודות שזוהו: ${sampleKeys}\n\nנדרש לפחות: שם פרטי + טלפון`)
         setImporting(false)
         if (participantsFileRef.current) participantsFileRef.current.value = ''
@@ -660,7 +645,7 @@ export function ProgramManagementPage() {
   // Download Template
   // ═══════════════════════════════════════════════════════════════════════════
 
-  function downloadScheduleTemplate() {
+  async function downloadScheduleTemplate() {
     const template = [
       {
         'כותרת': 'פתיחה וברכות',
@@ -692,13 +677,10 @@ export function ProgramManagementPage() {
       }
     ]
 
-    const ws = XLSX.utils.json_to_sheet(template)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'תוכניה')
-    XLSX.writeFile(wb, 'תבנית_תוכניה.xlsx')
+    await writeExcelFile(template, 'תבנית_תוכניה.xlsx', 'תוכניה')
   }
 
-  function downloadParticipantsTemplate() {
+  async function downloadParticipantsTemplate() {
     const template = [
       {
         'שם פרטי': 'ישראל',
@@ -716,10 +698,7 @@ export function ProgramManagementPage() {
       }
     ]
 
-    const ws = XLSX.utils.json_to_sheet(template)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'משתתפים')
-    XLSX.writeFile(wb, 'תבנית_משתתפים.xlsx')
+    await writeExcelFile(template, 'תבנית_משתתפים.xlsx', 'משתתפים')
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

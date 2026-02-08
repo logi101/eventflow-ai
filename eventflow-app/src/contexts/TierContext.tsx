@@ -29,7 +29,7 @@ export function TierProvider({ children }: { children: ReactNode }) {
     const { data: orgData, isLoading: orgLoading } = useQuery({
         queryKey: ['organization', orgId, 'tier'],
         queryFn: async () => {
-            if (!orgId || isSuperAdmin) return null;
+            if (!orgId) return null;
             const { data, error } = await supabase
                 .from('organizations')
                 .select('tier, tier_limits, current_usage, trial_ends_at, trial_started_at')
@@ -38,34 +38,15 @@ export function TierProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
             return data;
         },
-        enabled: !!orgId && !isSuperAdmin,
+        enabled: !!orgId,
         staleTime: 60 * 1000,
     });
 
     const value = useMemo(() => {
-        if (isSuperAdmin) {
-            return {
-                tier: 'premium' as Tier,
-                effectiveTier: 'premium' as Tier,
-                loading: false,
-                canAccess: () => true,
-                hasQuota: () => true,
-                usage: null,
-                limits: {
-                    events_per_year: -1,
-                    participants_per_event: -1,
-                    messages_per_month: -1,
-                    ai_chat_messages_per_month: -1
-                },
-                trialDaysRemaining: null,
-                refreshQuota: async () => {}
-            };
-        }
-
         const tier: Tier = (orgData?.tier as Tier) || 'base';
         const usage: UsageMetrics | null = orgData?.current_usage as UsageMetrics || null;
         const limits: TierLimits = (orgData?.tier_limits as TierLimits) || getTierLimits(tier);
-        
+
         const now = new Date();
         const trialEndsAt = orgData?.trial_ends_at ? new Date(orgData.trial_ends_at) : null;
         const isInTrial = trialEndsAt && trialEndsAt > now;
@@ -75,8 +56,9 @@ export function TierProvider({ children }: { children: ReactNode }) {
             tier: effectiveTier,
             effectiveTier,
             loading: authLoading || orgLoading,
-            canAccess: (feature: Feature) => hasFeature(effectiveTier, feature),
-            hasQuota: (quotaType: keyof TierLimits) => {
+            // Super admins can always access all features and have unlimited quota
+            canAccess: isSuperAdmin ? () => true : (feature: Feature) => hasFeature(effectiveTier, feature),
+            hasQuota: isSuperAdmin ? () => true : (quotaType: keyof TierLimits) => {
                 if (!usage) return true;
                 const limit = limits[quotaType];
                 if (limit === -1) return true;

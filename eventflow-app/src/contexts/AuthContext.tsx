@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { User, Session, AuthError } from '@supabase/supabase-js'
 import { isSupabaseConfigured, supabase, supabaseConfigError } from '../lib/supabase'
+import { Sentry } from '../lib/sentry'
 
 export type UserRole = 'super_admin' | 'admin' | 'member'
 
@@ -48,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (error) {
       console.error('Error fetching user profile:', error)
+      Sentry.captureException(error)
       setUserProfile(null)
       return
     }
@@ -121,11 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error }
   }
 
-  const userEmail = (user?.email || userProfile?.email || '').replace(/\s/g, '').toLowerCase()
-  const isMasterAdmin = (userEmail.includes('ew5933070') && userEmail.includes('gmail.com')) ||
-    (typeof window !== 'undefined' && (window as unknown as Record<string, (() => boolean) | undefined>).isMasterAdmin?.())
-
-  const isSuperAdmin = isMasterAdmin || userProfile?.role === 'super_admin'
+  const isSuperAdmin = userProfile?.role === 'super_admin'
   const isAdmin = isSuperAdmin || userProfile?.role === 'admin'
 
   const value = {

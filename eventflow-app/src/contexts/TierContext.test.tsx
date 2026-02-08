@@ -173,18 +173,20 @@ describe('useTier hook', () => {
     consoleSpy.mockRestore()
   })
 
-  it('returns premium tier with full access for super admin', () => {
+  it('returns real org tier but full access for super admin', () => {
     vi.mocked(useAuth).mockReturnValue({
-      userProfile: { id: 'u1', full_name: 'Admin', email: 'admin@test.com', role: 'super_admin', organization_id: 'org1', phone: null, avatar_url: null },
+      userProfile: { id: 'u1', full_name: 'Admin', email: 'admin@test.com', role: 'super_admin', organization_id: null, phone: null, avatar_url: null },
       loading: false,
       isSuperAdmin: true,
     } as ReturnType<typeof useAuth>)
 
     const { result } = renderHook(() => useTier(), { wrapper: createWrapper() })
 
-    expect(result.current.tier).toBe('premium')
-    expect(result.current.effectiveTier).toBe('premium')
+    // Tier reflects real org data (base when no org data)
+    expect(result.current.tier).toBe('base')
+    expect(result.current.effectiveTier).toBe('base')
     expect(result.current.loading).toBe(false)
+    // But canAccess/hasQuota always return true for super admins
     expect(result.current.canAccess('ai')).toBe(true)
     expect(result.current.canAccess('simulation')).toBe(true)
     expect(result.current.canAccess('networking')).toBe(true)
@@ -234,7 +236,7 @@ describe('useTier hook', () => {
     expect(result.current.hasQuota('ai_chat_messages_per_month')).toBe(true)
   })
 
-  it('super admin has unlimited limits (-1)', () => {
+  it('super admin gets real org limits (base when no org data)', () => {
     vi.mocked(useAuth).mockReturnValue({
       userProfile: { id: 'u1', full_name: 'SA', email: null, role: 'super_admin', organization_id: null, phone: null, avatar_url: null },
       loading: false,
@@ -243,10 +245,14 @@ describe('useTier hook', () => {
 
     const { result } = renderHook(() => useTier(), { wrapper: createWrapper() })
 
-    expect(result.current.limits.events_per_year).toBe(-1)
-    expect(result.current.limits.participants_per_event).toBe(-1)
-    expect(result.current.limits.messages_per_month).toBe(-1)
-    expect(result.current.limits.ai_chat_messages_per_month).toBe(-1)
+    // Limits reflect real org data (base defaults when no org data)
+    const baseLimits = getTierLimits('base')
+    expect(result.current.limits.events_per_year).toBe(baseLimits.events_per_year)
+    expect(result.current.limits.participants_per_event).toBe(baseLimits.participants_per_event)
+    expect(result.current.limits.messages_per_month).toBe(baseLimits.messages_per_month)
+    expect(result.current.limits.ai_chat_messages_per_month).toBe(baseLimits.ai_chat_messages_per_month)
+    // But hasQuota still returns true regardless
+    expect(result.current.hasQuota('events_per_year')).toBe(true)
   })
 
   it('super admin usage is null', () => {

@@ -7,7 +7,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 export default defineConfig({
   server: {
     port: 5173,
-    host: '0.0.0.0',
+    host: '127.0.0.1',
     strictPort: true,
   },
   plugins: [
@@ -64,6 +64,20 @@ export default defineConfig({
       }
     })
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-query': ['@tanstack/react-query', '@tanstack/react-table'],
+          'vendor-form': ['react-hook-form', '@hookform/resolvers', 'zod'],
+          'vendor-motion': ['framer-motion'],
+        }
+      }
+    },
+    chunkSizeWarningLimit: 500,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

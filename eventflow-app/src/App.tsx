@@ -2,7 +2,9 @@
 // EventFlow - App Entry Point
 // ═══════════════════════════════════════════════════════════════════════════
 
+import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
+import { Loader2 } from 'lucide-react'
 
 // Layout & Components
 import { Sidebar } from './components/layout/Sidebar'
@@ -13,7 +15,7 @@ import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPo
 import { FeatureGuard } from './components/guards/FeatureGuard'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
-// Pages
+// Pages (static imports for core/lightweight pages)
 import { HomePage } from './pages/home/HomePage'
 import { EventDashboardPage } from './pages/event/EventDashboardPage'
 import {
@@ -23,25 +25,35 @@ import {
   ChecklistPage,
   SchedulesPage,
   ProgramManagementPage,
-  AIAssistantPage,
-  FeedbackPage,
   MessagesPage,
-  CheckinPage,
-  ReportsPage,
   ReminderSettingsPage,
   EventDetailPage,
   LoginPage,
   ForgotPasswordPage,
   ResetPasswordPage,
   TestWhatsAppPage,
-  SimulationPage,
-  NetworkingPage,
-  ContingencyPage,
 } from './pages'
 import { UserManagementPage } from './pages/admin/UserManagementPage'
 import { TierComparisonPage } from './app/routes/settings/tiers'
 import { AdminTiersPage } from './app/routes/admin/tiers'
 import { isSupabaseConfigured, supabaseConfigError } from './lib/supabase'
+
+// Lazy-loaded pages (heavy/less frequently visited)
+const SimulationPage = lazy(() => import('./pages/event/SimulationPage').then(m => ({ default: m.SimulationPage })))
+const NetworkingPage = lazy(() => import('./pages/event/NetworkingPage').then(m => ({ default: m.NetworkingPage })))
+const ContingencyPage = lazy(() => import('./pages/event/ContingencyPage').then(m => ({ default: m.ContingencyPage })))
+const AIAssistantPage = lazy(() => import('./pages/ai/AIAssistantPage').then(m => ({ default: m.AIAssistantPage })))
+const ReportsPage = lazy(() => import('./pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })))
+const FeedbackPage = lazy(() => import('./pages/feedback/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
+const CheckinPage = lazy(() => import('./pages/checkin/CheckinPage').then(m => ({ default: m.CheckinPage })))
+
+function LazyFallback() {
+  return (
+    <div className="flex items-center justify-center h-64">
+      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+    </div>
+  )
+}
 
 function SupabaseSetupNotice() {
   return (
@@ -91,20 +103,32 @@ function AppLayout() {
           <Route path="/event/vendors" element={<VendorsPage />} />
           <Route path="/event/checklist" element={<ChecklistPage />} />
           <Route path="/event/messages" element={<MessagesPage />} />
-          <Route path="/event/feedback" element={<FeedbackPage />} />
-          <Route path="/event/checkin" element={<CheckinPage />} />
-          <Route path="/event/reports" element={<ReportsPage />} />
+          <Route path="/event/feedback" element={<Suspense fallback={<LazyFallback />}><FeedbackPage /></Suspense>} />
+          <Route path="/event/checkin" element={<Suspense fallback={<LazyFallback />}><CheckinPage /></Suspense>} />
+          <Route path="/event/reports" element={<Suspense fallback={<LazyFallback />}><ReportsPage /></Suspense>} />
           <Route path="/event/reminder-settings" element={<ReminderSettingsPage />} />
-          <Route path="/event/simulation" element={<SimulationPage />} />
-          <Route path="/event/networking" element={<NetworkingPage />} />
-          <Route path="/event/contingency" element={<ContingencyPage />} />
+          <Route path="/event/simulation" element={<Suspense fallback={<LazyFallback />}><SimulationPage /></Suspense>} />
+          <Route path="/event/networking" element={<Suspense fallback={<LazyFallback />}><NetworkingPage /></Suspense>} />
+          <Route path="/event/contingency" element={<Suspense fallback={<LazyFallback />}><ContingencyPage /></Suspense>} />
 
           {/* Global Routes (no event required) */}
-          <Route path="/ai" element={<AIAssistantPage />} />
+          <Route path="/ai" element={
+            <FeatureGuard feature="ai">
+              <Suspense fallback={<LazyFallback />}><AIAssistantPage /></Suspense>
+            </FeatureGuard>
+          } />
           <Route path="/settings" element={<DashboardPage />} />
           <Route path="/settings/tiers" element={<TierComparisonPage />} />
-          <Route path="/admin/tiers" element={<AdminTiersPage />} />
-          <Route path="/admin/test-whatsapp" element={<TestWhatsAppPage />} />
+          <Route path="/admin/tiers" element={
+            <ProtectedRoute requiredRole="admin">
+              <AdminTiersPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/test-whatsapp" element={
+            <ProtectedRoute requiredRole="admin">
+              <TestWhatsAppPage />
+            </ProtectedRoute>
+          } />
           <Route path="/admin/users" element={
             <ProtectedRoute requiredRole="super_admin">
               <UserManagementPage />

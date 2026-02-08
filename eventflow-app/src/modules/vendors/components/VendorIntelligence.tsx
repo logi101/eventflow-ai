@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import DOMPurify from 'dompurify'
 import { Sparkles, Loader2, AlertTriangle, Star, ChevronDown, ChevronUp } from 'lucide-react'
 import { useVendorAnalysis } from '../hooks/useVendorAnalysis'
 import type { VendorAlternative } from '../services/vendorAnalysisService'
@@ -88,7 +89,7 @@ export function VendorIntelligence({
               <div className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 rounded-xl p-4">
                 <div
                   className="prose prose-invert prose-sm max-w-none text-zinc-300 whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: formatAnalysis(analysis.data.analysis) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatAnalysis(analysis.data.analysis)) }}
                 />
               </div>
 

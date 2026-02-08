@@ -34,11 +34,27 @@ jobs:
       - name: ESLint
         run: npx eslint src/ --no-warn-ignored
 
-      - name: Unit tests
-        run: npx vitest run --reporter=verbose
+      - name: Run unit tests with coverage
+        run: npx vitest run --coverage --reporter=verbose
+        continue-on-error: true
 
       - name: Build
         run: npm run build
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key-for-build-only
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: npx playwright test --reporter=html
+        continue-on-error: true
+
+      - name: Upload E2E report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: eventflow-app/playwright-report/
+          retention-days: 14

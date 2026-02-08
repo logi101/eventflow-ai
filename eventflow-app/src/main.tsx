@@ -10,7 +10,10 @@ import { EventProvider } from './contexts/EventContext'
 import { GracePeriodProvider } from './contexts/GracePeriodContext'
 import { TierProvider } from './contexts/TierContext'
 import { setupAutoSync } from './modules/checkin/services/syncService'
-import { ErrorBoundary } from './ErrorBoundary'
+import { ErrorBoundary } from './components/ErrorBoundary'
+import { initSentry } from './lib/sentry'
+
+initSentry()
 
 const queryClient = new QueryClient({
   defaultOptions: {

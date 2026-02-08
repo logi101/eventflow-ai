@@ -14,24 +14,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="EventFlow AI" />
 
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://generativelanguage.googleapis.com;" />
+
     <!-- Icons -->
     <link rel="icon" type="image/png" href="/icon-192.png" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
   </head>
   <body>
     <div id="root"></div>
-    <script>
-      // Global Emergency Bypass for Master Admin
-      window.isMasterAdmin = function() {
-        try {
-          const authData = JSON.parse(localStorage.getItem('sb-byhohetafnhlakqbydbj-auth-token'));
-          const email = authData?.user?.email || '';
-          return email.toLowerCase().includes('ew5933070') && email.includes('gmail.com');
-        } catch (e) {
-          return false;
-        }
-      };
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

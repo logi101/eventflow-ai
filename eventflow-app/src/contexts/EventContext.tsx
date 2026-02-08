@@ -7,6 +7,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { Sentry } from '../lib/sentry'
 
 interface Event {
   id: string
@@ -144,6 +145,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       setAllEvents(eventsWithCounts)
     } catch (error) {
       console.error('Error loading events:', error)
+      Sentry.captureException(error)
     } finally {
       setLoading(false)
     }
@@ -182,6 +184,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error selecting event:', error)
+      Sentry.captureException(error)
     }
   }
 

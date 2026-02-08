@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Bot, Info } from 'lucide-react'
+import DOMPurify from 'dompurify'
 import type { ChatMessage as ChatMessageType } from '../../types/chat'
 import { useChatContext } from '../../contexts/ChatContext'
 import ChatActions from './ChatActions'
@@ -124,7 +125,7 @@ export function ChatMessage({ message }: ChatMessageProps) {
               isUser ? 'text-white' : 'text-gray-300'
             }`}
             dir="auto"
-            dangerouslySetInnerHTML={{ __html: parseContent(message.content) }}
+            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(parseContent(message.content)) }}
           />
 
           {/* Timestamp */}

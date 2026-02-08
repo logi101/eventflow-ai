@@ -16,6 +16,7 @@ import { DEFAULT_CHAT_SETTINGS } from '../types/chat'
 import { getSlashCommands } from '../hooks/usePageContext'
 import { useEvent } from './EventContext'
 import { useAIConfirmation } from '../hooks/useAIConfirmation'
+import { Sentry } from '../lib/sentry'
 
 // ============================================================================
 // Initial State
@@ -356,6 +357,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
       }
     } catch (error) {
       console.error('[EventFlow Chat] sendMessage error:', error)
+      Sentry.captureException(error)
       const errorDetail = error instanceof Error ? error.message : 'שגיאה בלתי צפויה'
       const errorMessage: ChatMessage = {
         id: generateId(),

@@ -1939,15 +1939,43 @@ async function executeSuggestRoomAssignments(
       return { success: false, error: 'חסר מזהה אירוע' }
     }
 
-    // Fetch unassigned participants
+    // 1. Fetch unassigned participants with their ticket tiers
     const { data: participants, error: pError } = await supabase
       .from('participants')
-      .select('id, first_name, last_name, phone, is_vip, requires_accessibility')
+      .select('id, first_name, last_name, phone, is_vip, ticket_tier, requires_accessibility')
       .eq('event_id', eventId)
-      .eq('registration_status', 'confirmed')
-      .is('participant_rooms.participant_id', null)
-      .order('is_vip', { ascending: false })
-      .order('requires_accessibility', { ascending: false })
+      .eq('status', 'confirmed')
+      .is('participant_rooms.participant_id', null) // For rooms, use similar logic for tables
+      .order('ticket_tier', { ascending: false }) // VIP > Premium > Regular (alphabetical hack or explicit mapping)
+
+    // Helper: Priority mapping for sorting
+    const tierPriority: Record<string, number> = { 'vip': 3, 'premium': 2, 'regular': 1 }
+    const sortedParticipants = (participants || []).sort((a, b) => 
+      (tierPriority[b.ticket_tier] || 0) - (tierPriority[a.tier] || 0)
+    )
+
+    // 2. Assign to tables starting from table 1 (Stage proximity)
+    const suggestions = []
+    let currentTable = 1
+    let currentSeat = 1
+    const seatsPerTable = 8
+
+    for (const participant of sortedParticipants) {
+      suggestions.push({
+        participant_id: participant.id,
+        participant_name: `${participant.first_name} ${participant.last_name}`,
+        ticket_tier: participant.ticket_tier,
+        table_number: currentTable,
+        seat_number: currentSeat,
+        reason: participant.ticket_tier === 'vip' ? 'עדיפות VIP - קרוב לבמה' : 'שיבוץ לפי דרגת כרטיס'
+      })
+
+      currentSeat++
+      if (currentSeat > seatsPerTable) {
+        currentSeat = 1
+        currentTable++
+      }
+    }
 
     if (pError) {
       console.error('fetch participants error:', pError)
@@ -1967,11 +1995,11 @@ async function executeSuggestRoomAssignments(
     // Fetch available rooms
     const { data: rooms, error: rError } = await supabase
       .from('rooms')
-      .select('id, room_number, building, floor, room_type, bed_configuration, max_occupancy')
+      .select('id, name, building, floor, room_type, bed_configuration, capacity')
       .eq('event_id', eventId)
       .eq('is_available', true)
       .order('room_type', { ascending: false }) // VIP rooms first
-      .order('room_number', { ascending: true })
+      .order('name', { ascending: true })
 
     if (rError) {
       console.error('fetch rooms error:', rError)
@@ -2011,7 +2039,7 @@ async function executeSuggestRoomAssignments(
           participant_name: `${participant.first_name} ${participant.last_name}`,
           is_vip: participant.is_vip,
           room_id: room.id,
-          room_number: room.room_number,
+          room_number: room.name,
           building: room.building,
           floor: room.floor,
           room_type: room.room_type,

@@ -1,48 +1,154 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FeatureGuard } from '../../components/guards/FeatureGuard'
 import { useEvent } from '../../contexts/EventContext'
-import { generateTableSeating } from '../../modules/networking/services/seatingAlgorithm'
-import { saveAllTableAssignments } from '../../modules/networking/services/seatingService'
+import { greedyTableSeating } from '../../modules/networking/services/seatingAlgorithm'
+import { fetchTableAssignments, saveAllTableAssignments, updateParticipantTable } from '../../modules/networking/services/seatingService'
 import { supabase } from '../../lib/supabase'
-import { Loader2, Share2, Users, CheckCircle } from 'lucide-react'
-import type { SeatingParticipant, SeatingConstraints } from '../../modules/networking/types'
+import { Loader2, Share2, AlertCircle } from 'lucide-react'
+import { SeatingPlanView } from '../../modules/networking/components/SeatingPlanView'
+import type { SeatingParticipant, SeatingConstraints, TableWithParticipants } from '../../modules/networking/types'
+import type { ParticipantWithTracks, Track } from '../../types'
 
 export function NetworkingPage() {
     const { selectedEvent } = useEvent()
+    const queryClient = useQueryClient()
     const [isCalculating, setIsCalculating] = useState(false)
-    const [result, setResult] = useState<{ tables: number; seated: number } | null>(null)
     const [error, setError] = useState<string | null>(null)
 
-    if (!selectedEvent) return null
+    // 1. Fetch Tracks (for colors)
+    const { data: tracks = [] } = useQuery({
+        queryKey: ['tracks', selectedEvent?.id],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('tracks')
+                .select('*')
+                .eq('event_id', selectedEvent?.id)
+            if (error) throw error
+            return data as Track[]
+        },
+        enabled: !!selectedEvent?.id
+    })
+
+    // 2. Fetch Participants with Tracks
+    const { data: participants = [], isLoading: isLoadingParticipants } = useQuery({
+        queryKey: ['participants-with-tracks', selectedEvent?.id],
+        queryFn: async () => {
+            const { data, error } = await supabase
+                .from('participants')
+                .select(`
+                    *,
+                    participant_tracks(
+                        track_id,
+                        tracks(*)
+                    )
+                `)
+                .eq('event_id', selectedEvent?.id)
+            
+            if (error) throw error
+            
+            return (data || []).map(p => ({
+                ...p,
+                tracks: p.participant_tracks?.map((pt: any) => pt.tracks).filter(Boolean) || []
+            })) as ParticipantWithTracks[]
+        },
+        enabled: !!selectedEvent?.id
+    })
+
+    // 3. Fetch Assignments
+    const { data: assignments = [], isLoading: isLoadingAssignments } = useQuery({
+        queryKey: ['table-assignments', selectedEvent?.id],
+        queryFn: () => fetchTableAssignments(selectedEvent!.id),
+        enabled: !!selectedEvent?.id
+    })
+
+    // 4. Mutations
+    const moveMutation = useMutation({
+        mutationFn: ({ participantId, toTable }: { participantId: string, toTable: number }) => 
+            updateParticipantTable(selectedEvent!.id, participantId, toTable),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['table-assignments', selectedEvent?.id] })
+        }
+    })
+
+    // 5. Data Transformation for SeatingPlanView
+    const tables = useMemo(() => {
+        if (!selectedEvent) return []
+        
+        const maxTableSize = 8 // Default
+        const tableMap = new Map<number, SeatingParticipant[]>()
+        
+        // Group assigned participants
+        assignments.forEach(assign => {
+            const participant = participants.find(p => p.id === assign.participant_id)
+            if (participant) {
+                if (!tableMap.has(assign.table_number)) {
+                    tableMap.set(assign.table_number, [])
+                }
+                tableMap.get(assign.table_number)!.push({
+                    id: participant.id,
+                    first_name: participant.first_name,
+                    last_name: participant.last_name,
+                    is_vip: participant.is_vip,
+                    networking_opt_in: participant.networking_opt_in,
+                    tracks: participant.tracks.map(t => t.id),
+                    companion_id: (participant as any).companion_id // If exists
+                })
+            }
+        })
+
+        // Create table list (1..N)
+        const result: TableWithParticipants[] = []
+        const maxTableNum = Math.max(0, ...Array.from(tableMap.keys()), 4) // Show at least 4 tables
+        
+        for (let i = 1; i <= maxTableNum; i++) {
+            result.push({
+                tableNumber: i,
+                capacity: maxTableSize,
+                isVipTable: tableMap.get(i)?.some(p => p.is_vip) || false,
+                participants: tableMap.get(i) || []
+            })
+        }
+
+        return result
+    }, [selectedEvent, participants, assignments])
+
+    const trackColors = useMemo(() => {
+        const colors = new Map<string, string>()
+        tracks.forEach(t => colors.set(t.id, t.color))
+        return colors
+    }, [tracks])
+
+    if (!selectedEvent) return (
+        <div className="p-8 text-center" dir="rtl">
+            <AlertCircle className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
+            <h2 className="text-xl font-bold text-zinc-900">לא נבחר אירוע</h2>
+            <p className="text-zinc-500">יש לבחור אירוע מהרשימה כדי לנהל נטוורקינג.</p>
+        </div>
+    )
 
     const handleRunAlgorithm = async () => {
         setIsCalculating(true)
         setError(null)
-        setResult(null)
 
         try {
-            // 1. Fetch participants (simulated for now as real query requires complex joins)
-            // In production this would call a specific service method
-            const { data: participants, error: fetchError } = await supabase
-                .from('participants')
-                .select('id, first_name, last_name, is_vip, networking_opt_in')
-                .eq('event_id', selectedEvent.id)
+            // Filter to only networking_opt_in participants
+            const networkingParticipants = participants
+                .filter(p => p.networking_opt_in)
+                .map(p => ({
+                    id: p.id,
+                    first_name: p.first_name,
+                    last_name: p.last_name,
+                    is_vip: p.is_vip,
+                    networking_opt_in: p.networking_opt_in,
+                    tracks: p.tracks.map(t => t.id),
+                    companion_id: (p as any).companion_id
+                }))
 
-            if (fetchError) throw fetchError
-
-            // Use event's organization for track grouping
-            const orgTrack = selectedEvent.organization_id || 'general'
-            const algorithmParticipants: SeatingParticipant[] = (participants || []).map(p => ({
-                ...p,
-                tracks: [orgTrack],
-                companion_id: undefined
-            }))
-
-            if (algorithmParticipants.length === 0) {
-                throw new Error('לא נמצאו משתתפים באירוע זה')
+            if (networkingParticipants.length === 0) {
+                throw new Error('לא נמצאו משתתפים שאישרו השתתפות בנטוורקינג')
             }
 
-            // 2. Define constraints
             const constraints: SeatingConstraints = {
                 maxTableSize: 8,
                 minSharedInterests: 1,
@@ -51,10 +157,10 @@ export function NetworkingPage() {
                 companionsTogether: true
             }
 
-            // 3. Run Algorithm (Client Side for now)
-            const seatingMap = generateTableSeating(algorithmParticipants, constraints)
+            // Run Greedy Seating (casted to seating-compatible type)
+            const seatingMap = greedyTableSeating(participants, constraints)
 
-            // 4. Format for saving
+            // Prepare for save
             const assignmentsToSave = []
             for (const [tableNum, tableParticipants] of seatingMap.entries()) {
                 for (const p of tableParticipants) {
@@ -67,96 +173,64 @@ export function NetworkingPage() {
                 }
             }
 
-            // 5. Save to DB
-            if (assignmentsToSave.length > 0) {
-                await saveAllTableAssignments(selectedEvent.id, assignmentsToSave)
-            }
-
-            setResult({
-                tables: seatingMap.size,
-                seated: assignmentsToSave.length
-            })
+            await saveAllTableAssignments(selectedEvent.id, assignmentsToSave)
+            queryClient.invalidateQueries({ queryKey: ['table-assignments', selectedEvent.id] })
 
         } catch (err) {
             console.error(err)
-            setError(err instanceof Error ? err.message : 'שגיאה בלתי צפויה')
+            setError(err instanceof Error ? err.message : 'שגיאה בחישוב השיבוצים')
         } finally {
             setIsCalculating(false)
         }
     }
 
+    const isLoading = isLoadingParticipants || isLoadingAssignments
+
     return (
         <FeatureGuard feature="networking">
-            <div className="p-6 max-w-7xl mx-auto space-y-6">
-                <header>
-                    <h1 className="text-2xl font-bold text-zinc-900">נטוורקינג חכם</h1>
-                    <p className="text-zinc-500 mt-1">
-                        מנוע ה-AI שלנו יודע לשבץ משתתפים לשולחנות בצורה אופטימלית על בסיס תחומי עניין משותפים.
-                    </p>
+            <div className="p-6 max-w-[1600px] mx-auto space-y-6">
+                <header className="flex justify-between items-start">
+                    <div>
+                        <h1 className="text-2xl font-bold text-zinc-900">נטוורקינג והושבה חכמה</h1>
+                        <p className="text-zinc-500 mt-1">
+                            נהל את סידורי הישיבה בצורה חכמה על בסיס תחומי עניין וגיוון.
+                        </p>
+                    </div>
+                    <div className="flex gap-4 items-center bg-blue-50 px-4 py-2 rounded-lg border border-blue-100">
+                        <Share2 className="w-5 h-5 text-blue-600" />
+                        <div className="text-sm">
+                            <span className="font-bold text-blue-900">
+                                {participants.filter(p => p.networking_opt_in).length}
+                            </span>
+                            <span className="text-blue-700 mx-1">משתתפים אישרו נטוורקינג</span>
+                        </div>
+                    </div>
                 </header>
 
-                <div className="bg-white rounded-xl shadow-sm border border-zinc-200 p-8 text-center">
-                    <div className="w-16 h-16 bg-purple-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Share2 className="w-8 h-8 text-purple-600" />
+                {error && (
+                    <div className="p-4 bg-red-50 border border-red-100 text-red-700 rounded-xl flex items-center gap-3">
+                        <AlertCircle className="w-5 h-5" />
+                        <p className="text-sm font-medium">{error}</p>
                     </div>
-                    <h3 className="text-lg font-medium text-zinc-900">מנוע השיבוצים האוטומטי</h3>
-                    <p className="text-zinc-500 mt-2 max-w-md mx-auto mb-6">
-                        המנוע ינתח את נתוני המשתתפים ({selectedEvent.participants_count || 0}) ויצור סידור ישיבה אופטימלי לפי ארגונים ותחומי עניין.
-                    </p>
+                )}
 
-                    {error && (
-                        <div className="mb-6 p-4 bg-red-50 text-red-600 rounded-lg max-w-md mx-auto text-sm">
-                            {error}
-                        </div>
-                    )}
-
-                    {result ? (
-                        <div className="mb-6 p-6 bg-green-50 border border-green-100 rounded-xl max-w-md mx-auto animate-fadeIn">
-                            <div className="flex justify-center mb-3">
-                                <CheckCircle className="w-8 h-8 text-green-500" />
-                            </div>
-                            <h4 className="font-bold text-green-800 text-lg">השיבוץ הושלם בהצלחה!</h4>
-                            <div className="flex justify-center gap-6 mt-4 text-sm">
-                                <div className="text-center">
-                                    <span className="block font-bold text-2xl text-green-700">{result.seated}</span>
-                                    <span className="text-green-600">משתתפים שובצו</span>
-                                </div>
-                                <div className="w-px bg-green-200"></div>
-                                <div className="text-center">
-                                    <span className="block font-bold text-2xl text-green-700">{result.tables}</span>
-                                    <span className="text-green-600">שולחנות נוצרו</span>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => setResult(null)}
-                                className="mt-4 text-green-700 underline text-sm hover:text-green-800"
-                            >
-                                הרץ שוב
-                            </button>
-                        </div>
-                    ) : (
-                        <button
-                            className={`px-8 py-3 rounded-xl transition-all shadow-sm font-medium flex items-center gap-2 mx-auto ${isCalculating
-                                ? 'bg-zinc-100 text-zinc-400 cursor-not-allowed'
-                                : 'bg-purple-600 text-white hover:bg-purple-700 hover:shadow-md hover:-translate-y-0.5'
-                                }`}
-                            onClick={handleRunAlgorithm}
-                            disabled={isCalculating}
-                        >
-                            {isCalculating ? (
-                                <>
-                                    <Loader2 className="w-5 h-5 animate-spin" />
-                                    מחשב שיבוצים אופטימליים...
-                                </>
-                            ) : (
-                                <>
-                                    <Users className="w-5 h-5" />
-                                    הפעל מנוע שיבוץ
-                                </>
-                            )}
-                        </button>
-                    )}
-                </div>
+                {isLoading ? (
+                    <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-zinc-100 shadow-sm">
+                        <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                        <p className="text-zinc-500 animate-pulse">טוען נתוני הושבה...</p>
+                    </div>
+                ) : (
+                    <SeatingPlanView
+                        eventId={selectedEvent.id}
+                        tables={tables}
+                        trackColors={trackColors}
+                        isLoading={isCalculating}
+                        onGenerateSeating={handleRunAlgorithm}
+                        onMoveParticipant={(participantId, _, toTable) => 
+                            moveMutation.mutate({ participantId, toTable })
+                        }
+                    />
+                )}
             </div>
         </FeatureGuard>
     )

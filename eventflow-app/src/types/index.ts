@@ -75,6 +75,7 @@ export interface Participant {
   internal_notes: string | null
   is_vip: boolean
   vip_notes: string | null
+  networking_opt_in: boolean
   invited_at: string | null
   confirmed_at: string | null
   checked_in_at: string | null
@@ -99,6 +100,7 @@ export interface ParticipantFormData {
   notes: string
   is_vip: boolean
   vip_notes: string
+  networking_opt_in: boolean
 }
 
 export interface ParticipantWithTracks extends Participant {

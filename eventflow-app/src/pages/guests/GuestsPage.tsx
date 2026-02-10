@@ -40,7 +40,8 @@ export function GuestsPage() {
     transportation_location: '',
     notes: '',
     is_vip: false,
-    vip_notes: ''
+    vip_notes: '',
+    networking_opt_in: false
   })
 
   // Sync with EventContext when selected event changes
@@ -121,7 +122,8 @@ export function GuestsPage() {
       transportation_location: '',
       notes: '',
       is_vip: false,
-      vip_notes: ''
+      vip_notes: '',
+      networking_opt_in: false
     })
     setShowModal(true)
   }
@@ -143,7 +145,8 @@ export function GuestsPage() {
       transportation_location: participant.transportation_location || '',
       notes: participant.notes || '',
       is_vip: participant.is_vip,
-      vip_notes: participant.vip_notes || ''
+      vip_notes: participant.vip_notes || '',
+      networking_opt_in: participant.networking_opt_in || false
     })
     setShowModal(true)
   }
@@ -181,6 +184,7 @@ export function GuestsPage() {
         notes: formData.notes || null,
         is_vip: formData.is_vip,
         vip_notes: formData.is_vip ? formData.vip_notes || null : null,
+        networking_opt_in: formData.networking_opt_in,
         invited_at: formData.status === 'invited' ? new Date().toISOString() : null,
         confirmed_at: formData.status === 'confirmed' ? new Date().toISOString() : null
       }
@@ -671,6 +675,16 @@ export function GuestsPage() {
                     <Star size={16} className="text-yellow-500" />
                     אורח VIP
                   </span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.networking_opt_in}
+                    onChange={e => setFormData({ ...formData, networking_opt_in: e.target.checked })}
+                    className="w-5 h-5 rounded border-white/20"
+                  />
+                  <span>מעוניין בנטוורקינג</span>
                 </label>
               </div>
 

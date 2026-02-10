@@ -5,7 +5,8 @@ import { supabase } from '../../lib/supabase'
 import { writeExcelFile } from '../../utils/excel'
 import { EventSettingsPanel } from '../../modules/events/components/EventSettingsPanel'
 import type { Event, ProgramDay, Track, Room, Speaker, Contingency, ScheduleChange, TimeBlock, BlockType, ContingencyType, ContingencyStatus, RiskLevel, ExtendedSchedule } from '../../types'
-import { SeatingPlanView } from '../../components/networking/SeatingPlanView'
+import { SeatingPlanView } from '../../modules/networking/components/SeatingPlanView'
+import { RoomGridView } from '../../modules/rooms/components/RoomGridView'
 import type { SeatingParticipant } from '../../modules/networking/types'
 import { SimulationTrigger, type SuggestedFix } from '../../modules/simulation'
 import { FeatureGuard } from '../../components/guards'
@@ -49,6 +50,7 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   const [contingencies, setContingencies] = useState<Contingency[]>([])
   const [scheduleChanges, setScheduleChanges] = useState<ScheduleChange[]>([])
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
+  const [participantRooms, setParticipantRooms] = useState<any[]>([])
 
   // Modal State
   const [showDayModal, setShowDayModal] = useState(false)
@@ -149,6 +151,20 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
     }))
 
     setSeatingParticipants(participants)
+  }
+
+  async function loadRoomsData() {
+    if (!eventId) return
+    const { data, error } = await supabase
+      .from('participant_rooms')
+      .select('*')
+      .eq('event_id', eventId)
+    
+    if (error) {
+      console.error('Error loading room assignments:', error)
+      return
+    }
+    setParticipantRooms(data || [])
   }
 
   async function loadEventData() {
@@ -256,6 +272,10 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
   useEffect(() => {
     if (activeTab === 'seating' && eventId) {
       loadSeatingData()
+    }
+    if (activeTab === 'rooms' && eventId) {
+      loadRoomsData()
+      loadProgramData() // Need rooms list from program
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, eventId])
@@ -976,6 +996,29 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
               />
             </FeatureGuard>
           )}
+        </div>
+      )}
+
+      {activeTab === 'rooms' && (
+        <div className="card space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">מפת חדרים ולינה</h2>
+            <div className="flex gap-2">
+              <span className="flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                🔵 מאוייש
+              </span>
+              <span className="flex items-center gap-1 text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
+                💎 VIP
+              </span>
+            </div>
+          </div>
+
+          <RoomGridView
+            rooms={rooms}
+            assignments={participantRooms}
+            participants={[]} // We'd need to fetch full participants for better tooltips
+            onRoomClick={(room) => showToast(`פרטי חדר: ${room.name}`)}
+          />
         </div>
       )}
 

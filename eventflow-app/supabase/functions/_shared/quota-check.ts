@@ -267,23 +267,9 @@ export async function incrementUsage(
   })
 
   if (error) {
-    console.error('Failed to increment usage:', error)
-    // Fallback to direct update if RPC doesn't exist
-    const { error: updateError } = await supabase
-      .from('organizations')
-      .update({
-        current_usage: supabase.rpc('jsonb_set_nested', {
-          target: 'current_usage',
-          path: `{${usageKey}}`,
-          value: supabase.rpc('coalesce_jsonb_int', {
-            target: 'current_usage',
-            key: usageKey
-          })
-        })
-      })
-      .eq('id', organizationId)
-
-    return !updateError
+    console.error('Failed to increment usage via RPC:', error)
+    console.warn('Usage will not be tracked for this request')
+    return false
   }
 
   return true

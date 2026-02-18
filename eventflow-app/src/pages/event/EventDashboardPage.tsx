@@ -25,6 +25,7 @@ import {
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { supabase } from '../../lib/supabase'
+import { toast } from '../../utils/toast'
 
 interface EventStats {
   participants: number
@@ -207,7 +208,7 @@ export function EventDashboardPage() {
       setShowEditModal(false)
     } catch (error) {
       console.error('Error saving event:', error)
-      alert('שגיאה בשמירת האירוע')
+      toast.error('שגיאה בשמירת האירוע')
     } finally {
       setSaving(false)
     }

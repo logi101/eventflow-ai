@@ -4,6 +4,7 @@ import { ContingencyPanel } from '../../modules/contingency/components'
 import { useEvent } from '../../contexts/EventContext'
 import { supabase } from '../../lib/supabase'
 import { Loader2, AlertTriangle, Calendar } from 'lucide-react'
+import { toast } from '../../utils/toast'
 
 interface Schedule {
     id: string
@@ -111,7 +112,7 @@ export function ContingencyPage() {
                                     onSuccess={() => {
                                         // Reload to update status
                                         // straightforward implementation: just clear selection or re-fetch
-                                        alert('תוכנית המגירה הופעלה בהצלחה');
+                                        toast.success('תוכנית המגירה הופעלה בהצלחה');
                                     }}
                                 />
                             </div>

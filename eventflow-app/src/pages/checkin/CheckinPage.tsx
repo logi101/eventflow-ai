@@ -276,7 +276,7 @@ export function CheckinPage() {
             <button
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
                 scanMode
-                  ? 'bg-[#1a1d27] border border-white/5 text-zinc-300 border border-white/10 hover:bg-white/5'
+                  ? 'bg-[#1a1d27] text-zinc-300 border border-white/10 hover:bg-white/5'
                   : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30 hover:shadow-xl hover:-translate-y-0.5'
               }`}
               onClick={() => setScanMode(!scanMode)}
@@ -291,7 +291,7 @@ export function CheckinPage() {
         {/* Event Selector */}
         <div className="mb-6">
           <select
-            className="w-64 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+            className="w-64 px-4 py-2.5 bg-[#1a1d27] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
             value={selectedEventId}
             onChange={(e) => setSelectedEventId(e.target.value)}
             data-testid="checkin-event-select"
@@ -373,7 +373,7 @@ export function CheckinPage() {
         {scanMode ? (
           /* Scan Mode */
           <div className="max-w-md mx-auto" data-testid="scan-mode">
-            <div className="bg-[#1a1d27] border border-white/5 rounded-2xl p-8 border border-white/10 shadow-xl text-center">
+            <div className="bg-[#1a1d27] rounded-2xl p-8 border border-white/10 shadow-xl text-center">
               <div className="w-24 h-24 bg-gradient-to-br from-cyan-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <ScanLine className="w-12 h-12 text-cyan-400" />
               </div>
@@ -415,7 +415,7 @@ export function CheckinPage() {
                 <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-zinc-500 w-5 h-5" />
                 <input
                   type="text"
-                  className="w-full pr-10 pl-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+                  className="w-full pr-10 pl-4 py-2.5 bg-[#1a1d27] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
                   placeholder="חיפוש לפי שם, טלפון או קוד..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -424,7 +424,7 @@ export function CheckinPage() {
                 />
               </div>
               <select
-                className="w-40 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
+                className="w-40 px-4 py-2.5 bg-[#1a1d27] border border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all"
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value as 'all' | 'checked_in' | 'not_checked_in')}
                 data-testid="checkin-filter"
@@ -444,14 +444,14 @@ export function CheckinPage() {
                 </div>
               </div>
             ) : !selectedEventId ? (
-              <div className="bg-[#1a1d27] border border-white/5 rounded-2xl p-12 border border-white/10 text-center">
+              <div className="bg-[#1a1d27] rounded-2xl p-12 border border-white/10 text-center">
                 <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Calendar className="w-10 h-10 text-zinc-500" />
                 </div>
                 <p className="text-lg text-zinc-400">בחר אירוע להתחלה</p>
               </div>
             ) : filteredParticipants.length === 0 ? (
-              <div className="bg-[#1a1d27] border border-white/5 rounded-2xl p-12 border border-white/10 text-center">
+              <div className="bg-[#1a1d27] rounded-2xl p-12 border border-white/10 text-center">
                 <div className="w-20 h-20 bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-4">
                   <Users className="w-10 h-10 text-zinc-500" />
                 </div>

@@ -5,6 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Users, Edit2, Trash2, X, Loader2, Upload, Download, Search, UserPlus, Star, Phone, Mail } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { toast, confirmAction } from '../../utils/toast'
 import { readCsvFile, writeCsvFile } from '../../utils/csv'
 import type { Participant, ParticipantFormData, ParticipantStatus } from '../../types'
 import { getParticipantStatusColor, getParticipantStatusLabel, normalizePhone } from '../../utils'
@@ -103,7 +104,7 @@ export function GuestsPage() {
 
   function openCreateModal() {
     if (events.length === 0) {
-      alert('יש ליצור אירוע לפני הוספת אורחים')
+      toast.warning('יש ליצור אירוע לפני הוספת אורחים')
       return
     }
     setEditingParticipant(null)
@@ -153,13 +154,13 @@ export function GuestsPage() {
 
   async function handleSave() {
     if (!formData.first_name || !formData.last_name || !formData.phone) {
-      alert('נא למלא שם פרטי, שם משפחה וטלפון')
+      toast.error('נא למלא שם פרטי, שם משפחה וטלפון')
       return
     }
 
     const eventId = editingParticipant?.event_id || (selectedEventId !== 'all' ? selectedEventId : events[0]?.id)
     if (!eventId) {
-      alert('יש לבחור אירוע')
+      toast.error('יש לבחור אירוע')
       return
     }
 
@@ -206,14 +207,14 @@ export function GuestsPage() {
       fetchParticipants()
     } catch (error) {
       console.error('Error saving participant:', error)
-      alert('שגיאה בשמירת האורח')
+      toast.error('שגיאה בשמירת האורח')
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(participant: Participant) {
-    if (!confirm(`האם למחוק את ${participant.first_name} ${participant.last_name}?`)) return
+    if (!(await confirmAction(`האם למחוק את ${participant.first_name} ${participant.last_name}?`))) return
     try {
       const { error } = await supabase
         .from('participants')
@@ -223,7 +224,7 @@ export function GuestsPage() {
       fetchParticipants()
     } catch (error) {
       console.error('Error deleting participant:', error)
-      alert('שגיאה במחיקת האורח')
+      toast.error('שגיאה במחיקת האורח')
     }
   }
 
@@ -254,7 +255,7 @@ export function GuestsPage() {
 
     const eventId = selectedEventId !== 'all' ? selectedEventId : events[0]?.id
     if (!eventId) {
-      alert('יש לבחור אירוע לפני ייבוא')
+      toast.error('יש לבחור אירוע לפני ייבוא')
       return
     }
 
@@ -277,18 +278,18 @@ export function GuestsPage() {
       })).filter((p: { first_name: string; phone: string }) => p.first_name && p.phone)
 
       if (participants.length === 0) {
-        alert('לא נמצאו אורחים תקינים בקובץ. וודא שיש עמודות: שם פרטי, שם משפחה, טלפון')
+        toast.error('לא נמצאו אורחים תקינים בקובץ. וודא שיש עמודות: שם פרטי, שם משפחה, טלפון')
         return
       }
 
       const { error } = await supabase.from('participants').insert(participants)
       if (error) throw error
 
-      alert(`יובאו ${participants.length} אורחים בהצלחה!`)
+      toast.success(`יובאו ${participants.length} אורחים בהצלחה!`)
       fetchParticipants()
     } catch (error) {
       console.error('Error importing:', error)
-      alert('שגיאה בייבוא הקובץ')
+      toast.error('שגיאה בייבוא הקובץ')
     }
 
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -359,7 +360,7 @@ export function GuestsPage() {
               onChange={handleImport}
             />
             <button
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
               onClick={() => fileInputRef.current?.click()}
               data-testid="import-csv-btn"
             >
@@ -367,7 +368,7 @@ export function GuestsPage() {
               ייבוא CSV
             </button>
             <button
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
               onClick={handleExport}
               data-testid="export-csv-btn"
               disabled={participants.length === 0}
@@ -484,7 +485,7 @@ export function GuestsPage() {
               <p className="text-zinc-400 font-medium">טוען אורחים...</p>
             </div>
           ) : sortedParticipants.length === 0 ? (
-            <div className="bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 text-center py-16">
+            <div className="bg-[#1a1d27] rounded-2xl border border-white/10 text-center py-16">
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-blue-400/20 blur-2xl rounded-full" />
                 <Users className="relative mx-auto mb-4 text-gray-300" size={56} />
@@ -496,7 +497,7 @@ export function GuestsPage() {
             sortedParticipants.map(participant => (
               <div
                 key={participant.id}
-                className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+                className="group bg-[#1a1d27] rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-blue-500/10 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
                 data-testid={`guest-card-${participant.id}`}
                 onClick={() => openEditModal(participant)}
               >

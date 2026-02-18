@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, Loader2, Search, CheckSquare, Clock } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { toast, confirmAction } from '../../utils/toast'
 import type { ChecklistItem, ChecklistFormData, TaskStatus, TaskPriority } from '../../types'
 import { getTaskStatusColor, getTaskStatusLabel, getPriorityColor, getPriorityLabel } from '../../utils'
 import { useEvent } from '../../contexts/EventContext'
@@ -91,7 +92,7 @@ export function ChecklistPage() {
     e.preventDefault()
 
     if (!selectedEvent) {
-      alert('נא לבחור אירוע')
+      toast.error('נא לבחור אירוע')
       return
     }
 
@@ -115,7 +116,7 @@ export function ChecklistPage() {
         .eq('id', editingItem.id)
 
       if (error) {
-        alert('שגיאה בעדכון המשימה')
+        toast.error('שגיאה בעדכון המשימה')
         return
       }
     } else {
@@ -124,7 +125,7 @@ export function ChecklistPage() {
         .insert(taskData)
 
       if (error) {
-        alert('שגיאה ביצירת המשימה')
+        toast.error('שגיאה ביצירת המשימה')
         return
       }
     }
@@ -151,7 +152,7 @@ export function ChecklistPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('האם למחוק את המשימה?')) return
+    if (!(await confirmAction('האם למחוק את המשימה?'))) return
 
     const { error } = await supabase
       .from('checklist_items')
@@ -329,7 +330,7 @@ export function ChecklistPage() {
         </div>
 
         {/* Checklist Items */}
-        <div className="bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 overflow-hidden" data-testid="checklist-list">
+        <div className="bg-[#1a1d27] rounded-2xl border border-white/10 overflow-hidden" data-testid="checklist-list">
           {filteredItems.length === 0 ? (
             <div className="text-center py-16">
               <div className="relative inline-block">

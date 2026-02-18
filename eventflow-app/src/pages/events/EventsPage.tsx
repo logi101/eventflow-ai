@@ -7,6 +7,7 @@ import { Link } from 'react-router-dom'
 import { Plus, Edit2, MapPin, Clock, X, Loader2, Calendar, RefreshCw, PlusCircle, AlertTriangle, Play, Square, Archive } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { toast, confirmAction } from '../../utils/toast'
 import type { Event, EventType, EventFormData, EventStatus } from '../../types'
 import { formatDate, formatCurrency, getStatusColor, getStatusLabel } from '../../utils'
 
@@ -166,7 +167,7 @@ export function EventsPage() {
       setNewTypeIcon('📅')
     } catch (error) {
       console.error('Error adding event type:', error)
-      alert('שגיאה בהוספת סוג אירוע')
+      toast.error('שגיאה בהוספת סוג אירוע')
     }
   }
 
@@ -208,7 +209,7 @@ export function EventsPage() {
 
   async function handleSave() {
     if (!formData.name || !formData.start_date) {
-      alert('נא למלא שם אירוע ותאריך')
+      toast.error('נא למלא שם אירוע ותאריך')
       return
     }
 
@@ -328,7 +329,7 @@ export function EventsPage() {
       fetchEvents()
     } catch (error) {
       console.error('Error saving event:', error)
-      alert('שגיאה בשמירת האירוע')
+      toast.error('שגיאה בשמירת האירוע')
     } finally {
       setSaving(false)
     }
@@ -357,7 +358,7 @@ export function EventsPage() {
       fetchEvents()
     } catch (error) {
       console.error('Error activating event:', error)
-      alert('שגיאה בהפעלת האירוע')
+      toast.error('שגיאה בהפעלת האירוע')
     }
   }
 
@@ -372,12 +373,12 @@ export function EventsPage() {
       fetchEvents()
     } catch (error) {
       console.error('Error stopping event:', error)
-      alert('שגיאה בעצירת האירוע')
+      toast.error('שגיאה בעצירת האירוע')
     }
   }
 
   async function handleArchive(event: Event) {
-    if (!confirm(`האם להעביר את האירוע "${event.name}" לארכיון?`)) return
+    if (!(await confirmAction(`האם להעביר את האירוע "${event.name}" לארכיון?`))) return
 
     try {
       const { error } = await supabase
@@ -389,7 +390,7 @@ export function EventsPage() {
       fetchEvents()
     } catch (error) {
       console.error('Error archiving event:', error)
-      alert('שגיאה בהעברה לארכיון')
+      toast.error('שגיאה בהעברה לארכיון')
     }
   }
 

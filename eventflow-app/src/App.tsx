@@ -5,6 +5,7 @@
 import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation, Navigate } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
+import { Toaster } from 'sonner'
 
 // Layout & Components
 import { Sidebar } from './components/layout/Sidebar'
@@ -189,6 +190,7 @@ export default function App() {
   // Main app with sidebar - requires authentication
   return (
     <ProtectedRoute>
+      <Toaster richColors position="top-center" dir="rtl" />
       <AppLayout />
     </ProtectedRoute>
   )

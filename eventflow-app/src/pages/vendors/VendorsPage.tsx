@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, MapPin, X, Loader2, Search, Phone, Mail, Globe, Truck, Users } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { toast } from '../../utils/toast'
 import type { Vendor, VendorCategory, VendorFormData, VendorStatus } from '../../types'
 import { getVendorStatusColor, getVendorStatusLabel, normalizePhone, renderStars } from '../../utils'
 import { useEvent } from '../../contexts/EventContext'
@@ -62,13 +63,21 @@ export function VendorsPage() {
 
       if (error) throw error
 
-      // Count events for each vendor
-      const vendorsWithCount = await Promise.all((data || []).map(async (vendor) => {
-        const { count } = await supabase
-          .from('event_vendors')
-          .select('id', { count: 'exact', head: true })
-          .eq('vendor_id', vendor.id)
-        return { ...vendor, events_count: count || 0 }
+      // Batch-fetch event counts (1 query instead of N)
+      const vendorIds = (data || []).map(v => v.id)
+      const { data: eventVendorRows } = await supabase
+        .from('event_vendors')
+        .select('vendor_id')
+        .in('vendor_id', vendorIds)
+
+      const eventCounts = (eventVendorRows || []).reduce<Record<string, number>>((acc, row) => {
+        acc[row.vendor_id] = (acc[row.vendor_id] || 0) + 1
+        return acc
+      }, {})
+
+      const vendorsWithCount = (data || []).map(vendor => ({
+        ...vendor,
+        events_count: eventCounts[vendor.id] || 0
       }))
 
       setVendors(vendorsWithCount)
@@ -121,7 +130,7 @@ export function VendorsPage() {
 
   async function handleSave() {
     if (!formData.name) {
-      alert('נא למלא שם ספק')
+      toast.error('נא למלא שם ספק')
       return
     }
 
@@ -233,7 +242,7 @@ export function VendorsPage() {
           <button
             className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${categoryFilter === 'all'
                 ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
-                : 'bg-[#1a1d27] border border-white/5 border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
+                : 'bg-[#1a1d27] border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
               }`}
             onClick={() => setCategoryFilter('all')}
           >
@@ -245,7 +254,7 @@ export function VendorsPage() {
               key={cat.id}
               className={`group relative p-4 rounded-2xl text-center transition-all duration-300 overflow-hidden ${categoryFilter === cat.id
                   ? 'bg-gradient-to-br from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/30'
-                  : 'bg-[#1a1d27] border border-white/5 border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
+                  : 'bg-[#1a1d27] border border-white/10 hover:bg-[#1a1d27] hover:shadow-lg hover:-translate-y-0.5'
                 }`}
               onClick={() => setCategoryFilter(cat.id)}
               data-testid="category-filter"
@@ -301,7 +310,7 @@ export function VendorsPage() {
               <p className="text-zinc-400 font-medium">טוען ספקים...</p>
             </div>
           ) : filteredVendors.length === 0 ? (
-            <div className="col-span-full bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 text-center py-16">
+            <div className="col-span-full bg-[#1a1d27] rounded-2xl border border-white/10 text-center py-16">
               <div className="relative inline-block">
                 <div className="absolute inset-0 bg-orange-400/20 blur-2xl rounded-full" />
                 <Truck className="relative mx-auto mb-4 text-gray-300" size={56} />
@@ -313,7 +322,7 @@ export function VendorsPage() {
             filteredVendors.map(vendor => (
               <div
                 key={vendor.id}
-                className="group bg-[#1a1d27] border border-white/5 rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group bg-[#1a1d27] rounded-2xl border border-white/10 p-5 hover:bg-[#1a1d27] hover:shadow-xl hover:shadow-orange-500/10 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                 data-testid={`vendor-card-${vendor.id}`}
               >
                 <div className="flex justify-between items-start mb-4">

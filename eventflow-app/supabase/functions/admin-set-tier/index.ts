@@ -191,8 +191,14 @@ serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (userError) throw userError
 
-    const userRole = user?.user_metadata?.role
-    if (userRole !== 'super_admin') {
+    // Verify role from DB (not user_metadata which could be set at signup)
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError || !userProfile || userProfile.role !== 'super_admin') {
       console.log(`Non-admin user ${user.id} attempted to set tier for org ${organizationId}`)
       return new Response(
         JSON.stringify({ error: 'Forbidden: Only super_admin can change tiers' }),

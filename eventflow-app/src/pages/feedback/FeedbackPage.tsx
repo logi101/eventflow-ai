@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Plus, Edit2, Trash2, X, Loader2, Calendar, Clock, Star, FileQuestion, BarChart3, ThumbsUp, ThumbsDown, MessageSquare } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { confirmAction } from '../../utils/toast'
 import type { FeedbackSurvey, FeedbackResponse, SurveyFormData, SimpleEvent } from '../../types'
 import { useEvent } from '../../contexts/EventContext'
 
@@ -46,17 +47,19 @@ export function FeedbackPage() {
 
     const { data } = await query
     if (data) {
-      // Fetch response counts for each survey
-      const surveysWithCounts = await Promise.all(
-        data.map(async (survey) => {
-          const { count } = await supabase
-            .from('feedback_responses')
-            .select('*', { count: 'exact', head: true })
-            .eq('survey_id', survey.id)
-          return { ...survey, response_count: count || 0 }
-        })
-      )
-      setSurveys(surveysWithCounts)
+      // Batch-fetch response counts (1 query instead of N)
+      const surveyIds = data.map(s => s.id)
+      const { data: allResponses } = await supabase
+        .from('feedback_responses')
+        .select('survey_id')
+        .in('survey_id', surveyIds)
+
+      const responseCounts = (allResponses || []).reduce<Record<string, number>>((acc, r) => {
+        acc[r.survey_id] = (acc[r.survey_id] || 0) + 1
+        return acc
+      }, {})
+
+      setSurveys(data.map(s => ({ ...s, response_count: responseCounts[s.id] || 0 })))
     }
     setLoading(false)
   }
@@ -151,7 +154,7 @@ export function FeedbackPage() {
   }
 
   async function deleteSurvey(id: string) {
-    if (confirm('האם למחוק את הסקר? פעולה זו תמחק גם את כל התשובות.')) {
+    if (await confirmAction('האם למחוק את הסקר? פעולה זו תמחק גם את כל התשובות.')) {
       await supabase.from('feedback_surveys').delete().eq('id', id)
       fetchSurveys()
     }

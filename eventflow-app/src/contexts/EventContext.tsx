@@ -121,26 +121,27 @@ export function EventProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      // Get participant counts for each event
-      const eventsWithCounts = await Promise.all(
-        (data || []).map(async (event) => {
-          const { count: participantsCount } = await supabase
-            .from('participants')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id)
+      // Batch-fetch counts for all events (2 queries instead of 2N)
+      const eventIds = (data || []).map(e => e.id)
+      const [{ data: allParticipants }, { data: allSchedules }] = await Promise.all([
+        supabase.from('participants').select('event_id').in('event_id', eventIds),
+        supabase.from('schedules').select('event_id').in('event_id', eventIds),
+      ])
 
-          const { count: schedulesCount } = await supabase
-            .from('schedules')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id)
+      const participantCounts = (allParticipants || []).reduce<Record<string, number>>((acc, p) => {
+        acc[p.event_id] = (acc[p.event_id] || 0) + 1
+        return acc
+      }, {})
+      const scheduleCounts = (allSchedules || []).reduce<Record<string, number>>((acc, s) => {
+        acc[s.event_id] = (acc[s.event_id] || 0) + 1
+        return acc
+      }, {})
 
-          return {
-            ...event,
-            participants_count: participantsCount || 0,
-            schedules_count: schedulesCount || 0
-          }
-        })
-      )
+      const eventsWithCounts = (data || []).map(event => ({
+        ...event,
+        participants_count: participantCounts[event.id] || 0,
+        schedules_count: scheduleCounts[event.id] || 0
+      }))
 
       setAllEvents(eventsWithCounts)
     } catch (error) {

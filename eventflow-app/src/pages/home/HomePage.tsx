@@ -22,6 +22,7 @@ import {
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
 import { EventForm } from '../../modules/events/components/EventForm'
+import { toast, confirmAction } from '../../utils/toast'
 import type { EventFormData } from '../../modules/events/types'
 import { supabase } from '../../lib/supabase'
 
@@ -82,7 +83,7 @@ export function HomePage() {
 
   async function handleSaveEvent() {
     if (!formData.name || !formData.start_date) {
-      alert('נא למלא שם אירוע ותאריך')
+      toast.error('נא למלא שם אירוע ותאריך')
       return
     }
 
@@ -121,7 +122,7 @@ export function HomePage() {
       }
     } catch (error) {
       console.error('Error saving event:', error)
-      alert('שגיאה בשמירת האירוע')
+      toast.error('שגיאה בשמירת האירוע')
     } finally {
       setSaving(false)
     }
@@ -167,7 +168,7 @@ export function HomePage() {
       await refreshEvents()
     } catch (err) {
       console.error('Error activating event:', err)
-      alert('שגיאה בהפעלת האירוע')
+      toast.error('שגיאה בהפעלת האירוע')
     }
   }
 
@@ -183,13 +184,13 @@ export function HomePage() {
       await refreshEvents()
     } catch (err) {
       console.error('Error stopping event:', err)
-      alert('שגיאה בעצירת האירוע')
+      toast.error('שגיאה בעצירת האירוע')
     }
   }
 
   const handleArchiveEvent = async (e: React.MouseEvent, event: typeof allEvents[0]) => {
     e.stopPropagation()
-    if (!confirm(`האם להעביר את האירוע "${event.name}" לארכיון?`)) return
+    if (!(await confirmAction(`האם להעביר את האירוע "${event.name}" לארכיון?`))) return
 
     try {
       const { error } = await supabase
@@ -201,7 +202,7 @@ export function HomePage() {
       await refreshEvents()
     } catch (err) {
       console.error('Error archiving event:', err)
-      alert('שגיאה בהעברה לארכיון')
+      toast.error('שגיאה בהעברה לארכיון')
     }
   }
 

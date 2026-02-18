@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
+import { toast, confirmAction } from '../../utils/toast'
 import { useEvent } from '../../contexts/EventContext'
 import { readCsvFile, writeCsvFile } from '../../utils/csv'
 import type { Schedule, Participant, ParticipantStatus } from '../../types'
@@ -229,13 +230,13 @@ export function ProgramManagementPage() {
           }))
 
           if (schedulesToInsert.length > 0) {
-            alert(`זוהו ${schedulesToInsert.length} פריטים באמצעות בינה מלאכותית!`)
+            toast.success(`זוהו ${schedulesToInsert.length} פריטים באמצעות בינה מלאכותית!`)
           }
         }
       }
 
       if (schedulesToInsert.length === 0) {
-        alert('לא נמצאו פריטים תקינים בקובץ (גם לאחר ניסיון זיהוי חכם)')
+        toast.error('לא נמצאו פריטים תקינים בקובץ (גם לאחר ניסיון זיהוי חכם)')
         setImporting(false)
         return
       }
@@ -247,15 +248,15 @@ export function ProgramManagementPage() {
 
       if (insertError) {
         console.error('Import error:', insertError)
-        alert('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
+        toast.error('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
       } else {
-        alert(`יובאו ${schedulesToInsert.length} פריטים בהצלחה!`)
+        toast.success(`יובאו ${schedulesToInsert.length} פריטים בהצלחה!`)
         loadEventData()
       }
     } catch (err: unknown) {
       console.error('Parse error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      alert('שגיאה בקריאת הקובץ: ' + errorMessage)
+      toast.error('שגיאה בקריאת הקובץ: ' + errorMessage)
     }
 
     setImporting(false)
@@ -266,7 +267,7 @@ export function ProgramManagementPage() {
     const file = e.target.files?.[0]
     if (!file) return
     if (!selectedEventId) {
-      alert('יש לבחור אירוע לפני ייבוא משתתפים')
+      toast.error('יש לבחור אירוע לפני ייבוא משתתפים')
       return
     }
 
@@ -276,7 +277,7 @@ export function ProgramManagementPage() {
       const rows = await readCsvFile<Record<string, unknown>>(file)
 
       if (rows.length === 0) {
-        alert('הקובץ ריק - לא נמצאו שורות')
+        toast.error('הקובץ ריק - לא נמצאו שורות')
         setImporting(false)
         if (participantsFileRef.current) participantsFileRef.current.value = ''
         return
@@ -311,7 +312,7 @@ export function ProgramManagementPage() {
 
       if (participantsToInsert.length === 0) {
         const sampleKeys = Object.keys(rows[0] || {}).join(', ')
-        alert(`לא נמצאו משתתפים תקינים בקובץ.\n\nעמודות שזוהו: ${sampleKeys}\n\nנדרש לפחות: שם פרטי + טלפון`)
+        toast.error(`לא נמצאו משתתפים תקינים בקובץ. עמודות שזוהו: ${sampleKeys}. נדרש לפחות: שם פרטי + טלפון`)
         setImporting(false)
         if (participantsFileRef.current) participantsFileRef.current.value = ''
         return
@@ -324,7 +325,7 @@ export function ProgramManagementPage() {
 
       if (insertError) {
         console.error('Import error:', insertError)
-        alert('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
+        toast.error('שגיאה בייבוא: ' + (insertError.message || 'Unknown error'))
       } else {
         if (insertedData) {
           await autoAssignToTracks(insertedData)
@@ -345,13 +346,13 @@ export function ProgramManagementPage() {
           }
         }
 
-        alert(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!${msgInfo}`)
+        toast.success(`יובאו ${participantsToInsert.length} משתתפים בהצלחה!${msgInfo}`)
         loadEventData()
       }
     } catch (err) {
       console.error('Parse error:', err)
       const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      alert('שגיאה בקריאת הקובץ: ' + errorMessage)
+      toast.error('שגיאה בקריאת הקובץ: ' + errorMessage)
     }
 
     setImporting(false)
@@ -635,7 +636,7 @@ export function ProgramManagementPage() {
     setSending(false)
     loadEventData()
 
-    alert(`נשלחו ${successCount} הודעות${failCount > 0 ? `, ${failCount} נכשלו` : ''}`)
+    toast.success(`נשלחו ${successCount} הודעות${failCount > 0 ? `, ${failCount} נכשלו` : ''}`)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -839,13 +840,13 @@ export function ProgramManagementPage() {
               {schedules.length > 0 && (
                 <button
                   onClick={async () => {
-                    if (window.confirm('האם אתה בטוח שברצונך למחוק את כל התוכניה? פעולה זו אינה הפיכה.')) {
+                    if (await confirmAction('האם אתה בטוח שברצונך למחוק את כל התוכניה? פעולה זו אינה הפיכה.')) {
                       setLoading(true)
                       const { error } = await supabase
                         .from('schedules')
                         .delete()
                         .eq('event_id', selectedEventId)
-                      if (error) alert('שגיאה במחיקה')
+                      if (error) toast.error('שגיאה במחיקה')
                       else loadEventData()
                       setLoading(false)
                     }
@@ -878,7 +879,7 @@ export function ProgramManagementPage() {
                 type="button"
                 onClick={() => {
                   if (!selectedEventId) {
-                    alert('יש לבחור אירוע לפני ייבוא תוכניה')
+                    toast.error('יש לבחור אירוע לפני ייבוא תוכניה')
                     return
                   }
                   if (importing) return
@@ -918,13 +919,13 @@ export function ProgramManagementPage() {
               {participants.length > 0 && (
                 <button
                   onClick={async () => {
-                    if (window.confirm('האם אתה בטוח שברצונך למחוק את כל המשתתפים? פעולה זו אינה הפיכה.')) {
+                    if (await confirmAction('האם אתה בטוח שברצונך למחוק את כל המשתתפים? פעולה זו אינה הפיכה.')) {
                       setLoading(true)
                       const { error } = await supabase
                         .from('participants')
                         .delete()
                         .eq('event_id', selectedEventId)
-                      if (error) alert('שגיאה במחיקה')
+                      if (error) toast.error('שגיאה במחיקה')
                       else loadEventData()
                       setLoading(false)
                     }
@@ -957,7 +958,7 @@ export function ProgramManagementPage() {
                 type="button"
                 onClick={() => {
                   if (!selectedEventId) {
-                    alert('יש לבחור אירוע לפני ייבוא משתתפים')
+                    toast.error('יש לבחור אירוע לפני ייבוא משתתפים')
                     return
                   }
                   if (importing) return

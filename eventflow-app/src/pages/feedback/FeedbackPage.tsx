@@ -373,7 +373,7 @@ export function FeedbackPage() {
                         <Edit2 className="w-5 h-5" />
                       </button>
                       <button
-                        className="p-2 text-red-400 hover:bg-red-500/100/10 rounded-lg"
+                        className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg"
                         onClick={() => deleteSurvey(survey.id)}
                         title="מחיקה"
                       >

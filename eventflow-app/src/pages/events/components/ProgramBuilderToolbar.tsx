@@ -14,7 +14,7 @@ interface ProgramBuilderToolbarProps {
   conflicts: Conflict[]
   showConflictPanel: boolean
   onToggleConflictPanel: () => void
-  onExportExcel: () => void
+  onExportCsv: () => void
 }
 
 export function ProgramBuilderToolbar({
@@ -23,7 +23,7 @@ export function ProgramBuilderToolbar({
   conflicts,
   showConflictPanel,
   onToggleConflictPanel,
-  onExportExcel
+  onExportCsv
 }: ProgramBuilderToolbarProps) {
   return (
     <>
@@ -32,6 +32,8 @@ export function ProgramBuilderToolbar({
         <div className="flex gap-2">
           <button
             onClick={() => onViewModeChange('list')}
+            aria-label="תצוגת רשימה"
+            aria-pressed={viewMode === 'list'}
             className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
             data-testid="view-toggle-list"
           >
@@ -39,6 +41,8 @@ export function ProgramBuilderToolbar({
           </button>
           <button
             onClick={() => onViewModeChange('timeline')}
+            aria-label="תצוגת ציר זמן"
+            aria-pressed={viewMode === 'timeline'}
             className={`p-2 rounded-lg ${viewMode === 'timeline' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
             data-testid="view-toggle-timeline"
           >
@@ -46,6 +50,8 @@ export function ProgramBuilderToolbar({
           </button>
           <button
             onClick={() => onViewModeChange('grid')}
+            aria-label="תצוגת גריד"
+            aria-pressed={viewMode === 'grid'}
             className={`p-2 rounded-lg ${viewMode === 'grid' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
             data-testid="view-toggle-grid"
           >
@@ -53,6 +59,8 @@ export function ProgramBuilderToolbar({
           </button>
           <button
             onClick={() => onViewModeChange('calendar')}
+            aria-label="תצוגת לוח שנה"
+            aria-pressed={viewMode === 'calendar'}
             className={`p-2 rounded-lg ${viewMode === 'calendar' ? 'bg-orange-500 text-white' : 'hover:bg-white/5'}`}
             data-testid="view-toggle-calendar"
           >
@@ -62,12 +70,12 @@ export function ProgramBuilderToolbar({
 
         <div className="flex gap-2 mr-auto">
           <button
-            onClick={onExportExcel}
+            onClick={onExportCsv}
             className="btn-secondary flex items-center gap-2"
-            data-testid="export-program-excel-button"
+            data-testid="export-program-csv-button"
           >
             <Download size={18} />
-            Excel
+            CSV
           </button>
           <button
             onClick={onToggleConflictPanel}

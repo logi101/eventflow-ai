@@ -9,7 +9,7 @@
 // - Returns trial details to frontend
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // ============================================================================
 // CORS Configuration
@@ -115,7 +115,7 @@ serve(async (req) => {
     }
 
     // Check if already on trial or Premium
-    if (org.tier === 'premium' || org.trial_ends_at) {
+    if (org.tier === 'premium' || org.tier === 'legacy_premium' || org.trial_ends_at) {
       return new Response(
         JSON.stringify({
           error: 'Organization already has Premium access',
@@ -157,7 +157,10 @@ serve(async (req) => {
       console.error('Failed to start trial:', updateError)
       return new Response(
         JSON.stringify({ error: 'Failed to start trial' }),
-        { status: 500, headers: { { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'effective_type' } }
+        {
+          status: 500,
+          headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' }
+        }
       )
     }
 
@@ -183,9 +186,10 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
     console.error('Error in start-trial:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
     )
   }

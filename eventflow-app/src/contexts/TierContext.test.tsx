@@ -16,8 +16,9 @@ describe('hasFeature', () => {
     expect(hasFeature('base', 'messages')).toBe(true)
   })
 
-  it('returns false for premium features when on base tier', () => {
-    expect(hasFeature('base', 'ai')).toBe(false)
+  it('returns false for premium-only features when on base tier', () => {
+    // 'ai' is available to base tier (50 messages/month quota) — aligns with backend quota config
+    expect(hasFeature('base', 'ai')).toBe(true)
     expect(hasFeature('base', 'simulation')).toBe(false)
     expect(hasFeature('base', 'networking')).toBe(false)
     expect(hasFeature('base', 'budget_alerts')).toBe(false)
@@ -89,7 +90,8 @@ describe('TIERS config structure', () => {
   })
 
   it('base tier has limited features', () => {
-    expect(TIERS.base.features).toEqual(['events', 'participants', 'messages'])
+    // 'ai' is included for base tier with 50 messages/month quota (matches backend quota-check.ts)
+    expect(TIERS.base.features).toEqual(['events', 'participants', 'messages', 'ai'])
   })
 
   it('premium tier has all features', () => {

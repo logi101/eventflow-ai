@@ -5,10 +5,9 @@ import type { TableWithParticipants } from '../types'
 
 interface FloorPlanViewProps {
   tables: TableWithParticipants[]
-  onTableClick?: (tableNumber: number) => void
 }
 
-export function FloorPlanView({ tables, onTableClick }: FloorPlanViewProps) {
+export function FloorPlanView({ tables }: FloorPlanViewProps) {
   const [zoom, setZoom] = useState(1)
 
   // תבנית פריסה אוטומטית פשוטה (Grid)
@@ -27,14 +26,16 @@ export function FloorPlanView({ tables, onTableClick }: FloorPlanViewProps) {
     <div className="relative w-full overflow-auto bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 min-h-[600px] p-12">
       {/* Zoom Controls */}
       <div className="absolute top-4 left-4 flex gap-2 z-10">
-        <button 
+        <button
           onClick={() => setZoom(z => Math.max(0.5, z - 0.1))}
+          aria-label="הקטן תצוגה"
           className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-full flex items-center justify-center font-bold hover:bg-gray-50"
         >
           -
         </button>
-        <button 
+        <button
           onClick={() => setZoom(z => Math.min(2, z + 0.1))}
+          aria-label="הגדל תצוגה"
           className="w-10 h-10 bg-white shadow-sm border border-gray-200 rounded-full flex items-center justify-center font-bold hover:bg-gray-50"
         >
           +

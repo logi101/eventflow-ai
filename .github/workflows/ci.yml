@@ -31,18 +31,26 @@ jobs:
       - name: TypeScript type check
         run: npx tsc -b --noEmit
 
-      - name: ESLint
-        run: npx eslint src/ --no-warn-ignored
+      - name: ESLint (App)
+        run: npm run lint:app
+
+      - name: ESLint (Functions)
+        run: npm run lint:functions
+
+      - name: ESLint (Tests)
+        run: npm run lint:tests
 
       - name: Run unit tests with coverage
         run: npx vitest run --coverage --reporter=verbose
-        continue-on-error: true
 
       - name: Build
         run: npm run build
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
           VITE_SUPABASE_ANON_KEY: placeholder-key-for-build-only
+
+      - name: Bundle Budget Check
+        run: npm run bundle:check
 
       - name: Install Playwright
         run: npx playwright install --with-deps chromium

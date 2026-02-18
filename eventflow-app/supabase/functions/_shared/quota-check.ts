@@ -208,8 +208,8 @@ export async function checkQuota(
   const limitKey = quotaTypeToLimitKey(quotaType)
   const usageKey = quotaTypeToUsageKey(quotaType)
 
-  const limit = org.tier_limits[limitKey]
-  const used = org.current_usage[usageKey] || 0
+  const limit = org.tier_limits?.[limitKey] ?? 200
+  const used = org.current_usage?.[usageKey] ?? 0
 
   return {
     allowed: used < limit,
@@ -227,8 +227,9 @@ export async function checkQuota(
 export async function checkPremiumFeature(
   supabase: SupabaseClient,
   userId: string,
-  feature: PremiumFeature
+  _feature: PremiumFeature
 ): Promise<QuotaCheckResult> {
+  void _feature
   const organizationId = await getOrganizationIdFromUser(supabase, userId)
 
   if (!organizationId) {

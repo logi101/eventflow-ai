@@ -549,10 +549,9 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in execute-ai-action function:', error)
     const errorMessage = error instanceof Error ? error.message : 'Internal server error'
-    const errorStack = error instanceof Error ? error.stack : undefined
-    console.error('Error stack:', errorStack)
+    console.error('Error stack:', error instanceof Error ? error.stack : undefined)
     return new Response(
-      JSON.stringify({ error: errorMessage, details: errorStack }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

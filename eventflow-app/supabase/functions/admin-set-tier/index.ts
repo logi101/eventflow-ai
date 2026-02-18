@@ -9,7 +9,7 @@
 // - Handles trial start/stop appropriately
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient, SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 // ============================================================================
 // CORS Configuration
@@ -148,7 +148,7 @@ serve(async (req) => {
     if (!['base', 'premium', 'legacy_premium'].includes(newTier)) {
       return new Response(
         JSON.stringify({ error: 'Invalid tier. Must be: base, premium, or legacy_premium' }),
-        { status: 400, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Accept': 'application/json' } }
+        { status: 400, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
       )
     }
 
@@ -285,10 +285,11 @@ serve(async (req) => {
       }
     )
 
-  } catch (error: any) {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Internal server error'
     console.error('Error in admin-set-tier:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
     )
   }

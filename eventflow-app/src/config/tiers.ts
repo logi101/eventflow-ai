@@ -25,7 +25,7 @@ interface TierConfig {
 
 export const TIERS: Record<Tier, TierConfig> = {
     base: {
-        features: ['events', 'participants', 'messages'],
+        features: ['events', 'participants', 'messages', 'ai'],
         limits: {
             events_per_year: 5,
             participants_per_event: 100,

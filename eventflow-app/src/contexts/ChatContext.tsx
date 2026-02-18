@@ -307,7 +307,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
   }, [state.windowState])
 
   // Generate unique ID
-  const generateId = () => `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  const generateId = () => `msg-${crypto.randomUUID()}`
 
   // Message actions
   const sendMessage = useCallback(async (content: string) => {
@@ -369,7 +369,7 @@ export function ChatProvider({ children }: ChatProviderProps) {
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false })
     }
-  }, [state.pageContext, state.currentAgent, state.messages, state.settings.soundEnabled, state.windowState])
+  }, [state.pageContext, state.currentAgent, state.messages, state.settings.soundEnabled, state.windowState, aiConfirmation])
 
   const addSystemMessage = useCallback((content: string, actions?: ChatAction[]) => {
     const message: ChatMessage = {

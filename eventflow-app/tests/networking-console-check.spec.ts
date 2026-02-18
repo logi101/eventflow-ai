@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test.describe('Networking Page Console Check', () => {
 
@@ -50,7 +50,7 @@ test.describe('Networking Page Console Check', () => {
 
     // The Supabase JS client stores session in localStorage with key:
     // sb-<project-ref>-auth-token
-    const projectRef = 'byhohetafnhlakqbydbj';
+    const projectRef = process.env.VITE_SUPABASE_PROJECT_REF ?? 'local-test-project-ref';
     const storageKey = 'sb-' + projectRef + '-auth-token';
 
     // Create a minimal fake session
@@ -64,7 +64,7 @@ test.describe('Networking Page Console Check', () => {
         id: '00000000-0000-0000-0000-000000000001',
         aud: 'authenticated',
         role: 'authenticated',
-        email: 'ew5933070@gmail.com',
+        email: 'test-user@example.com',
         email_confirmed_at: '2026-01-01T00:00:00Z',
         phone: '',
         confirmation_sent_at: null,

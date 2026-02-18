@@ -105,6 +105,7 @@ export interface ParticipantFormData {
 
 export interface ParticipantWithTracks extends Participant {
   tracks: Track[]
+  companion_id?: string
 }
 
 // Vendor Types

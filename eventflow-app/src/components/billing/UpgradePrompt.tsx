@@ -34,7 +34,7 @@ const featureBenefits: Record<Feature, FeatureBenefits> = {
     icon: <Users size={24} />,
     benefits: [
       'ניהול משתתפים ללא הגבלה',
-      'ייבוא/ייצוא מ-Excel',
+      'ייבוא/ייצוא מ-CSV',
       'ניהול מלווים',
       'QR Code למשתתפים'
     ]

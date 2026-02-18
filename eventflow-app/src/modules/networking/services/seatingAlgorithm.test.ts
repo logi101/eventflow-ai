@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { greedyTableSeating, SeatingConstraints } from './seatingAlgorithm'
-import type { Participant } from '@/types'
+import { greedyTableSeating, type SeatingConstraints } from './seatingAlgorithm'
+import type { ParticipantWithTracks } from '@/types'
 
 // Mock participant factory
-const createParticipant = (id: string, isVip = false, tracks: string[] = [], companionId?: string): Participant => ({
+const createParticipant = (id: string, isVip = false, tracks: string[] = [], companionId?: string): ParticipantWithTracks => ({
   id,
   event_id: 'evt-1',
   first_name: `User ${id}`,
@@ -29,9 +29,19 @@ const createParticipant = (id: string, isVip = false, tracks: string[] = [], com
   confirmed_at: null,
   checked_in_at: null,
   created_at: new Date().toISOString(),
-  companion_id: companionId, // Custom field for test logic (assuming it's added to type or we cast)
-  tracks: tracks.map(tId => ({ id: tId, name: tId, color: '#000', event_id: 'evt-1', sort_order: 0, is_active: true, created_at: '' }))
-} as unknown as Participant) // Cast because companion_id might not be in base type yet
+  companion_id: companionId,
+  tracks: tracks.map(tId => ({ 
+    id: tId, 
+    name: tId, 
+    color: '#000', 
+    event_id: 'evt-1', 
+    sort_order: 0, 
+    is_active: true, 
+    created_at: '',
+    description: '',
+    icon: null
+  }))
+} as ParticipantWithTracks)
 
 describe('greedyTableSeating', () => {
   const constraints: SeatingConstraints = {

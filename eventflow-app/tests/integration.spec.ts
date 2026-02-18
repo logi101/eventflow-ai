@@ -298,7 +298,6 @@ test.describe('EventFlow AI - Integration Tests', () => {
       await page.goto('/')
 
       const h1Count = await page.locator('h1').count()
-      const h2Count = await page.locator('h2').count()
 
       // Should have at least one h1
       expect(h1Count).toBeGreaterThanOrEqual(1)

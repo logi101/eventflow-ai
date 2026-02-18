@@ -9,7 +9,7 @@ const MAX_HOURS_WITHOUT_CATERING = 4
  */
 export function validateCateringGaps(
   schedules: ScheduleData[],
-  vendors: VendorScheduleData[] // eslint-disable-line @typescript-eslint/no-unused-vars
+  vendors: VendorScheduleData[]
 ): SimulationIssue[] {
   const issues: SimulationIssue[] = []
 

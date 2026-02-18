@@ -42,7 +42,7 @@ test.describe('EventFlow AI - Storage Tests', () => {
       expect(allValues).not.toMatch(/sk_[a-zA-Z0-9]+/)
     })
 
-    test('should handle localStorage being disabled', async ({ page, context }) => {
+    test('should handle localStorage being disabled', async ({ page }) => {
       // Block localStorage
       await page.addInitScript(() => {
         Object.defineProperty(window, 'localStorage', {
@@ -90,7 +90,7 @@ test.describe('EventFlow AI - Storage Tests', () => {
         try {
           const largeData = 'x'.repeat(5 * 1024 * 1024) // 5MB
           window.localStorage.setItem('large-data', largeData)
-        } catch (e) {
+        } catch {
           // Expected to fail - quota exceeded
         }
       })

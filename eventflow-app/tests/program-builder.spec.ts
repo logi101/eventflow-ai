@@ -15,14 +15,6 @@ import { test, expect, Page } from '@playwright/test'
 
 const TEST_EVENT_ID = 'test-event-123'
 
-const mockEvent = {
-  id: TEST_EVENT_ID,
-  name: 'כנס טכנולוגיה 2026',
-  startDate: '2026-03-01',
-  endDate: '2026-03-03',
-  description: 'כנס טכנולוגיה שנתי'
-}
-
 // Full mock event data for Supabase response
 const mockEventData = {
   id: TEST_EVENT_ID,
@@ -279,17 +271,6 @@ async function setupMockSupabase(page: Page) {
       ])
     })
   })
-}
-
-async function navigateToProgramBuilder(page: Page, eventId?: string) {
-  if (eventId) {
-    await page.goto(`/events/${eventId}/program`)
-  } else {
-    await page.goto('/events')
-    await page.getByTestId('event-card').first().click()
-    await page.getByTestId('event-program-tab').click()
-  }
-  await expect(page.getByTestId('program-builder')).toBeVisible()
 }
 
 async function ensureEventExists(page: Page) {
@@ -1558,18 +1539,18 @@ test.describe('EventFlow AI - Program Builder', () => {
       await expect(page.getByTestId('session-builder')).toBeVisible()
     })
 
-    test('should export program to Excel', async ({ page }) => {
+    test('should export program to CSV', async ({ page }) => {
       await page.goto('/events')
       await page.getByTestId('event-card').first().click()
       await page.getByTestId('event-program-tab').click()
 
-      const exportExcelButton = page.getByTestId('export-program-excel-button')
-      if (await exportExcelButton.count() > 0) {
+      const exportCsvButton = page.getByTestId('export-program-csv-button')
+      if (await exportCsvButton.count() > 0) {
         const downloadPromise = page.waitForEvent('download', { timeout: 5000 }).catch(() => null)
-        await exportExcelButton.click()
+        await exportCsvButton.click()
         const download = await downloadPromise
         if (download) {
-          expect(download.suggestedFilename()).toContain('.xlsx')
+          expect(download.suggestedFilename()).toContain('.csv')
         }
       }
       // Verify session builder is visible
@@ -1757,8 +1738,6 @@ test.describe('EventFlow AI - Program Builder', () => {
       await page.getByTestId('event-program-tab').click()
 
       // Simulate real-time update (this would be triggered by Supabase subscription)
-      const initialCount = await page.getByTestId('session-card').count()
-
       // In real test, we would use Supabase to insert a new session
       // For now, just verify the UI can handle updates
       await expect(page.getByTestId('session-builder')).toBeVisible()

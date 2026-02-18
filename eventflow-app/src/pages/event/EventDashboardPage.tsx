@@ -533,7 +533,7 @@ export function EventDashboardPage() {
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900 group-hover:text-blue-700 transition-colors">ייבוא משתתפים</p>
-                  <p className="text-xs text-gray-500">מקובץ Excel</p>
+                  <p className="text-xs text-gray-500">מקובץ CSV</p>
                 </div>
               </Link>
 

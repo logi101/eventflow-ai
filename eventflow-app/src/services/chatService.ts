@@ -44,8 +44,8 @@ const SLASH_TO_NATURAL: Record<string, string> = {
 
 const SKILL_TRIGGERS: Record<string, SkillType> = {
   'pdf': 'pdf-export',
-  'אקסל': 'excel-export',
-  'excel': 'excel-export',
+  'csv': 'csv-export',
+  'סי-אס-וי': 'csv-export',
   'וואטסאפ': 'whatsapp-send',
   'whatsapp': 'whatsapp-send',
   'qr': 'qr-generate',
@@ -162,8 +162,8 @@ class LocalHandler {
   private handleSkill(skill: SkillType, context: PageContext): ChatResponse {
     const skillNames: Record<SkillType, string> = {
       'pdf-export': 'ייצוא PDF',
-      'excel-import': 'ייבוא אקסל',
-      'excel-export': 'ייצוא אקסל',
+      'csv-import': 'ייבוא CSV',
+      'csv-export': 'ייצוא CSV',
       'whatsapp-send': 'שליחת WhatsApp',
       'qr-generate': 'יצירת QR',
       'email-send': 'שליחת אימייל',

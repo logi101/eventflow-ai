@@ -1,4 +1,4 @@
-import { ParticipantWithTracks } from '@/types'
+import type { ParticipantWithTracks } from '@/types'
 
 export interface SeatingConstraints {
   maxTableSize: number
@@ -19,6 +19,12 @@ export interface TableAssignment {
 
 /**
  * Generates table seating assignments using a greedy algorithm.
+ * Alias for greedyTableSeating for backward compatibility.
+ */
+export const generateTableSeating = greedyTableSeating
+
+/**
+ * Generates table seating assignments using a greedy algorithm.
  * This is a fallback/simplified version of the CSP algorithm.
  *
  * @param participants List of participants to seat
@@ -29,7 +35,7 @@ export function greedyTableSeating(
   participants: ParticipantWithTracks[],
   constraints: SeatingConstraints
 ): Map<number, ParticipantWithTracks[]> {
-  const tables = new Map<number, Participant[]>()
+  const tables = new Map<number, ParticipantWithTracks[]>()
   
   // Filter participants who opted in (if applicable, though usually done before calling)
   // And sort them: VIPs first, then by number of tracks (connectivity)
@@ -100,9 +106,6 @@ export function greedyTableSeating(
 
     if (bestTable === null) {
       // No good match or all full, create new table
-      // Ensure we don't start a new table if we strictly want to fill up, 
-      // but here we assume infinite tables available or we just increment.
-      // In a real constrained environment, we'd check max tables.
       tables.set(tableNum, [...groupToSeat])
       bestTable = tableNum
       tableNum++

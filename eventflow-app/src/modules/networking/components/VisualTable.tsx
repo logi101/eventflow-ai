@@ -4,6 +4,7 @@ import { useDroppable } from '@dnd-kit/core'
 import { calculateRoundTableSeats, calculateRectTableSeats } from '../utils/geometry'
 import { VIPBadge } from '@/components/participants/VIPBadge'
 import type { SeatingParticipant } from '../types'
+import type { Ref } from 'react'
 
 interface VisualTableProps {
   id: string
@@ -17,8 +18,52 @@ interface VisualTableProps {
   onSeatClick?: (seatNumber: number) => void
 }
 
+interface SeatGroupProps {
+  tableNumber: number
+  seatNumber: number
+  seatRadius: number
+  participant: SeatingParticipant | null
+  position: { x: number; y: number }
+}
+
+function SeatGroup({ tableNumber, seatNumber, seatRadius, participant, position }: SeatGroupProps) {
+  const { isOver, setNodeRef } = useDroppable({
+    id: `table-${tableNumber}-seat-${seatNumber}`,
+    disabled: !!participant,
+  })
+
+  return (
+    <g key={seatNumber} ref={setNodeRef as Ref<SVGGElement>}>
+      <circle
+        cx={position.x}
+        cy={position.y}
+        r={seatRadius}
+        className={`
+          transition-colors stroke-2 
+          ${participant
+            ? participant.is_vip
+              ? 'fill-purple-100 stroke-purple-400'
+              : 'fill-blue-100 stroke-blue-400'
+            : isOver
+              ? 'fill-green-100 stroke-green-500'
+              : 'fill-white stroke-gray-200'}
+        `}
+      />
+      <text
+        x={position.x}
+        y={position.y}
+        textAnchor="middle"
+        dy=".3em"
+        className="text-[10px] font-bold fill-gray-600 select-none pointer-events-none"
+      >
+        {participant ? `${participant.first_name[0]}${participant.last_name[0]}` : seatNumber}
+      </text>
+      {participant && <title>{`${participant.first_name} ${participant.last_name}`}</title>}
+    </g>
+  )
+}
+
 export function VisualTable({
-  id,
   tableNumber,
   type,
   capacity,
@@ -26,7 +71,6 @@ export function VisualTable({
   isVip = false,
   x = 0,
   y = 0,
-  onSeatClick,
 }: VisualTableProps) {
   const tableSize = 120
   const seatRadius = 15
@@ -70,47 +114,16 @@ export function VisualTable({
         className="w-full h-full"
       >
         {/* Seats */}
-        {seats.map((seat) => {
-          const { isOver: isSeatOver, setNodeRef: setSeatRef } = useDroppable({
-            id: `table-${tableNumber}-seat-${seat.number}`,
-            disabled: !!seat.participant,
-          })
-
-          return (
-            <g key={seat.number}>
-              {/* Seat Circle */}
-              <circle
-                cx={seat.position.x}
-                cy={seat.position.y}
-                r={seatRadius}
-                className={`
-                  transition-colors stroke-2 
-                  ${seat.participant 
-                    ? seat.participant.is_vip ? 'fill-purple-100 stroke-purple-400' : 'fill-blue-100 stroke-blue-400'
-                    : isSeatOver ? 'fill-green-100 stroke-green-500' : 'fill-white stroke-gray-200'}
-                `}
-              />
-              
-              {/* Initials or Placeholder */}
-              <text
-                x={seat.position.x}
-                y={seat.position.y}
-                textAnchor="middle"
-                dy=".3em"
-                className="text-[10px] font-bold fill-gray-600 select-none pointer-events-none"
-              >
-                {seat.participant 
-                  ? `${seat.participant.first_name[0]}${seat.participant.last_name[0]}`
-                  : seat.number}
-              </text>
-
-              {/* Tooltip on hover (simulated) */}
-              {seat.participant && (
-                <title>{`${seat.participant.first_name} ${seat.participant.last_name}`}</title>
-              )}
-            </g>
-          )
-        })}
+        {seats.map((seat) => (
+          <SeatGroup
+            key={seat.number}
+            tableNumber={tableNumber}
+            seatNumber={seat.number}
+            seatRadius={seatRadius}
+            participant={seat.participant}
+            position={seat.position}
+          />
+        ))}
 
         {/* Table Body */}
         <motion.circle

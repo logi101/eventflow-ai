@@ -9,8 +9,6 @@ import { test, expect, type Page } from '@playwright/test'
 async function mockSupabase(page: Page) {
   // Mock Supabase responses
   await page.route('**/rest/v1/**', async route => {
-    const url = route.request().url()
-
     // Default empty response for any table
     await route.fulfill({
       status: 200,
@@ -401,8 +399,6 @@ test.describe('Action Buttons', () => {
     await chatInput.fill('/event כנס טכנולוגיה')
     await page.getByTestId('send-button').click()
 
-    // Should show action button
-    const actionButton = page.getByTestId('action-button-create_event')
     // Wait for response
     await page.waitForTimeout(500)
 

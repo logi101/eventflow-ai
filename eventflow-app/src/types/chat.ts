@@ -214,8 +214,8 @@ export interface AgentProfile {
 
 export type SkillType =
   | 'pdf-export'
-  | 'excel-import'
-  | 'excel-export'
+  | 'csv-import'
+  | 'csv-export'
   | 'whatsapp-send'
   | 'qr-generate'
   | 'email-send'

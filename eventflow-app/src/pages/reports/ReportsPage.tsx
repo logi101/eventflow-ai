@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Calendar, Users, CheckSquare, DollarSign, MessageCircle, FileQuestion, UserCheck, FileText, Download, Loader2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import type { Event, ReportStats } from '../../types'
-import { writeExcelFileFromArrays } from '../../utils/excel'
+import { writeCsvFileFromArrays } from '../../utils/csv'
 import { useEvent } from '../../contexts/EventContext'
 
 export function ReportsPage() {
@@ -165,7 +165,7 @@ export function ReportsPage() {
       ['סך הכל תשובות', stats.totalResponses]
     ]
 
-    await writeExcelFileFromArrays(reportData, `eventflow-report-${new Date().toISOString().split('T')[0]}.xlsx`, 'דוח סיכום')
+    writeCsvFileFromArrays(reportData, `eventflow-report-${new Date().toISOString().split('T')[0]}.csv`)
   }
 
   const checklistPercentage = stats && stats.totalChecklistItems > 0
@@ -187,7 +187,7 @@ export function ReportsPage() {
           data-testid="export-report-btn"
         >
           <Download className="w-4 h-4" />
-          ייצא לאקסל
+          ייצא ל-CSV
         </button>
       </div>
 

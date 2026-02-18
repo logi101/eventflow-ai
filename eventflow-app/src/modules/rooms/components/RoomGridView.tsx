@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import GridLayout, { Layout } from 'react-grid-layout'
+import GridLayout from 'react-grid-layout'
+import type { Layout } from 'react-grid-layout'
 import 'react-grid-layout/css/styles.css'
 import 'react-resizable/css/styles.css'
 import type { Room, ParticipantRoom, Participant } from '@/types'
@@ -24,7 +25,7 @@ export function RoomGridView({
   onRoomClick,
   readOnly = false,
 }: RoomGridViewProps) {
-  const [layout, setLayout] = useState<Layout[]>(generateLayout(rooms))
+  const [layout, setLayout] = useState<Layout>(generateLayout(rooms))
 
   // Merge room data with assignments
   const enrichedRooms: RoomWithAssignment[] = rooms.map(room => {
@@ -37,7 +38,7 @@ export function RoomGridView({
   })
 
   // Simple heuristic layout generator based on building/floor/room number
-  function generateLayout(rooms: Room[]): Layout[] {
+  function generateLayout(rooms: Room[]): Layout {
     return rooms.map((room) => {
       // Parse room number for X position (e.g. 101 -> 1)
       const roomNum = parseInt(room.name.replace(/\D/g, '')) || 0
@@ -57,24 +58,25 @@ export function RoomGridView({
     })
   }
 
-  function handleLayoutChange(newLayout: Layout[]) {
-    setLayout(newLayout)
+  function handleLayoutChange(newLayout: Layout) {
+    setLayout([...newLayout])
     // In a real app, save layout positions to DB
+  }
+
+  const gridProps = {
+    className: "layout",
+    layout: layout,
+    cols: 12,
+    rowHeight: 80,
+    width: 1000,
+    onLayoutChange: handleLayoutChange,
+    isDraggable: !readOnly,
+    isResizable: false
   }
 
   return (
     <div className="p-4 bg-gray-50 rounded-lg border border-gray-200 min-h-[500px]" dir="ltr">
-      <GridLayout
-        className="layout"
-        layout={layout}
-        cols={12}
-        rowHeight={80}
-        width={1000} // This should be responsive in real usage (useWidth hook)
-        onLayoutChange={handleLayoutChange}
-        isDraggable={!readOnly}
-        isResizable={false}
-        compactType={null} // Free movement
-      >
+      <GridLayout {...gridProps}>
         {enrichedRooms.map((room) => {
           const isOccupied = !!room.assignment
           const isVip = room.participant?.is_vip

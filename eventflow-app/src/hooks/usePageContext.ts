@@ -105,13 +105,13 @@ export const SLASH_COMMANDS: SlashCommand[] = [
   },
   {
     command: '/import',
-    description: 'Import guests from Excel',
-    descriptionHebrew: 'ייבא אורחים מאקסל',
+    description: 'Import guests from CSV',
+    descriptionHebrew: 'ייבא אורחים מ-CSV',
     icon: FileSpreadsheet,
     availableOn: ['guests', 'event-detail'],
     category: 'guests',
     handler: async () => {
-      return createAction('run_skill', 'Import Excel', 'ייבא אקסל', { skill: 'excel-import' })
+      return createAction('run_skill', 'Import CSV', 'ייבא CSV', { skill: 'csv-import' })
     }
   },
 
@@ -273,9 +273,9 @@ export const SLASH_COMMANDS: SlashCommand[] = [
     availableOn: ['guests', 'vendors', 'checklist', 'program', 'event-detail'],
     category: 'skills',
     handler: async (params, context) => {
-      const format = params?.toLowerCase().includes('pdf') ? 'pdf' : 'excel'
+      const format = params?.toLowerCase().includes('pdf') ? 'pdf' : 'csv'
       return createAction('run_skill', `Export ${format.toUpperCase()}`, `ייצא ${format.toUpperCase()}`, {
-        skill: format === 'pdf' ? 'pdf-export' : 'excel-export',
+        skill: format === 'pdf' ? 'pdf-export' : 'csv-export',
         dataType: context.currentPage
       })
     }
@@ -311,7 +311,7 @@ export const PAGE_WELCOME_MESSAGES: Record<PageType, string> = {
   'dashboard': 'שלום! אני כאן לעזור לך לנהל את האירועים שלך. מה תרצה לעשות?',
   'events': 'ברוך הבא לניהול אירועים. תוכל ליצור אירוע חדש עם /event או לחפש קיים.',
   'event-detail': 'אתה בדף פרטי האירוע. אני יכול לעזור עם אורחים, ספקים, משימות או התוכנית.',
-  'guests': 'ניהול אורחים - הוסף אורחים עם /guest או ייבא מאקסל עם /import.',
+  'guests': 'ניהול אורחים - הוסף אורחים עם /guest או ייבא מ-CSV עם /import.',
   'vendors': 'ניהול ספקים - הוסף ספק עם /vendor או בקש הצעת מחיר עם /quote.',
   'checklist': 'רשימת משימות - הוסף משימה עם /task או סמן כהושלמה עם /done.',
   'messages': 'מרכז הודעות - שלח הודעת WhatsApp עם /message או השתמש בתבנית עם /template.',

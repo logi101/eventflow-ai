@@ -6,7 +6,7 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { checkOrgQuota, hasPremiumAccess } from '../_shared/quota-check.ts'
+import { checkOrgQuota } from '../_shared/quota-check.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -198,7 +198,7 @@ serve(async (req) => {
     // ─────────────────────────────────────────────────────────
     const { type }: ReminderJob = body
     const now = new Date()
-    let results = { processed: 0, sent: 0, errors: 0, quotaExceeded: 0 }
+    const results = { processed: 0, sent: 0, errors: 0, quotaExceeded: 0 }
 
     // Track orgs that have exceeded quota this run (skip further sends)
     const quotaExceededOrgs = new Set<string>()
@@ -1323,9 +1323,10 @@ serve(async (req) => {
     )
 
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('Error in send-reminder function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -1339,27 +1340,27 @@ function buildActivationMessage(event: any, participant: any): string {
   const dateStr = formatDate(event.start_date)
   const timeStr = formatTime(event.start_date)
 
-  return `היי ${participant.first_name}! 🎉\n\nנרשמת בהצלחה לאירוע: ${event.name}\n\n📅 ${dateStr}\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח \"לוז\" לצפייה בתוכנית האישית\n\nנתראה שם! 👋`
+  return `היי ${participant.first_name}! 🎉\n\nנרשמת בהצלחה לאירוע: ${event.name}\n\n📅 ${dateStr}\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח "לוז" לצפייה בתוכנית האישית\n\nנתראה שם! 👋`
 }
 
 function buildWeekBeforeMessage(event: any, participant: any): string {
   const dateStr = formatDate(event.start_date)
   const timeStr = formatTime(event.start_date)
 
-  return `היי ${participant.first_name}! ⏰\n\nעוד שבוע ל-${event.name}\n\n📅 ${dateStr}\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח \"לוז\" לצפייה בתוכנית האישית\n\nמצפים לראותך! ✨`
+  return `היי ${participant.first_name}! ⏰\n\nעוד שבוע ל-${event.name}\n\n📅 ${dateStr}\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח "לוז" לצפייה בתוכנית האישית\n\nמצפים לראותך! ✨`
 }
 
 function buildDayBeforeMessage(event: any, participant: any): string {
   const dateStr = formatDate(event.start_date)
   const timeStr = formatTime(event.start_date)
 
-  return `היי ${participant.first_name}! 🔔\n\nתזכורת: מחר ${event.name}\n\n📅 ${dateStr}\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח \"לוז\" לצפייה בתוכנית האישית\n\nנתראה מחר! 👋`
+  return `היי ${participant.first_name}! 🔔\n\nתזכורת: מחר ${event.name}\n\n📅 ${dateStr}\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח "לוז" לצפייה בתוכנית האישית\n\nנתראה מחר! 👋`
 }
 
 function buildMorningMessage(event: any, participant: any): string {
   const timeStr = formatTime(event.start_date)
 
-  return `בוקר טוב ${participant.first_name}! ☀️\n\nהיום זה הזמן - ${event.name}\n\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח \"לוז\" לצפייה בתוכנית האישית\n\nיום מעולה! 🎯`
+  return `בוקר טוב ${participant.first_name}! ☀️\n\nהיום זה הזמן - ${event.name}\n\n🕐 ${timeStr}\n📍 ${event.venue_name || ''} ${event.venue_address || ''}\n\n📋 שלח "לוז" לצפייה בתוכנית האישית\n\nיום מעולה! 🎯`
 }
 
 function build15MinReminder(
@@ -1402,7 +1403,7 @@ function build15MinReminder(
     msg += `\n`
   }
 
-  msg += `\n📋 שלח \"לוז\" לצפייה בתוכנית המלאה שלך`
+  msg += `\n📋 שלח "לוז" לצפייה בתוכנית המלאה שלך`
 
   return msg
 }

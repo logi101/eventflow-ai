@@ -10,8 +10,6 @@ import { test, expect } from '@playwright/test'
  */
 
 test.describe('EventFlow AI - Edge Functions Tests', () => {
-  const SUPABASE_URL = 'https://byhohetafnhlakqbydbj.supabase.co'
-
   // ═══════════════════════════════════════════════════════════════════════════
   // 1. WHATSAPP EDGE FUNCTION
   // ═══════════════════════════════════════════════════════════════════════════

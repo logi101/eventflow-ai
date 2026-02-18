@@ -16,7 +16,6 @@ import { DraggableParticipant } from '@/components/networking/DraggableParticipa
 import type { SeatingParticipant, TableWithParticipants } from '@/modules/networking/types'
 
 interface SeatingPlanViewProps {
-  eventId: string
   tables: TableWithParticipants[]
   onMoveParticipant: (participantId: string, fromTable: number, toTable: number) => void
   onGenerateSeating: () => void
@@ -25,7 +24,6 @@ interface SeatingPlanViewProps {
 }
 
 export function SeatingPlanView({
-  eventId,
   tables,
   onMoveParticipant,
   onGenerateSeating,

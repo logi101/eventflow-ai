@@ -2,7 +2,7 @@
 // EventFlow - Messages Page (Full Table View)
 // ═══════════════════════════════════════════════════════════════════════════
 
-import React, { useState, useMemo, useEffect, useRef } from 'react'
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react'
 import {
   useReactTable,
   getCoreRowModel,
@@ -170,14 +170,14 @@ export function MessagesPage() {
   }
 
   // Helper: check pending state for a message
-  const getMessagePendingState = (messageId: string): 'edit' | 'delete' | null => {
+  const getMessagePendingState = useCallback((messageId: string): 'edit' | 'delete' | null => {
     for (const change of pendingChanges) {
       if (change.type === 'message_delete_all') return 'delete'
       if (change.type === 'message_delete' && (change.payload as { messageId: string }).messageId === messageId) return 'delete'
       if (change.type === 'message_update' && (change.payload as { messageId: string }).messageId === messageId) return 'edit'
     }
     return null
-  }
+  }, [pendingChanges])
 
   // Table columns definition
   const columns = useMemo<ColumnDef<MessageWithRelations>[]>(() => [
@@ -336,8 +336,7 @@ export function MessagesPage() {
         )
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [pendingChanges, getMessagePendingState])
+  ], [getMessagePendingState])
 
   // Table instance
   const table = useReactTable({
@@ -360,14 +359,14 @@ export function MessagesPage() {
     }
   })
 
+  const tableRows = table.getRowModel().rows
+
   // Compute the "now" line position among visible rows
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const nowLineRowIndex = useMemo(() => {
-    const rows = table.getRowModel().rows
     const now = currentTime.getTime()
 
     // Collect rows with a time reference: prefer scheduled_for, fall back to sent_at or created_at
-    const timedRows = rows
+    const timedRows = tableRows
       .map((row, idx) => ({
         idx,
         time: row.original.scheduled_for || row.original.sent_at || row.original.created_at
@@ -396,7 +395,7 @@ export function MessagesPage() {
       // All in the future — line goes after the last row
       return timedRows[timedRows.length - 1].idx + 1
     }
-  }, [table.getRowModel().rows, currentTime])
+  }, [tableRows, currentTime])
 
   // Auto-scroll to the now line on first render
   useEffect(() => {

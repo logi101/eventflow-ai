@@ -107,12 +107,12 @@ export function useChatActions(handlers: ChatActionHandlers) {
       // Data operations
       case 'export_data':
         handlers.onExportData?.(
-          (action.data?.format as string) || 'excel',
+          (action.data?.format as string) || 'csv',
           (action.data?.dataType as string) || 'data'
         )
         break
       case 'import_data':
-        handlers.onImportData?.((action.data?.format as string) || 'excel')
+        handlers.onImportData?.((action.data?.format as string) || 'csv')
         break
       case 'generate_report':
         handlers.onGenerateReport?.((action.data?.reportType as string) || 'summary')

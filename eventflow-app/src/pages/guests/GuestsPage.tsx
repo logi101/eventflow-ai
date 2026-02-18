@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Users, Edit2, Trash2, X, Loader2, Upload, Download, Search, UserPlus, Star, Phone, Mail } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { readExcelFile, writeExcelFile } from '../../utils/excel'
+import { readCsvFile, writeCsvFile } from '../../utils/csv'
 import type { Participant, ParticipantFormData, ParticipantStatus } from '../../types'
 import { getParticipantStatusColor, getParticipantStatusLabel, normalizePhone } from '../../utils'
 import { useEvent } from '../../contexts/EventContext'
@@ -247,7 +247,7 @@ export function GuestsPage() {
     setSelectedParticipantIds([])
   }
 
-  // Excel Import
+  // CSV Import
   async function handleImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -259,8 +259,7 @@ export function GuestsPage() {
     }
 
     try {
-      const data = await file.arrayBuffer()
-      const rows = await readExcelFile<Record<string, string>>(data)
+      const rows = await readCsvFile<Record<string, string>>(file)
 
       const participants = rows.map((row: Record<string, string>) => ({
         event_id: eventId,
@@ -273,7 +272,7 @@ export function GuestsPage() {
         has_companion: (row['מלווה'] || row['companion'] || '').toLowerCase() === 'כן' || (row['מלווה'] || row['companion'] || '').toLowerCase() === 'yes',
         companion_name: row['שם מלווה'] || row['companion_name'] || null,
         notes: row['הערות'] || row['notes'] || null,
-        import_source: 'excel',
+        import_source: 'csv',
         import_batch_id: crypto.randomUUID()
       })).filter((p: { first_name: string; phone: string }) => p.first_name && p.phone)
 
@@ -295,7 +294,7 @@ export function GuestsPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // Excel Export
+  // CSV Export
   async function handleExport() {
     const exportData = sortedParticipants.map(p => ({
       'שם פרטי': p.first_name,
@@ -310,7 +309,7 @@ export function GuestsPage() {
       'אירוע': p.events?.name || ''
     }))
 
-    await writeExcelFile(exportData, `אורחים_${new Date().toLocaleDateString('he-IL')}.xlsx`, 'אורחים')
+    writeCsvFile(exportData, `אורחים_${new Date().toLocaleDateString('he-IL')}.csv`)
   }
 
   // Filter participants
@@ -356,25 +355,25 @@ export function GuestsPage() {
               type="file"
               ref={fileInputRef}
               className="hidden"
-              accept=".xlsx,.xls,.csv"
+              accept=".csv"
               onChange={handleImport}
             />
             <button
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
               onClick={() => fileInputRef.current?.click()}
-              data-testid="import-excel-btn"
+              data-testid="import-csv-btn"
             >
               <Upload size={18} />
-              ייבוא Excel
+              ייבוא CSV
             </button>
             <button
               className="inline-flex items-center gap-2 px-4 py-2.5 bg-[#1a1d27] border border-white/5 border border-white/10/50 rounded-xl text-zinc-300 hover:bg-[#1a1d27] hover:shadow-lg transition-all duration-300"
               onClick={handleExport}
-              data-testid="export-excel-btn"
+              data-testid="export-csv-btn"
               disabled={participants.length === 0}
             >
               <Download size={18} />
-              ייצוא Excel
+              ייצוא CSV
             </button>
             <button
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl font-medium shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all duration-300"
@@ -491,7 +490,7 @@ export function GuestsPage() {
                 <Users className="relative mx-auto mb-4 text-gray-300" size={56} />
               </div>
               <p className="text-zinc-300 text-lg font-semibold">אין אורחים עדיין</p>
-              <p className="text-zinc-500 text-sm mt-2">לחץ על "הוסף אורח" או ייבא מ-Excel</p>
+              <p className="text-zinc-500 text-sm mt-2">לחץ על "הוסף אורח" או ייבא מ-CSV</p>
             </div>
           ) : (
             sortedParticipants.map(participant => (

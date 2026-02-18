@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Upload, Download, Loader2, Bell, Send, Clock, Users, ClipboardList, Link2, RefreshCw, CheckCircle, X, AlertTriangle, Trash2 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useEvent } from '../../contexts/EventContext'
-import { readExcelFile, writeExcelFile } from '../../utils/excel'
+import { readCsvFile, writeCsvFile } from '../../utils/csv'
 import type { Schedule, Participant, ParticipantStatus } from '../../types'
 
 interface ParticipantSchedule {
@@ -151,7 +151,7 @@ export function ProgramManagementPage() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Excel Import Functions
+  // CSV Import Functions
   // ═══════════════════════════════════════════════════════════════════════════
 
   async function handleScheduleImport(e: React.ChangeEvent<HTMLInputElement>) {
@@ -161,16 +161,15 @@ export function ProgramManagementPage() {
     setImporting(true)
 
     try {
-      const data = await file.arrayBuffer()
-      const rows = await readExcelFile<Record<string, unknown>>(data)
+      const rows = await readCsvFile<Record<string, unknown>>(file)
 
       // 1. Try Standard/Heuristic Mapping first
       let schedulesToInsert = rows.map((row: Record<string, unknown>, index: number) => ({
         event_id: selectedEventId,
         title: String(row['כותרת'] || row['title'] || row['שם'] || row['Subject'] || row['נושא'] || ''),
         description: row['תיאור'] || row['description'] || row['Description'] || row['פירוט'] || null,
-        start_time: parseExcelDateTime(row['שעת התחלה'] || row['start_time'] || row['התחלה'] || row['Start Date'] || row['Start Time'] || row['Start']),
-        end_time: parseExcelDateTime(row['שעת סיום'] || row['end_time'] || row['סיום'] || row['End Date'] || row['End Time'] || row['End']),
+        start_time: parseImportedDateTime(row['שעת התחלה'] || row['start_time'] || row['התחלה'] || row['Start Date'] || row['Start Time'] || row['Start']),
+        end_time: parseImportedDateTime(row['שעת סיום'] || row['end_time'] || row['סיום'] || row['End Date'] || row['End Time'] || row['End']),
         location: row['מיקום'] || row['location'] || row['Location'] || null,
         room: row['חדר'] || row['room'] || row['Room'] || null,
         track: row['טראק'] || row['track'] || row['מסלול'] || row['Track'] || null,
@@ -274,9 +273,7 @@ export function ProgramManagementPage() {
     setImporting(true)
 
     try {
-      const data = await file.arrayBuffer()
-      // readExcelFile already cleans BOM/RTL marks from headers
-      const rows = await readExcelFile<Record<string, unknown>>(data)
+      const rows = await readCsvFile<Record<string, unknown>>(file)
 
       if (rows.length === 0) {
         alert('הקובץ ריק - לא נמצאו שורות')
@@ -393,7 +390,7 @@ export function ProgramManagementPage() {
     }
   }
 
-  function parseExcelDateTime(value: unknown): string {
+  function parseImportedDateTime(value: unknown): string {
     if (!value) return ''
 
     // If it's already an ISO string
@@ -401,7 +398,7 @@ export function ProgramManagementPage() {
       return value
     }
 
-    // If it's an Excel serial date number
+    // If it's a numeric serial date value
     if (typeof value === 'number') {
       const date = new Date((value - 25569) * 86400 * 1000)
       return date.toISOString()
@@ -677,7 +674,7 @@ export function ProgramManagementPage() {
       }
     ]
 
-    await writeExcelFile(template, 'תבנית_תוכניה.xlsx', 'תוכניה')
+    writeCsvFile(template, 'תבנית_תוכניה.csv')
   }
 
   async function downloadParticipantsTemplate() {
@@ -698,7 +695,7 @@ export function ProgramManagementPage() {
       }
     ]
 
-    await writeExcelFile(template, 'תבנית_משתתפים.xlsx', 'משתתפים')
+    writeCsvFile(template, 'תבנית_משתתפים.csv')
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -833,11 +830,11 @@ export function ProgramManagementPage() {
           <div className="card">
             <h2 className="text-xl font-bold mb-4">
               <ClipboardList className="w-5 h-5 inline ml-2 text-blue-600" />
-              ייבוא תוכניה מאקסל
+                  ייבוא תוכניה מ-CSV
             </h2>
             <div className="flex justify-between items-center mb-4">
               <p className="text-zinc-400">
-                יבא קובץ אקסל עם פריטי התוכניה: כותרת, שעות, מיקום, טראק, מרצה
+                    יבא קובץ CSV עם פריטי התוכניה: כותרת, שעות, מיקום, טראק, מרצה
               </p>
               {schedules.length > 0 && (
                 <button
@@ -873,7 +870,7 @@ export function ProgramManagementPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".csv"
                 onChange={handleScheduleImport}
                 className="hidden"
               />
@@ -912,11 +909,11 @@ export function ProgramManagementPage() {
           <div className="card">
             <h2 className="text-xl font-bold mb-4">
               <Users className="w-5 h-5 inline ml-2 text-emerald-400" />
-              ייבוא משתתפים מאקסל
+                  ייבוא משתתפים מ-CSV
             </h2>
             <div className="flex justify-between items-center mb-4">
               <p className="text-zinc-400">
-                יבא קובץ אקסל עם פרטי משתתפים: שם, טלפון, אימייל, טראק
+                    יבא קובץ CSV עם פרטי משתתפים: שם, טלפון, אימייל, טראק
               </p>
               {participants.length > 0 && (
                 <button
@@ -952,7 +949,7 @@ export function ProgramManagementPage() {
               <input
                 ref={participantsFileRef}
                 type="file"
-                accept=".xlsx,.xls,.csv"
+                accept=".csv"
                 onChange={handleParticipantsImport}
                 className="hidden"
               />

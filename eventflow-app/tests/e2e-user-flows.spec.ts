@@ -82,15 +82,15 @@ test.describe('EventFlow AI - E2E User Flows', () => {
     test('should have import/export functionality if implemented', async ({ page }) => {
       await page.goto('/guests')
 
-      const importBtn = page.getByTestId('import-excel-btn')
-      const exportBtn = page.getByTestId('export-excel-btn')
+      const importBtn = page.getByTestId('import-csv-btn')
+      const exportBtn = page.getByTestId('export-csv-btn')
 
       const hasImport = await importBtn.count() > 0
       const hasExport = await exportBtn.count() > 0
 
       // Log feature availability for documentation
-      console.log('Import Excel:', hasImport ? 'Available' : 'Not implemented')
-      console.log('Export Excel:', hasExport ? 'Available' : 'Not implemented')
+      console.log('Import CSV:', hasImport ? 'Available' : 'Not implemented')
+      console.log('Export CSV:', hasExport ? 'Available' : 'Not implemented')
 
       expect(true).toBe(true)
     })

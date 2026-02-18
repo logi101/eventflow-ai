@@ -10,6 +10,14 @@ import { SeatingPlanView } from '../../modules/networking/components/SeatingPlan
 import type { SeatingParticipant, SeatingConstraints, TableWithParticipants } from '../../modules/networking/types'
 import type { ParticipantWithTracks, Track } from '../../types'
 
+type TrackJoinRow = {
+  tracks: Track | null
+}
+
+type ParticipantWithTrackJoin = ParticipantWithTracks & {
+  participant_tracks?: TrackJoinRow[] | null
+}
+
 export function NetworkingPage() {
     const { selectedEvent } = useEvent()
     const queryClient = useQueryClient()
@@ -47,9 +55,9 @@ export function NetworkingPage() {
             
             if (error) throw error
             
-            return (data || []).map(p => ({
+            return ((data || []) as ParticipantWithTrackJoin[]).map(p => ({
                 ...p,
-                tracks: p.participant_tracks?.map((pt: any) => pt.tracks).filter(Boolean) || []
+                tracks: p.participant_tracks?.map((pt) => pt.tracks).filter((track): track is Track => Boolean(track)) || []
             })) as ParticipantWithTracks[]
         },
         enabled: !!selectedEvent?.id
@@ -92,7 +100,7 @@ export function NetworkingPage() {
                     is_vip: participant.is_vip,
                     networking_opt_in: participant.networking_opt_in,
                     tracks: participant.tracks.map(t => t.id),
-                    companion_id: (participant as any).companion_id // If exists
+                    companion_id: participant.companion_id // If exists
                 })
             }
         })
@@ -133,17 +141,7 @@ export function NetworkingPage() {
 
         try {
             // Filter to only networking_opt_in participants
-            const networkingParticipants = participants
-                .filter(p => p.networking_opt_in)
-                .map(p => ({
-                    id: p.id,
-                    first_name: p.first_name,
-                    last_name: p.last_name,
-                    is_vip: p.is_vip,
-                    networking_opt_in: p.networking_opt_in,
-                    tracks: p.tracks.map(t => t.id),
-                    companion_id: (p as any).companion_id
-                }))
+            const networkingParticipants = participants.filter(p => p.networking_opt_in)
 
             if (networkingParticipants.length === 0) {
                 throw new Error('לא נמצאו משתתפים שאישרו השתתפות בנטוורקינג')
@@ -157,8 +155,8 @@ export function NetworkingPage() {
                 companionsTogether: true
             }
 
-            // Run Greedy Seating (casted to seating-compatible type)
-            const seatingMap = greedyTableSeating(participants, constraints)
+            // Run Greedy Seating
+            const seatingMap = greedyTableSeating(networkingParticipants, constraints)
 
             // Prepare for save
             const assignmentsToSave = []
@@ -221,7 +219,6 @@ export function NetworkingPage() {
                     </div>
                 ) : (
                     <SeatingPlanView
-                        eventId={selectedEvent.id}
                         tables={tables}
                         trackColors={trackColors}
                         isLoading={isCalculating}

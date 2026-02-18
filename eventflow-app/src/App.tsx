@@ -8,37 +8,33 @@ import { Loader2 } from 'lucide-react'
 
 // Layout & Components
 import { Sidebar } from './components/layout/Sidebar'
-import { FloatingChat } from './components/chat'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
 import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPopup'
 import { FeatureGuard } from './components/guards/FeatureGuard'
 import { ErrorBoundary } from './components/ErrorBoundary'
-
-// Pages (static imports for core/lightweight pages)
-import { HomePage } from './pages/home/HomePage'
-import { EventDashboardPage } from './pages/event/EventDashboardPage'
-import {
-  DashboardPage,
-  GuestsPage,
-  VendorsPage,
-  ChecklistPage,
-  SchedulesPage,
-  ProgramManagementPage,
-  MessagesPage,
-  ReminderSettingsPage,
-  EventDetailPage,
-  LoginPage,
-  ForgotPasswordPage,
-  ResetPasswordPage,
-  TestWhatsAppPage,
-} from './pages'
-import { UserManagementPage } from './pages/admin/UserManagementPage'
-import { TierComparisonPage } from './app/routes/settings/tiers'
-import { AdminTiersPage } from './app/routes/admin/tiers'
 import { isSupabaseConfigured, supabaseConfigError } from './lib/supabase'
 
 // Lazy-loaded pages (heavy/less frequently visited)
+const HomePage = lazy(() => import('./pages/home/HomePage').then(m => ({ default: m.HomePage })))
+const LoginPage = lazy(() => import('./pages/auth/Login').then(m => ({ default: m.LoginPage })))
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPassword').then(m => ({ default: m.ForgotPasswordPage })))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPassword').then(m => ({ default: m.ResetPasswordPage })))
+const FloatingChat = lazy(() => import('./components/chat/FloatingChat').then(m => ({ default: m.FloatingChat })))
+const EventDetailPage = lazy(() => import('./pages/events/EventDetailPage').then(m => ({ default: m.EventDetailPage })))
+const EventDashboardPage = lazy(() => import('./pages/event/EventDashboardPage').then(m => ({ default: m.EventDashboardPage })))
+const DashboardPage = lazy(() => import('./pages/dashboard/DashboardPage').then(m => ({ default: m.DashboardPage })))
+const GuestsPage = lazy(() => import('./pages/guests/GuestsPage').then(m => ({ default: m.GuestsPage })))
+const VendorsPage = lazy(() => import('./pages/vendors/VendorsPage').then(m => ({ default: m.VendorsPage })))
+const ChecklistPage = lazy(() => import('./pages/checklist/ChecklistPage').then(m => ({ default: m.ChecklistPage })))
+const SchedulesPage = lazy(() => import('./pages/schedules/SchedulesPage').then(m => ({ default: m.SchedulesPage })))
+const ProgramManagementPage = lazy(() => import('./pages/program/ProgramManagementPage').then(m => ({ default: m.ProgramManagementPage })))
+const MessagesPage = lazy(() => import('./pages/messages/MessagesPage').then(m => ({ default: m.MessagesPage })))
+const ReminderSettingsPage = lazy(() => import('./pages/settings/ReminderSettingsPage').then(m => ({ default: m.ReminderSettingsPage })))
+const TierComparisonPage = lazy(() => import('./app/routes/settings/tiers').then(m => ({ default: m.TierComparisonPage })))
+const AdminTiersPage = lazy(() => import('./app/routes/admin/tiers').then(m => ({ default: m.AdminTiersPage })))
+const TestWhatsAppPage = lazy(() => import('./pages/admin/TestWhatsAppPage').then(m => ({ default: m.TestWhatsAppPage })))
+const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage').then(m => ({ default: m.UserManagementPage })))
 const SimulationPage = lazy(() => import('./pages/event/SimulationPage').then(m => ({ default: m.SimulationPage })))
 const NetworkingPage = lazy(() => import('./pages/event/NetworkingPage').then(m => ({ default: m.NetworkingPage })))
 const ContingencyPage = lazy(() => import('./pages/event/ContingencyPage').then(m => ({ default: m.ContingencyPage })))
@@ -87,26 +83,26 @@ function AppLayout() {
         <main className="flex-1 min-h-screen min-w-0" data-testid="main-content">
           <Routes>
           {/* Home - Event Selection */}
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
 
           {/* Event Detail/Editing */}
           <Route path="/events/new" element={<Navigate to="/" replace />} />
-          <Route path="/events/:eventId" element={<EventDetailPage />} />
-          <Route path="/events/:eventId/program" element={<EventDetailPage initialTab="program" />} />
-          <Route path="/event/edit" element={<EventDetailPage />} />
+          <Route path="/events/:eventId" element={<Suspense fallback={<LazyFallback />}><EventDetailPage /></Suspense>} />
+          <Route path="/events/:eventId/program" element={<Suspense fallback={<LazyFallback />}><EventDetailPage initialTab="program" /></Suspense>} />
+          <Route path="/event/edit" element={<Suspense fallback={<LazyFallback />}><EventDetailPage /></Suspense>} />
 
           {/* Event-Scoped Routes (require selected event) */}
-          <Route path="/event/dashboard" element={<EventDashboardPage />} />
-          <Route path="/event/guests" element={<GuestsPage />} />
-          <Route path="/event/schedule" element={<SchedulesPage />} />
-          <Route path="/event/program" element={<ProgramManagementPage />} />
-          <Route path="/event/vendors" element={<VendorsPage />} />
-          <Route path="/event/checklist" element={<ChecklistPage />} />
-          <Route path="/event/messages" element={<MessagesPage />} />
+          <Route path="/event/dashboard" element={<Suspense fallback={<LazyFallback />}><EventDashboardPage /></Suspense>} />
+          <Route path="/event/guests" element={<Suspense fallback={<LazyFallback />}><GuestsPage /></Suspense>} />
+          <Route path="/event/schedule" element={<Suspense fallback={<LazyFallback />}><SchedulesPage /></Suspense>} />
+          <Route path="/event/program" element={<Suspense fallback={<LazyFallback />}><ProgramManagementPage /></Suspense>} />
+          <Route path="/event/vendors" element={<Suspense fallback={<LazyFallback />}><VendorsPage /></Suspense>} />
+          <Route path="/event/checklist" element={<Suspense fallback={<LazyFallback />}><ChecklistPage /></Suspense>} />
+          <Route path="/event/messages" element={<Suspense fallback={<LazyFallback />}><MessagesPage /></Suspense>} />
           <Route path="/event/feedback" element={<Suspense fallback={<LazyFallback />}><FeedbackPage /></Suspense>} />
           <Route path="/event/checkin" element={<Suspense fallback={<LazyFallback />}><CheckinPage /></Suspense>} />
           <Route path="/event/reports" element={<Suspense fallback={<LazyFallback />}><ReportsPage /></Suspense>} />
-          <Route path="/event/reminder-settings" element={<ReminderSettingsPage />} />
+          <Route path="/event/reminder-settings" element={<Suspense fallback={<LazyFallback />}><ReminderSettingsPage /></Suspense>} />
           <Route path="/event/simulation" element={<Suspense fallback={<LazyFallback />}><SimulationPage /></Suspense>} />
           <Route path="/event/networking" element={<Suspense fallback={<LazyFallback />}><NetworkingPage /></Suspense>} />
           <Route path="/event/contingency" element={<Suspense fallback={<LazyFallback />}><ContingencyPage /></Suspense>} />
@@ -117,41 +113,43 @@ function AppLayout() {
               <Suspense fallback={<LazyFallback />}><AIAssistantPage /></Suspense>
             </FeatureGuard>
           } />
-          <Route path="/settings" element={<DashboardPage />} />
-          <Route path="/settings/tiers" element={<TierComparisonPage />} />
+          <Route path="/settings" element={<Suspense fallback={<LazyFallback />}><DashboardPage /></Suspense>} />
+          <Route path="/settings/tiers" element={<Suspense fallback={<LazyFallback />}><TierComparisonPage /></Suspense>} />
           <Route path="/admin/tiers" element={
             <ProtectedRoute requiredRole="admin">
-              <AdminTiersPage />
+              <Suspense fallback={<LazyFallback />}><AdminTiersPage /></Suspense>
             </ProtectedRoute>
           } />
           <Route path="/admin/test-whatsapp" element={
             <ProtectedRoute requiredRole="admin">
-              <TestWhatsAppPage />
+              <Suspense fallback={<LazyFallback />}><TestWhatsAppPage /></Suspense>
             </ProtectedRoute>
           } />
           <Route path="/admin/users" element={
             <ProtectedRoute requiredRole="super_admin">
-              <UserManagementPage />
+              <Suspense fallback={<LazyFallback />}><UserManagementPage /></Suspense>
             </ProtectedRoute>
           } />
 
           {/* Legacy routes - redirect to home */}
-          <Route path="/events" element={<HomePage />} />
-          <Route path="/guests" element={<HomePage />} />
-          <Route path="/schedules" element={<HomePage />} />
-          <Route path="/program" element={<HomePage />} />
-          <Route path="/vendors" element={<HomePage />} />
-          <Route path="/checklist" element={<HomePage />} />
-          <Route path="/messages" element={<HomePage />} />
-          <Route path="/feedback" element={<HomePage />} />
-          <Route path="/checkin" element={<HomePage />} />
-          <Route path="/reports" element={<HomePage />} />
+          <Route path="/events" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/guests" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/schedules" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/program" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/vendors" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/checklist" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/messages" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/feedback" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/checkin" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          <Route path="/reports" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
         </Routes>
       </main>
 
       {/* Floating AI Chat */}
       <FeatureGuard feature="ai">
-        <FloatingChat />
+        <Suspense fallback={null}>
+          <FloatingChat />
+        </Suspense>
       </FeatureGuard>
 
       {/* Grace Period System */}
@@ -179,10 +177,10 @@ export default function App() {
     return (
       <div dir="rtl">
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<Suspense fallback={<LazyFallback />}><LoginPage /></Suspense>} />
           <Route path="/signup" element={<Navigate to="/login" replace />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/forgot-password" element={<Suspense fallback={<LazyFallback />}><ForgotPasswordPage /></Suspense>} />
+          <Route path="/reset-password" element={<Suspense fallback={<LazyFallback />}><ResetPasswordPage /></Suspense>} />
         </Routes>
       </div>
     )

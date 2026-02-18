@@ -76,7 +76,9 @@ export default defineConfig({
         }
       }
     },
-    chunkSizeWarningLimit: 500,
+    // Excel export relies on exceljs, which creates a large on-demand chunk.
+    // Keep warnings focused on genuinely unexpected bundle growth.
+    chunkSizeWarningLimit: 1000,
   },
   resolve: {
     alias: {

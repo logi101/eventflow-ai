@@ -22,20 +22,10 @@ test.describe('EventFlow AI - E2E User Flows', () => {
       await expect(page.getByTestId('events-list')).toBeVisible()
     })
 
-    test('should have create event button if implemented', async ({ page }) => {
+    test('should have create event button', async ({ page }) => {
       await page.goto('/events')
       await expect(page.getByTestId('events-title')).toBeVisible()
-
-      // Check if create button exists (may not be implemented yet)
-      const createBtn = page.getByTestId('create-event-btn')
-      const hasCreateBtn = await createBtn.count() > 0
-
-      if (hasCreateBtn) {
-        await expect(createBtn).toBeVisible()
-      } else {
-        // Feature not yet implemented - test passes
-        expect(true).toBe(true)
-      }
+      await expect(page.getByTestId('create-event-btn')).toBeVisible()
     })
 
     test('should display event items or empty state', async ({ page }) => {
@@ -66,33 +56,15 @@ test.describe('EventFlow AI - E2E User Flows', () => {
       await expect(guestsList).toContainText('אין אורחים עדיין')
     })
 
-    test('should have add guest functionality if implemented', async ({ page }) => {
+    test('should have add guest button', async ({ page }) => {
       await page.goto('/guests')
-
-      const addBtn = page.getByTestId('add-guest-btn')
-      const hasAddBtn = await addBtn.count() > 0
-
-      if (hasAddBtn) {
-        await expect(addBtn).toBeVisible()
-      }
-      // Test passes regardless - checking functionality availability
-      expect(true).toBe(true)
+      await expect(page.getByTestId('add-guest-btn')).toBeVisible()
     })
 
-    test('should have import/export functionality if implemented', async ({ page }) => {
+    test('should have import and export functionality', async ({ page }) => {
       await page.goto('/guests')
-
-      const importBtn = page.getByTestId('import-csv-btn')
-      const exportBtn = page.getByTestId('export-csv-btn')
-
-      const hasImport = await importBtn.count() > 0
-      const hasExport = await exportBtn.count() > 0
-
-      // Log feature availability for documentation
-      console.log('Import CSV:', hasImport ? 'Available' : 'Not implemented')
-      console.log('Export CSV:', hasExport ? 'Available' : 'Not implemented')
-
-      expect(true).toBe(true)
+      await expect(page.getByTestId('import-csv-btn')).toBeVisible()
+      await expect(page.getByTestId('export-csv-btn')).toBeVisible()
     })
   })
 
@@ -116,16 +88,9 @@ test.describe('EventFlow AI - E2E User Flows', () => {
       expect(content).toBeTruthy()
     })
 
-    test('should have category filter if implemented', async ({ page }) => {
+    test('should have category filter', async ({ page }) => {
       await page.goto('/vendors')
-
-      const categoryFilter = page.getByTestId('category-filter')
-      const hasFilter = await categoryFilter.count() > 0
-
-      if (hasFilter) {
-        await expect(categoryFilter).toBeVisible()
-      }
-      expect(true).toBe(true)
+      await expect(page.getByTestId('category-filter')).toBeVisible()
     })
   })
 
@@ -166,14 +131,9 @@ test.describe('EventFlow AI - E2E User Flows', () => {
       await expect(page.getByTestId('send-message-btn')).toBeEnabled()
     })
 
-    test('should have template selection if implemented', async ({ page }) => {
+    test.skip('should have template selection (not yet implemented)', async ({ page }) => {
       await page.goto('/messages')
-
-      const templateSelect = page.getByTestId('template-select')
-      const hasTemplates = await templateSelect.count() > 0
-
-      console.log('Message templates:', hasTemplates ? 'Available' : 'Not implemented')
-      expect(true).toBe(true)
+      await expect(page.getByTestId('template-select')).toBeVisible()
     })
   })
 
@@ -209,14 +169,9 @@ test.describe('EventFlow AI - E2E User Flows', () => {
       await expect(page.getByTestId('chat-history')).toContainText('התחל שיחה')
     })
 
-    test('should have new chat button if implemented', async ({ page }) => {
+    test.skip('should have new chat button (not yet implemented)', async ({ page }) => {
       await page.goto('/ai')
-
-      const newChatBtn = page.getByTestId('new-chat-btn')
-      const hasNewChat = await newChatBtn.count() > 0
-
-      console.log('New chat button:', hasNewChat ? 'Available' : 'Not implemented')
-      expect(true).toBe(true)
+      await expect(page.getByTestId('new-chat-btn')).toBeVisible()
     })
   })
 
@@ -240,24 +195,14 @@ test.describe('EventFlow AI - E2E User Flows', () => {
       expect(content).toBeTruthy()
     })
 
-    test('should have add item functionality if implemented', async ({ page }) => {
+    test.skip('should have add item button (not yet implemented)', async ({ page }) => {
       await page.goto('/checklist')
-
-      const addItemBtn = page.getByTestId('add-item-btn')
-      const hasAddItem = await addItemBtn.count() > 0
-
-      console.log('Add checklist item:', hasAddItem ? 'Available' : 'Not implemented')
-      expect(true).toBe(true)
+      await expect(page.getByTestId('add-item-btn')).toBeVisible()
     })
 
-    test('should have filter functionality if implemented', async ({ page }) => {
+    test.skip('should have filter functionality (not yet implemented)', async ({ page }) => {
       await page.goto('/checklist')
-
-      const filterBtn = page.getByTestId('checklist-filter')
-      const hasFilter = await filterBtn.count() > 0
-
-      console.log('Checklist filter:', hasFilter ? 'Available' : 'Not implemented')
-      expect(true).toBe(true)
+      await expect(page.getByTestId('checklist-filter')).toBeVisible()
     })
   })
 
@@ -266,22 +211,10 @@ test.describe('EventFlow AI - E2E User Flows', () => {
   // ═══════════════════════════════════════════════════════════════════════════
 
   test.describe('Check-in Flow', () => {
-    test('should check if check-in feature is implemented', async ({ page }) => {
+    test('should navigate to check-in page', async ({ page }) => {
       await page.goto('/checkin')
-
-      // Check-in might redirect to home if not implemented
-      const url = page.url()
-      const isCheckinPage = url.includes('/checkin')
-
-      if (isCheckinPage) {
-        const checkinTitle = page.getByTestId('checkin-title')
-        if (await checkinTitle.count() > 0) {
-          await expect(checkinTitle).toBeVisible()
-        }
-      }
-
-      // Test passes - check-in is optional feature
-      expect(true).toBe(true)
+      await expect(page).toHaveURL(/checkin/)
+      await expect(page.getByTestId('checkin-title')).toBeVisible()
     })
   })
 

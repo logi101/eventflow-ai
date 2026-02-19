@@ -18,7 +18,7 @@ import type { UsageMetrics, TierContextValue } from './TierContext.types';
 export const TierContext = createContext<TierContextValue | undefined>(undefined);
 
 export function TierProvider({ children }: { children: ReactNode }) {
-    const { userProfile, loading: authLoading, isSuperAdmin: authIsSuperAdmin } = useAuth();
+    const { userProfile, session, loading: authLoading, isSuperAdmin: authIsSuperAdmin } = useAuth();
     const queryClient = useQueryClient();
 
     // Super admin status from database role
@@ -38,7 +38,8 @@ export function TierProvider({ children }: { children: ReactNode }) {
             if (error) throw error;
             return data;
         },
-        enabled: !!orgId,
+        // Wait for both orgId AND active session JWT before querying
+        enabled: !!orgId && !!session?.access_token,
         staleTime: 60 * 1000,
     });
 

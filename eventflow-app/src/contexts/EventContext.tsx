@@ -73,8 +73,16 @@ export function EventProvider({ children }: { children: ReactNode }) {
   // Restore selected event from localStorage on mount
   useEffect(() => {
     const savedEventId = localStorage.getItem('selectedEventId')
-    if (savedEventId && !selectedEvent) {
-      selectEventById(savedEventId)
+    if (savedEventId && !selectedEvent && allEvents.length > 0) {
+      // Only restore if the saved event actually belongs to this user
+      const owned = allEvents.find(e => e.id === savedEventId)
+      if (owned) {
+        setSelectedEvent(owned)
+      } else {
+        // Stale/inaccessible event — clear and select first available
+        localStorage.removeItem('selectedEventId')
+        setSelectedEvent(allEvents[0])
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allEvents])
@@ -185,6 +193,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
       }
     } catch (error) {
       console.error('Error selecting event:', error)
+      // Clear stale/inaccessible event from localStorage so we don't retry
+      localStorage.removeItem('selectedEventId')
       Sentry.captureException(error)
     }
   }

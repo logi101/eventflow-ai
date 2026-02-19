@@ -6,7 +6,7 @@
  */
 
 import { supabase } from '@/lib/supabase'
-import type { TableAssignment } from '../types'
+import type { TableAssignment, VenueTable } from '../types'
 
 /**
  * קבל את כל השיבוצים לשולחנות עבור אירוע
@@ -179,4 +179,67 @@ export async function deleteAllTableAssignments(
   if (error) {
     throw new Error(`Failed to delete all table assignments: ${error.message}`)
   }
+}
+
+/**
+ * קבל את כל שולחנות האולם עבור אירוע
+ */
+export async function fetchVenueTables(eventId: string): Promise<VenueTable[]> {
+  const { data, error } = await supabase
+    .from('venue_tables')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('table_number')
+  if (error) throw error
+  return data || []
+}
+
+/**
+ * עדכן או צור שולחנות אולם עבור אירוע
+ */
+export async function upsertVenueTables(eventId: string, tables: Omit<VenueTable, 'id' | 'created_at' | 'updated_at'>[]): Promise<VenueTable[]> {
+  const { data, error } = await supabase
+    .from('venue_tables')
+    .upsert(
+      tables.map(t => ({ ...t, event_id: eventId, updated_at: new Date().toISOString() })),
+      { onConflict: 'event_id,table_number' }
+    )
+    .select()
+  if (error) throw error
+  return data || []
+}
+
+/**
+ * עדכן מיקום שולחן על מפת הרצפה
+ */
+export async function updateVenueTablePosition(id: string, x: number, y: number, rotation = 0): Promise<void> {
+  const { error } = await supabase
+    .from('venue_tables')
+    .update({ x, y, rotation, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * מחק שולחן אולם
+ */
+export async function deleteVenueTable(id: string): Promise<void> {
+  const { error } = await supabase
+    .from('venue_tables')
+    .delete()
+    .eq('id', id)
+  if (error) throw error
+}
+
+/**
+ * שמור שולחן אולם חדש
+ */
+export async function saveVenueTable(table: Omit<VenueTable, 'id' | 'created_at' | 'updated_at'>): Promise<VenueTable> {
+  const { data, error } = await supabase
+    .from('venue_tables')
+    .insert({ ...table, updated_at: new Date().toISOString() })
+    .select()
+    .single()
+  if (error) throw error
+  return data
 }

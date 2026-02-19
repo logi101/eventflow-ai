@@ -1,13 +1,25 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { FeatureGuard } from '../../components/guards/FeatureGuard'
 import { useEvent } from '../../contexts/EventContext'
 import { greedyTableSeating } from '../../modules/networking/services/seatingAlgorithm'
-import { fetchTableAssignments, saveAllTableAssignments, updateParticipantTable } from '../../modules/networking/services/seatingService'
+import {
+  fetchTableAssignments,
+  saveAllTableAssignments,
+  updateParticipantTable,
+  fetchVenueTables,
+  upsertVenueTables,
+  updateVenueTablePosition,
+  saveVenueTable,
+  deleteVenueTable,
+} from '../../modules/networking/services/seatingService'
 import { supabase } from '../../lib/supabase'
 import { Loader2, Share2, AlertCircle } from 'lucide-react'
 import { SeatingPlanView } from '../../modules/networking/components/SeatingPlanView'
-import type { SeatingParticipant, SeatingConstraints, TableWithParticipants } from '../../modules/networking/types'
+import { VenueLayoutSelector } from '../../modules/networking/components/VenueLayoutSelector'
+import type { LayoutPreset } from '../../modules/networking/components/VenueLayoutSelector'
+import { toast } from '../../utils/toast'
+import type { SeatingParticipant, SeatingConstraints, TableWithParticipants, VenueTable } from '../../modules/networking/types'
 import type { ParticipantWithTracks, Track } from '../../types'
 
 type TrackJoinRow = {
@@ -23,6 +35,7 @@ export function NetworkingPage() {
     const queryClient = useQueryClient()
     const [isCalculating, setIsCalculating] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [showLayoutSelector, setShowLayoutSelector] = useState(false)
 
     // 1. Fetch Tracks (for colors)
     const { data: tracks = [] } = useQuery({
@@ -52,9 +65,9 @@ export function NetworkingPage() {
                     )
                 `)
                 .eq('event_id', selectedEvent?.id)
-            
+
             if (error) throw error
-            
+
             return ((data || []) as ParticipantWithTrackJoin[]).map(p => ({
                 ...p,
                 tracks: p.participant_tracks?.map((pt) => pt.tracks).filter((track): track is Track => Boolean(track)) || []
@@ -70,23 +83,36 @@ export function NetworkingPage() {
         enabled: !!selectedEvent?.id
     })
 
-    // 4. Mutations
+    // 4. Fetch Venue Tables
+    const { data: venueTableConfigs = [], isLoading: isLoadingVenue } = useQuery({
+        queryKey: ['venue-tables', selectedEvent?.id],
+        queryFn: () => fetchVenueTables(selectedEvent!.id),
+        enabled: !!selectedEvent?.id
+    })
+
+    // Show layout selector on first load if no venue tables
+    useEffect(() => {
+        if (!isLoadingVenue && venueTableConfigs.length === 0 && participants.length > 0) {
+            setShowLayoutSelector(true)
+        }
+    }, [isLoadingVenue, venueTableConfigs.length, participants.length])
+
+    // 5. Mutations
     const moveMutation = useMutation({
-        mutationFn: ({ participantId, toTable }: { participantId: string, toTable: number }) => 
+        mutationFn: ({ participantId, toTable }: { participantId: string, toTable: number }) =>
             updateParticipantTable(selectedEvent!.id, participantId, toTable),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['table-assignments', selectedEvent?.id] })
         }
     })
 
-    // 5. Data Transformation for SeatingPlanView
+    // 6. Data Transformation for SeatingPlanView
     const tables = useMemo(() => {
         if (!selectedEvent) return []
-        
-        const maxTableSize = 8 // Default
+
+        const maxTableSize = 8
         const tableMap = new Map<number, SeatingParticipant[]>()
-        
-        // Group assigned participants
+
         assignments.forEach(assign => {
             const participant = participants.find(p => p.id === assign.participant_id)
             if (participant) {
@@ -100,15 +126,14 @@ export function NetworkingPage() {
                     is_vip: participant.is_vip,
                     networking_opt_in: participant.networking_opt_in,
                     tracks: participant.tracks.map(t => t.id),
-                    companion_id: participant.companion_id // If exists
+                    companion_id: participant.companion_id
                 })
             }
         })
 
-        // Create table list (1..N)
         const result: TableWithParticipants[] = []
-        const maxTableNum = Math.max(0, ...Array.from(tableMap.keys()), 4) // Show at least 4 tables
-        
+        const maxTableNum = Math.max(0, ...Array.from(tableMap.keys()), 4)
+
         for (let i = 1; i <= maxTableNum; i++) {
             result.push({
                 tableNumber: i,
@@ -127,6 +152,70 @@ export function NetworkingPage() {
         return colors
     }, [tracks])
 
+    // Venue table handlers
+    const handleLayoutSelect = async (preset: LayoutPreset) => {
+        if (!selectedEvent) return
+        try {
+            await upsertVenueTables(selectedEvent.id, preset.tables.map(t => ({ ...t, event_id: selectedEvent.id })))
+            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedEvent.id] })
+            setShowLayoutSelector(false)
+            toast.success('פריסת אולם נטענה בהצלחה')
+        } catch {
+            toast.error('שגיאה בטעינת פריסת אולם')
+        }
+    }
+
+    const handleTableMove = async (tableId: string, x: number, y: number) => {
+        try {
+            await updateVenueTablePosition(tableId, x, y)
+            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedEvent?.id] })
+        } catch {
+            toast.error('שגיאה בעדכון מיקום שולחן')
+        }
+    }
+
+    const handleAddTable = async (name: string, shape: 'round' | 'rect', capacity: number) => {
+        if (!selectedEvent) return
+        try {
+            const nextNum = venueTableConfigs.length > 0 ? Math.max(...venueTableConfigs.map(t => t.table_number)) + 1 : 1
+            await saveVenueTable({
+                event_id: selectedEvent.id,
+                table_number: nextNum,
+                name,
+                shape,
+                capacity,
+                x: 50,
+                y: 50,
+                rotation: 0,
+            })
+            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedEvent.id] })
+        } catch {
+            toast.error('שגיאה בהוספת שולחן')
+        }
+    }
+
+    const handleUpdateTable = async (id: string, changes: Partial<Pick<VenueTable, 'name' | 'shape' | 'capacity'>>) => {
+        try {
+            const { error } = await supabase
+                .from('venue_tables')
+                .update({ ...changes, updated_at: new Date().toISOString() })
+                .eq('id', id)
+            if (error) throw error
+            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedEvent?.id] })
+        } catch {
+            toast.error('שגיאה בעדכון שולחן')
+        }
+    }
+
+    const handleDeleteTable = async (id: string) => {
+        try {
+            await deleteVenueTable(id)
+            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedEvent?.id] })
+        } catch {
+            toast.error('שגיאה במחיקת שולחן')
+        }
+    }
+
     if (!selectedEvent) return (
         <div className="p-8 text-center" dir="rtl">
             <AlertCircle className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
@@ -140,7 +229,6 @@ export function NetworkingPage() {
         setError(null)
 
         try {
-            // Filter to only networking_opt_in participants
             const networkingParticipants = participants.filter(p => p.networking_opt_in)
 
             if (networkingParticipants.length === 0) {
@@ -155,10 +243,8 @@ export function NetworkingPage() {
                 companionsTogether: true
             }
 
-            // Run Greedy Seating
             const seatingMap = greedyTableSeating(networkingParticipants, constraints)
 
-            // Prepare for save
             const assignmentsToSave = []
             for (const [tableNum, tableParticipants] of seatingMap.entries()) {
                 for (const p of tableParticipants) {
@@ -223,9 +309,23 @@ export function NetworkingPage() {
                         trackColors={trackColors}
                         isLoading={isCalculating}
                         onGenerateSeating={handleRunAlgorithm}
-                        onMoveParticipant={(participantId, _, toTable) => 
+                        onMoveParticipant={(participantId, _, toTable) =>
                             moveMutation.mutate({ participantId, toTable })
                         }
+                        venueTableConfigs={venueTableConfigs}
+                        onTableMove={handleTableMove}
+                        onAddTable={handleAddTable}
+                        onUpdateTable={handleUpdateTable}
+                        onDeleteTable={handleDeleteTable}
+                        onOpenLayoutSelector={() => setShowLayoutSelector(true)}
+                    />
+                )}
+
+                {showLayoutSelector && (
+                    <VenueLayoutSelector
+                        eventId={selectedEvent.id}
+                        onSelect={handleLayoutSelect}
+                        onClose={() => setShowLayoutSelector(false)}
                     />
                 )}
             </div>

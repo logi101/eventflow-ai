@@ -73,4 +73,28 @@ export interface TableWithParticipants {
   isVipTable: boolean
   /** משתתפים שהוקצו לשולחן זה */
   participants: SeatingParticipant[]
+  /** מיקום על מפת האולם (מגיע מ-venue_tables) */
+  id?: string
+  name?: string
+  shape?: 'round' | 'rect'
+  x?: number
+  y?: number
+  rotation?: number
+}
+
+/**
+ * שולחן אולם - תצורה ומיקום על מפת הרצפה
+ */
+export interface VenueTable {
+  id: string
+  event_id: string
+  table_number: number
+  name: string
+  shape: 'round' | 'rect'
+  capacity: number
+  x: number
+  y: number
+  rotation: number
+  created_at?: string
+  updated_at?: string
 }

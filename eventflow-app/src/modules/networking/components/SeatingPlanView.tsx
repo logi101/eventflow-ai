@@ -12,8 +12,9 @@ import {
 import { LayoutGrid, Map as MapIcon, Settings2 } from 'lucide-react'
 import { TableAssignmentCard } from './TableAssignmentCard'
 import { FloorPlanView } from './FloorPlanView'
+import { TableManagerPanel } from './TableManagerPanel'
 import { DraggableParticipant } from '@/components/networking/DraggableParticipant'
-import type { SeatingParticipant, TableWithParticipants } from '@/modules/networking/types'
+import type { SeatingParticipant, TableWithParticipants, VenueTable } from '@/modules/networking/types'
 
 interface SeatingPlanViewProps {
   tables: TableWithParticipants[]
@@ -21,6 +22,12 @@ interface SeatingPlanViewProps {
   onGenerateSeating: () => void
   trackColors?: Map<string, string>
   isLoading?: boolean
+  venueTableConfigs: VenueTable[]
+  onTableMove: (tableId: string, x: number, y: number) => void
+  onAddTable: (name: string, shape: 'round' | 'rect', capacity: number) => void
+  onUpdateTable: (id: string, changes: Partial<Pick<VenueTable, 'name' | 'shape' | 'capacity'>>) => void
+  onDeleteTable: (id: string) => void
+  onOpenLayoutSelector: () => void
 }
 
 export function SeatingPlanView({
@@ -29,11 +36,19 @@ export function SeatingPlanView({
   onGenerateSeating,
   trackColors,
   isLoading = false,
+  venueTableConfigs,
+  onTableMove,
+  onAddTable,
+  onUpdateTable,
+  onDeleteTable,
+  onOpenLayoutSelector,
 }: SeatingPlanViewProps) {
   const [editMode, setEditMode] = useState(false)
   const [viewMode, setViewMode] = useState<'grid' | 'floor'>('grid')
+  const [floorZoom, setFloorZoom] = useState(1)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [activeParticipant, setActiveParticipant] = useState<SeatingParticipant | null>(null)
+  const [tablePanelOpen, setTablePanelOpen] = useState(true)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -42,6 +57,20 @@ export function SeatingPlanView({
       },
     })
   )
+
+  // Merge tables with venue configs for floor view
+  const mergedFloorTables = tables.map((t) => {
+    const cfg = venueTableConfigs.find((v) => v.table_number === t.tableNumber)
+    return {
+      ...t,
+      id: cfg?.id,
+      x: cfg?.x ?? 0,
+      y: cfg?.y ?? 0,
+      shape: cfg?.shape ?? ('round' as const),
+      name: cfg?.name ?? `שולחן ${t.tableNumber}`,
+      rotation: cfg?.rotation,
+    }
+  })
 
   function handleDragStart(event: DragStartEvent) {
     if (!editMode) return
@@ -67,17 +96,40 @@ export function SeatingPlanView({
 
     const { active, over } = event
 
+    // Handle table drag in floor view
+    if (active.data.current?.type === 'table') {
+      const tableId = active.data.current?.tableId as string | undefined
+      const tableNumber = active.data.current?.tableNumber as number | undefined
+      const cfg = tableId ? venueTableConfigs.find((v) => v.id === tableId) : venueTableConfigs.find((v) => v.table_number === tableNumber)
+      if (tableId && active.rect.current?.translated) {
+        const canvasEl = document.getElementById('floor-plan-canvas')
+        const canvasRect = canvasEl?.getBoundingClientRect()
+        if (canvasRect) {
+          const newX = (active.rect.current.translated.left - canvasRect.left) / floorZoom
+          const newY = (active.rect.current.translated.top - canvasRect.top) / floorZoom
+          onTableMove(tableId, Math.max(0, newX), Math.max(0, newY))
+        }
+      } else if (!tableId && cfg?.id && active.rect.current?.translated) {
+        const canvasEl = document.getElementById('floor-plan-canvas')
+        const canvasRect = canvasEl?.getBoundingClientRect()
+        if (canvasRect) {
+          const newX = (active.rect.current.translated.left - canvasRect.left) / floorZoom
+          const newY = (active.rect.current.translated.top - canvasRect.top) / floorZoom
+          onTableMove(cfg.id, Math.max(0, newX), Math.max(0, newY))
+        }
+      }
+      return
+    }
+
     if (!over) return
 
     const participantId = active.data.current?.participantId
     const sourceTable = active.data.current?.sourceTable
-    
-    // Handle drop on table (grid view) OR on seat (floor plan)
+
     const overId = over.id as string
     let targetTable: number | undefined
 
     if (overId.startsWith('table-')) {
-      // Format: table-1 or table-1-seat-5
       const parts = overId.split('-')
       targetTable = parseInt(parts[1])
     }
@@ -129,6 +181,14 @@ export function SeatingPlanView({
 
         <div className="flex gap-3">
           <button
+            onClick={onOpenLayoutSelector}
+            className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Settings2 size={18} />
+            הגדרות אולם
+          </button>
+
+          <button
             onClick={onGenerateSeating}
             disabled={isLoading || editMode}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -144,7 +204,7 @@ export function SeatingPlanView({
               ${editMode ? 'bg-orange-50 border-orange-200 text-orange-700' : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'}
             `}
           >
-            {editMode ? '✅ סיום עריכה' : <><Settings2 size={18} /> עריכה ידנית</>}
+            {editMode ? '✅ סיום עריכה' : '✏️ עריכה ידנית'}
           </button>
         </div>
       </div>
@@ -168,9 +228,24 @@ export function SeatingPlanView({
             ))}
           </div>
         ) : (
-          <FloorPlanView 
-            tables={tables}
-          />
+          <div className="flex rounded-2xl overflow-hidden border border-zinc-700">
+            <div className="flex-1" id="floor-plan-canvas">
+              <FloorPlanView
+                tables={mergedFloorTables}
+                editable={editMode}
+                zoom={floorZoom}
+                onZoomChange={setFloorZoom}
+              />
+            </div>
+            <TableManagerPanel
+              tables={venueTableConfigs}
+              onAdd={onAddTable}
+              onUpdate={onUpdateTable}
+              onDelete={onDeleteTable}
+              isOpen={tablePanelOpen}
+              onToggle={() => setTablePanelOpen(!tablePanelOpen)}
+            />
+          </div>
         )}
 
         {/* Drag Overlay */}

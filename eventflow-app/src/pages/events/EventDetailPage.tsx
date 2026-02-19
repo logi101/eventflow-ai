@@ -1002,8 +1002,14 @@ export function EventDetailPage({ initialTab = 'overview' }: { initialTab?: stri
             <FeatureGuard feature="networking">
               <SeatingPlanView
                 tables={memoizedSeatingTables}
-                onMoveParticipant={() => {}} // Not implemented in this view yet
-                onGenerateSeating={() => {}} // Not implemented in this view yet
+                onMoveParticipant={() => {}}
+                onGenerateSeating={() => {}}
+                venueTableConfigs={[]}
+                onTableMove={() => {}}
+                onAddTable={() => {}}
+                onUpdateTable={() => {}}
+                onDeleteTable={() => {}}
+                onOpenLayoutSelector={() => {}}
               />
             </FeatureGuard>
           )}

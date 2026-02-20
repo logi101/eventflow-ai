@@ -228,7 +228,7 @@ export function SeatingPlanView({
           <TableToolbox onAddTable={onAddTable} />
 
           {/* Center: Floor plan */}
-          <div className="flex-1 relative" id="floor-plan-canvas">
+          <div className="flex-1 relative min-w-0" id="floor-plan-canvas">
             <FloorPlanView
               tables={mergedFloorTables}
               editable={editMode}

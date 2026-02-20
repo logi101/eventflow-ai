@@ -223,7 +223,7 @@ export function SeatingPlanView({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex border-x border-b border-zinc-700 rounded-b-xl overflow-hidden" style={{ minHeight: 600 }}>
+        <div className="flex border-x border-b border-zinc-700 rounded-b-xl overflow-hidden" dir="ltr" style={{ minHeight: 600 }}>
           {/* Left: Toolbox */}
           <TableToolbox onAddTable={onAddTable} />
 

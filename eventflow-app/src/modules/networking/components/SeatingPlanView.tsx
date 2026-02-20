@@ -98,8 +98,8 @@ export function SeatingPlanView({
 
     const { active, over } = event
 
-    // Handle table move in floor view (edit mode)
-    if (active.data.current?.type === 'table' && editMode) {
+    // Handle table move in floor view (always allowed)
+    if (active.data.current?.type === 'table') {
       const tableId = active.data.current?.tableId as string | undefined
       const tableNumber = active.data.current?.tableNumber as number | undefined
       const cfg = tableId
@@ -231,7 +231,6 @@ export function SeatingPlanView({
           <div className="flex-1 relative min-w-0" id="floor-plan-canvas">
             <FloorPlanView
               tables={mergedFloorTables}
-              editable={editMode}
               zoom={floorZoom}
               onZoomChange={setFloorZoom}
             />

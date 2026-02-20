@@ -6,7 +6,6 @@ interface FloorPlanViewProps {
   tables: (TableWithParticipants & { id?: string; x?: number; y?: number; rotation?: number; name?: string; shape?: 'round' | 'rect' })[]
   onTableMove?: (tableId: string, x: number, y: number) => void
   onParticipantMove?: (participantId: string, fromTable: number, toTable: number) => void
-  editable?: boolean
   zoom: number
   onZoomChange: (z: number) => void
 }
@@ -21,11 +20,10 @@ function getAutoPosition(index: number) {
 interface DraggableTableWrapperProps {
   table: FloorPlanViewProps['tables'][number]
   index: number
-  editable: boolean
   children: React.ReactNode
 }
 
-function DraggableTableWrapper({ table, index, editable, children }: DraggableTableWrapperProps) {
+function DraggableTableWrapper({ table, index, children }: DraggableTableWrapperProps) {
   const auto = getAutoPosition(index)
   const posX = table.x ?? auto.x
   const posY = table.y ?? auto.y
@@ -33,7 +31,6 @@ function DraggableTableWrapper({ table, index, editable, children }: DraggableTa
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: `drag-table-${table.tableNumber}`,
     data: { type: 'table', tableNumber: table.tableNumber, tableId: table.id },
-    disabled: !editable,
   })
 
   return (
@@ -46,7 +43,7 @@ function DraggableTableWrapper({ table, index, editable, children }: DraggableTa
         left: posX,
         top: posY,
         transform: isDragging && transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
-        cursor: editable ? (isDragging ? 'grabbing' : 'grab') : 'default',
+        cursor: isDragging ? 'grabbing' : 'grab',
         zIndex: isDragging ? 50 : 1,
       }}
     >
@@ -57,7 +54,6 @@ function DraggableTableWrapper({ table, index, editable, children }: DraggableTa
 
 export function FloorPlanView({
   tables,
-  editable = false,
   zoom,
   onZoomChange,
 }: FloorPlanViewProps) {
@@ -103,7 +99,6 @@ export function FloorPlanView({
             key={table.tableNumber}
             table={table}
             index={index}
-            editable={editable}
           >
             <VisualTable
               id={`vtable-${table.tableNumber}`}

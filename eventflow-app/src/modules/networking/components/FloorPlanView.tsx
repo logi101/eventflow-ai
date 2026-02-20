@@ -59,6 +59,7 @@ export function FloorPlanView({
 }: FloorPlanViewProps) {
   return (
     <div
+      id="floor-plan-scroll"
       className="relative w-full overflow-auto bg-zinc-900 rounded-2xl border border-zinc-700 min-h-[600px]"
       style={{
         backgroundImage: 'radial-gradient(circle, rgba(255,255,255,0.05) 1px, transparent 1px)',

@@ -107,11 +107,13 @@ export function SeatingPlanView({
         : venueTableConfigs.find((v) => v.table_number === tableNumber)
       const resolvedId = tableId ?? cfg?.id
       if (resolvedId && active.rect.current?.translated) {
-        const canvasEl = document.getElementById('floor-plan-canvas')
-        const canvasRect = canvasEl?.getBoundingClientRect()
-        if (canvasRect) {
-          const newX = (active.rect.current.translated.left - canvasRect.left) / floorZoom
-          const newY = (active.rect.current.translated.top - canvasRect.top) / floorZoom
+        const scrollEl = document.getElementById('floor-plan-scroll')
+        const canvasRect = scrollEl?.getBoundingClientRect()
+        if (canvasRect && scrollEl) {
+          const scrollLeft = scrollEl.scrollLeft
+          const scrollTop = scrollEl.scrollTop
+          const newX = (active.rect.current.translated.left - canvasRect.left + scrollLeft) / floorZoom
+          const newY = (active.rect.current.translated.top - canvasRect.top + scrollTop) / floorZoom
           onTableMove(resolvedId, Math.max(0, newX), Math.max(0, newY))
         }
       }

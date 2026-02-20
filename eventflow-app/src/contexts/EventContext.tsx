@@ -72,8 +72,9 @@ export function EventProvider({ children }: { children: ReactNode }) {
 
   // Restore selected event from localStorage on mount
   useEffect(() => {
+    if (selectedEvent || allEvents.length === 0) return
     const savedEventId = localStorage.getItem('selectedEventId')
-    if (savedEventId && !selectedEvent && allEvents.length > 0) {
+    if (savedEventId) {
       // Only restore if the saved event actually belongs to this user
       const owned = allEvents.find(e => e.id === savedEventId)
       if (owned) {
@@ -83,6 +84,9 @@ export function EventProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem('selectedEventId')
         setSelectedEvent(allEvents[0])
       }
+    } else {
+      // No saved event (new device / cleared storage) — auto-select most recent
+      setSelectedEvent(allEvents[0])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allEvents])

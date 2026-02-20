@@ -11,7 +11,6 @@ import {
   upsertVenueTables,
   updateVenueTablePosition,
   saveVenueTable,
-  deleteVenueTable,
 } from '../../modules/networking/services/seatingService'
 import { supabase } from '../../lib/supabase'
 import { Loader2, Share2, AlertCircle } from 'lucide-react'
@@ -207,15 +206,6 @@ export function NetworkingPage() {
         }
     }
 
-    const handleDeleteTable = async (id: string) => {
-        try {
-            await deleteVenueTable(id)
-            queryClient.invalidateQueries({ queryKey: ['venue-tables', selectedEvent?.id] })
-        } catch {
-            toast.error('שגיאה במחיקת שולחן')
-        }
-    }
-
     if (!selectedEvent) return (
         <div className="p-8 text-center" dir="rtl">
             <AlertCircle className="w-12 h-12 text-zinc-300 mx-auto mb-4" />
@@ -306,17 +296,53 @@ export function NetworkingPage() {
                 ) : (
                     <SeatingPlanView
                         tables={tables}
+                        participants={participants.map(p => ({
+                            id: p.id,
+                            first_name: p.first_name,
+                            last_name: p.last_name,
+                            is_vip: p.is_vip,
+                            networking_opt_in: p.networking_opt_in,
+                            tracks: p.tracks.map(t => t.id),
+                            companion_id: p.companion_id ?? undefined,
+                        }))}
+                        assignments={assignments}
                         trackColors={trackColors}
                         isLoading={isCalculating}
                         onGenerateSeating={handleRunAlgorithm}
                         onMoveParticipant={(participantId, _, toTable) =>
                             moveMutation.mutate({ participantId, toTable })
                         }
+                        onAssignToSeat={async (participantId, tableNumber, seatNumber) => {
+                            try {
+                                await supabase.from('table_assignments').upsert({
+                                    event_id: selectedEvent.id,
+                                    participant_id: participantId,
+                                    table_number: tableNumber,
+                                    seat_number: seatNumber,
+                                    is_vip_table: false,
+                                    assigned_by: 'manager',
+                                    assigned_at: new Date().toISOString(),
+                                }, { onConflict: 'event_id,participant_id' })
+                                queryClient.invalidateQueries({ queryKey: ['table-assignments', selectedEvent.id] })
+                            } catch {
+                                toast.error('שגיאה בשיבוץ מקום')
+                            }
+                        }}
+                        onRemoveAssignment={async (participantId) => {
+                            try {
+                                await supabase.from('table_assignments')
+                                    .delete()
+                                    .eq('event_id', selectedEvent.id)
+                                    .eq('participant_id', participantId)
+                                queryClient.invalidateQueries({ queryKey: ['table-assignments', selectedEvent.id] })
+                            } catch {
+                                toast.error('שגיאה בהסרת שיבוץ')
+                            }
+                        }}
                         venueTableConfigs={venueTableConfigs}
                         onTableMove={handleTableMove}
                         onAddTable={handleAddTable}
                         onUpdateTable={handleUpdateTable}
-                        onDeleteTable={handleDeleteTable}
                         onOpenLayoutSelector={() => setShowLayoutSelector(true)}
                     />
                 )}

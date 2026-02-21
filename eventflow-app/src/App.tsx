@@ -39,6 +39,7 @@ const UserManagementPage = lazy(() => import('./pages/admin/UserManagementPage')
 const SimulationPage = lazy(() => import('./pages/event/SimulationPage').then(m => ({ default: m.SimulationPage })))
 const NetworkingPage = lazy(() => import('./pages/event/NetworkingPage').then(m => ({ default: m.NetworkingPage })))
 const ContingencyPage = lazy(() => import('./pages/event/ContingencyPage').then(m => ({ default: m.ContingencyPage })))
+const RoomManagementPage = lazy(() => import('./pages/event/RoomManagementPage').then(m => ({ default: m.RoomManagementPage })))
 const AIAssistantPage = lazy(() => import('./pages/ai/AIAssistantPage').then(m => ({ default: m.AIAssistantPage })))
 const ReportsPage = lazy(() => import('./pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })))
 const FeedbackPage = lazy(() => import('./pages/feedback/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
@@ -107,6 +108,7 @@ function AppLayout() {
           <Route path="/event/simulation" element={<Suspense fallback={<LazyFallback />}><SimulationPage /></Suspense>} />
           <Route path="/event/networking" element={<Suspense fallback={<LazyFallback />}><NetworkingPage /></Suspense>} />
           <Route path="/event/contingency" element={<Suspense fallback={<LazyFallback />}><ContingencyPage /></Suspense>} />
+          <Route path="/event/rooms" element={<Suspense fallback={<LazyFallback />}><RoomManagementPage /></Suspense>} />
 
           {/* Global Routes (no event required) */}
           <Route path="/ai" element={

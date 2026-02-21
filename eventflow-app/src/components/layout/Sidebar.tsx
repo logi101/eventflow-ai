@@ -34,6 +34,7 @@ import {
   PlayCircle,
   Share2,
   AlertTriangle,
+  Hotel,
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -61,6 +62,7 @@ const eventLinks = [
   { to: '/event/simulation', icon: PlayCircle, label: 'סימולציה' },
   { to: '/event/networking', icon: Share2, label: 'נטוורקינג' },
   { to: '/event/contingency', icon: AlertTriangle, label: 'תקלות ומשברים' },
+  { to: '/event/rooms', icon: Hotel, label: 'חדרים ולינה' },
 ]
 
 // Global links (always visible)

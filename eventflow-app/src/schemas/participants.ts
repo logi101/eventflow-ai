@@ -49,6 +49,7 @@ export const participantSchema = z.object({
   notes: z.string().nullable(),
   internal_notes: z.string().nullable(),
   is_vip: z.boolean().default(false),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).nullable().default('prefer_not_to_say'),
   vip_notes: z.string().nullable(),
   invited_at: z.string().nullable(),
   confirmed_at: z.string().nullable(),
@@ -81,6 +82,7 @@ export const createParticipantSchema = z.object({
   transportation_location: z.string().optional(),
   notes: z.string().optional(),
   is_vip: z.boolean().default(false),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).nullable().default('prefer_not_to_say'),
   vip_notes: z.string().optional()
 })
 
@@ -105,6 +107,7 @@ export const participantFormDataSchema = z.object({
   transportation_location: z.string(),
   notes: z.string(),
   is_vip: z.boolean(),
+  gender: z.enum(['male', 'female', 'other', 'prefer_not_to_say']).nullable().default('prefer_not_to_say'),
   vip_notes: z.string()
 })
 

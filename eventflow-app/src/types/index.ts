@@ -74,6 +74,7 @@ export interface Participant {
   notes: string | null
   internal_notes: string | null
   is_vip: boolean
+  gender: 'male' | 'female' | 'other' | 'prefer_not_to_say' | null
   vip_notes: string | null
   networking_opt_in: boolean
   invited_at: string | null
@@ -566,9 +567,71 @@ export interface ParticipantRoom {
   notes: string | null
   is_confirmed: boolean
   confirmed_at: string | null
+  roommate_participant_id: string | null
+  assigned_by: 'manual' | 'auto' | 'ai'
   created_at: string
   updated_at: string
   participants?: Participant
+}
+
+export type GenderSeparationPolicy = 'mixed' | 'full_separation' | 'male_separate' | 'female_separate'
+
+export interface RoomPolicy {
+  gender_separation: GenderSeparationPolicy
+  couple_same_room: boolean
+  vip_priority: boolean
+  accessible_priority: boolean
+}
+
+export interface ParticipantGroup {
+  id: string
+  event_id: string
+  name: string
+  group_type: 'family' | 'friends' | 'track' | 'team' | 'custom'
+  prefer_same_room: boolean
+  prefer_adjacent: boolean
+  notes: string | null
+  created_at: string
+  members?: ParticipantGroupMember[]
+}
+
+export interface ParticipantGroupMember {
+  id: string
+  group_id: string
+  participant_id: string
+  participants?: Participant
+}
+
+export interface RoomAssignmentSuggestion {
+  participant_id: string
+  participant_name: string
+  room_number: string
+  building: string | null
+  floor: string | null
+  room_type: RoomType
+  bed_configuration: BedConfiguration
+  roommate_participant_id: string | null
+  roommate_name: string | null
+  reason: string
+}
+
+export interface RoomAssignmentResult {
+  assignments: RoomAssignmentSuggestion[]
+  conflicts: RoomAssignmentConflict[]
+  stats: {
+    total_participants: number
+    assigned: number
+    unassigned: number
+    rooms_used: number
+    rooms_available: number
+  }
+}
+
+export interface RoomAssignmentConflict {
+  type: 'insufficient_rooms' | 'gender_violation' | 'accessibility_unmet' | 'vip_unmet' | 'couple_separated'
+  severity: 'warning' | 'error'
+  message: string
+  participant_ids: string[]
 }
 
 export interface ParticipantRoomFormData {

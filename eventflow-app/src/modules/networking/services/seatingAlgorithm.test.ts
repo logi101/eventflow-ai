@@ -23,6 +23,7 @@ const createParticipant = (id: string, isVip = false, tracks: string[] = [], com
   notes: null,
   internal_notes: null,
   is_vip: isVip,
+  gender: null,
   vip_notes: null,
   networking_opt_in: true,
   invited_at: null,

@@ -221,47 +221,47 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
     return (
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-3">
-          <Loader2 size={32} className="animate-spin text-[#C4704B]" />
-          <p className="text-[#8B8680]">טוען משתתפים...</p>
+          <Loader2 size={32} className="animate-spin text-blue-400" />
+          <p className="text-zinc-400">טוען משתתפים...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="h-full flex flex-col" style={{ background: 'var(--ef-cream, #FAF8F5)' }}>
+    <div className="h-full flex flex-col bg-zinc-900/30">
       {/* Header */}
-      <div className="bg-white border-b border-[#E8E4DD] px-6 py-4">
+      <div className="bg-zinc-900/50 border-b border-white/10 px-6 py-4">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#C4704B]/10 flex items-center justify-center">
-              <Hotel size={20} className="text-[#C4704B]" />
+            <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+              <Hotel size={20} className="text-blue-400" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#1F1D1A]" style={{ fontFamily: 'Rubik, sans-serif' }}>
+              <h2 className="text-lg font-semibold text-white">
                 שיוך חדרים
               </h2>
-              <p className="text-sm text-[#8B8680]">
+              <p className="text-sm text-zinc-400">
                 {assignedCount} משויכים מתוך {participants.length}
               </p>
             </div>
           </div>
           {onClose && (
-            <button onClick={onClose} className="p-2 hover:bg-[#E8E4DD] rounded-lg transition-colors">
-              <X size={20} className="text-[#8B8680]" />
+            <button onClick={onClose} className="p-2 hover:bg-zinc-700 rounded-lg transition-colors">
+              <X size={20} className="text-zinc-400" />
             </button>
           )}
         </div>
 
         {/* Stats */}
         <div className="flex gap-3 mb-4">
-          <div className="flex-1 bg-[#6B9B7A]/10 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-[#6B9B7A]">{assignedCount}</p>
-            <p className="text-xs text-[#6B9B7A]">משויכים</p>
+          <div className="flex-1 bg-emerald-500/10 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-emerald-400">{assignedCount}</p>
+            <p className="text-xs text-emerald-500">משויכים</p>
           </div>
-          <div className="flex-1 bg-[#D4A853]/10 rounded-xl p-3 text-center">
-            <p className="text-2xl font-bold text-[#9A7A30]">{unassignedCount}</p>
-            <p className="text-xs text-[#9A7A30]">ממתינים</p>
+          <div className="flex-1 bg-amber-500/10 rounded-xl p-3 text-center">
+            <p className="text-2xl font-bold text-amber-400">{unassignedCount}</p>
+            <p className="text-xs text-amber-500">ממתינים</p>
           </div>
         </div>
 
@@ -271,8 +271,8 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
             onClick={() => setViewMode('list')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'list'
-                ? 'bg-[#C4704B] text-white'
-                : 'bg-white border border-[#E8E4DD] text-[#8B8680] hover:border-[#D4CFC6]'
+                ? 'bg-blue-600 text-white'
+                : 'bg-zinc-800 border border-white/10 text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <List size={16} />
@@ -282,8 +282,8 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
             onClick={() => setViewMode('grid')}
             className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               viewMode === 'grid'
-                ? 'bg-[#C4704B] text-white'
-                : 'bg-white border border-[#E8E4DD] text-[#8B8680] hover:border-[#D4CFC6]'
+                ? 'bg-blue-600 text-white'
+                : 'bg-zinc-800 border border-white/10 text-zinc-400 hover:text-zinc-200'
             }`}
           >
             <Grid3x3 size={16} />
@@ -294,28 +294,26 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
         {/* Search and Filter */}
         <div className="flex gap-3">
           <div className="flex-1 relative">
-            <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8B8680]" />
+            <Search size={18} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400" />
             <input
               type="text"
               placeholder="חיפוש לפי שם או טלפון..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B] transition-colors"
-              style={{ background: 'white' }}
+              className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500 transition-colors"
             />
           </div>
           <div className="relative">
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value as 'all' | 'assigned' | 'unassigned')}
-              className="appearance-none px-4 py-2.5 pr-10 rounded-xl border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B] cursor-pointer"
-              style={{ background: 'white' }}
+              className="appearance-none px-4 py-2.5 pr-10 rounded-xl border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="all">הכל</option>
               <option value="assigned">משויכים</option>
               <option value="unassigned">ממתינים</option>
             </select>
-            <ChevronDown size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#8B8680] pointer-events-none" />
+            <ChevronDown size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 pointer-events-none" />
           </div>
         </div>
       </div>
@@ -350,17 +348,17 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
           {filtered.map(participant => (
             <div
               key={participant.id}
-              className={`bg-white rounded-xl border transition-all ${
+              className={`bg-zinc-800/50 rounded-xl border transition-all ${
                 editingId === participant.id
-                  ? 'border-[#C4704B] shadow-lg'
-                  : 'border-[#E8E4DD] hover:border-[#D4CFC6]'
+                  ? 'border-blue-500'
+                  : 'border-white/10 hover:border-white/20'
               }`}
             >
               {/* Participant Header */}
               <div className="flex items-center gap-4 p-4">
                 {/* Avatar */}
-                <div className="w-11 h-11 rounded-full bg-[#E8E4DD] flex items-center justify-center flex-shrink-0">
-                  <span className="text-sm font-semibold text-[#3D3A36]">
+                <div className="w-11 h-11 rounded-full bg-zinc-700 flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-semibold text-zinc-200">
                     {participant.first_name[0]}{participant.last_name[0]}
                   </span>
                 </div>
@@ -368,36 +366,36 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-[#1F1D1A]">
+                    <h3 className="font-medium text-white">
                       {participant.first_name} {participant.last_name}
                     </h3>
                     {participant.is_vip && (
-                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-[#D4A853]/15 text-[#9A7A30]">
+                      <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-500/15 text-amber-400">
                         VIP
                       </span>
                     )}
                   </div>
-                  <p className="text-sm text-[#8B8680]">{participant.phone}</p>
+                  <p className="text-sm text-zinc-400">{participant.phone}</p>
                 </div>
 
                 {/* Room Status */}
                 {participant.room ? (
                   <div className="flex items-center gap-3">
                     <div className="text-left">
-                      <p className="text-sm font-medium text-[#1F1D1A]">
+                      <p className="text-sm font-medium text-white">
                         חדר {participant.room.room_number}
                       </p>
-                      <p className="text-xs text-[#8B8680]">
+                      <p className="text-xs text-zinc-400">
                         {participant.room.building && `${participant.room.building} • `}
                         קומה {participant.room.floor || '-'}
                       </p>
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-[#6B9B7A]/15 flex items-center justify-center">
-                      <Check size={16} className="text-[#6B9B7A]" />
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                      <Check size={16} className="text-emerald-400" />
                     </div>
                   </div>
                 ) : (
-                  <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-[#D4A853]/10 text-[#9A7A30]">
+                  <span className="px-3 py-1.5 text-xs font-medium rounded-lg bg-amber-500/10 text-amber-400">
                     ממתין לשיוך
                   </span>
                 )}
@@ -407,8 +405,8 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                   onClick={() => editingId === participant.id ? setEditingId(null) : startEditing(participant)}
                   className={`p-2 rounded-lg transition-colors ${
                     editingId === participant.id
-                      ? 'bg-[#C4704B] text-white'
-                      : 'hover:bg-[#E8E4DD] text-[#8B8680]'
+                      ? 'bg-blue-600 text-white'
+                      : 'hover:bg-zinc-700 text-zinc-400'
                   }`}
                 >
                   {editingId === participant.id ? <X size={18} /> : <Edit2 size={18} />}
@@ -417,11 +415,11 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
 
               {/* Expanded Edit Form */}
               {editingId === participant.id && (
-                <div className="border-t border-[#E8E4DD] p-4 bg-[#FAF8F5] rounded-b-xl">
+                <div className="border-t border-white/10 p-4 bg-zinc-900/50 rounded-b-xl">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {/* Room Number */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         <DoorOpen size={14} className="inline ml-1" />
                         מספר חדר *
                       </label>
@@ -430,13 +428,13 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                         value={roomForm.room_number}
                         onChange={e => setRoomForm({ ...roomForm, room_number: e.target.value })}
                         placeholder="101"
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </div>
 
                     {/* Building */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         <Building2 size={14} className="inline ml-1" />
                         בניין
                       </label>
@@ -445,13 +443,13 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                         value={roomForm.building}
                         onChange={e => setRoomForm({ ...roomForm, building: e.target.value })}
                         placeholder="מגדל A"
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </div>
 
                     {/* Floor */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         קומה
                       </label>
                       <input
@@ -459,19 +457,19 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                         value={roomForm.floor}
                         onChange={e => setRoomForm({ ...roomForm, floor: e.target.value })}
                         placeholder="3"
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </div>
 
                     {/* Room Type */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         סוג חדר
                       </label>
                       <select
                         value={roomForm.room_type}
                         onChange={e => setRoomForm({ ...roomForm, room_type: e.target.value as RoomType })}
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       >
                         {Object.entries(roomTypeLabels).map(([value, label]) => (
                           <option key={value} value={value}>{label}</option>
@@ -483,14 +481,14 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {/* Bed Configuration */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         <Bed size={14} className="inline ml-1" />
                         סוג מיטה
                       </label>
                       <select
                         value={roomForm.bed_configuration}
                         onChange={e => setRoomForm({ ...roomForm, bed_configuration: e.target.value as BedConfiguration })}
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       >
                         {Object.entries(bedLabels).map(([value, label]) => (
                           <option key={value} value={value}>{label}</option>
@@ -500,33 +498,33 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
 
                     {/* Check-in Date */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         צ׳ק-אין
                       </label>
                       <input
                         type="date"
                         value={roomForm.check_in_date}
                         onChange={e => setRoomForm({ ...roomForm, check_in_date: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </div>
 
                     {/* Check-out Date */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         צ׳ק-אאוט
                       </label>
                       <input
                         type="date"
                         value={roomForm.check_out_date}
                         onChange={e => setRoomForm({ ...roomForm, check_out_date: e.target.value })}
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </div>
 
                     {/* Special Requests */}
                     <div>
-                      <label className="block text-xs font-medium text-[#8B8680] mb-1.5">
+                      <label className="block text-xs text-zinc-400 mb-1.5">
                         בקשות מיוחדות
                       </label>
                       <input
@@ -534,7 +532,7 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                         value={roomForm.special_requests}
                         onChange={e => setRoomForm({ ...roomForm, special_requests: e.target.value })}
                         placeholder="קומה גבוהה, נוף לים..."
-                        className="w-full px-3 py-2 rounded-lg border border-[#E8E4DD] text-sm focus:outline-none focus:border-[#C4704B]"
+                        className="w-full px-3 py-2 rounded-lg border border-white/10 bg-zinc-900 text-white text-sm focus:outline-none focus:border-blue-500"
                       />
                     </div>
                   </div>
@@ -543,18 +541,14 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => setEditingId(null)}
-                      className="px-4 py-2 text-sm text-[#8B8680] hover:bg-white rounded-lg transition-colors"
+                      className="px-4 py-2 text-sm text-zinc-400 hover:bg-zinc-700 rounded-lg transition-colors"
                     >
                       ביטול
                     </button>
                     <button
                       onClick={() => saveRoomAssignment(participant.id)}
                       disabled={!roomForm.room_number || saving}
-                      className="px-5 py-2 text-sm font-medium text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                      style={{
-                        background: '#C4704B',
-                        boxShadow: '0 2px 8px rgba(196, 112, 75, 0.25)'
-                      }}
+                      className="px-5 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                     >
                       {saving ? (
                         <>
@@ -576,8 +570,8 @@ export function RoomAssignmentPanel({ eventId, onClose }: RoomAssignmentPanelPro
 
           {filtered.length === 0 && (
             <div className="text-center py-12">
-              <User size={40} className="mx-auto text-[#D4CFC6] mb-3" />
-              <p className="text-[#8B8680]">לא נמצאו משתתפים</p>
+              <User size={40} className="mx-auto text-zinc-600 mb-3" />
+              <p className="text-zinc-500">לא נמצאו משתתפים</p>
             </div>
           )}
         </div>

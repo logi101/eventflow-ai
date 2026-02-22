@@ -35,6 +35,7 @@ import {
   Share2,
   AlertTriangle,
   Hotel,
+  LogOut,
 } from 'lucide-react'
 import { useEvent } from '../../contexts/EventContext'
 import { useAuth } from '../../contexts/AuthContext'
@@ -73,7 +74,7 @@ const globalLinks = [
 export function Sidebar() {
   const location = useLocation()
   const { selectedEvent, clearSelectedEvent } = useEvent()
-  const { isSuperAdmin } = useAuth()
+  const { isSuperAdmin, signOut } = useAuth()
 
   // Initialize based on screen size; useEffect responds to changes.
   const [isOpen, setIsOpen] = useState(() => window.matchMedia('(min-width: 768px)').matches)
@@ -425,6 +426,16 @@ export function Sidebar() {
               <Settings size={18} className="shrink-0" />
               {isOpen && <span>הגדרות</span>}
             </Link>
+            <button
+              onClick={() => signOut()}
+              className={`w-full flex items-center gap-3.5 rounded-xl text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 font-medium
+                ${isOpen ? 'px-4 py-3.5 text-[15px]' : 'justify-center px-0 py-3'}`}
+              title={!isOpen ? 'יציאה' : undefined}
+              data-testid="logout-button"
+            >
+              <LogOut size={18} className="shrink-0" />
+              {isOpen && <span>יציאה</span>}
+            </button>
           </div>
         </div>
       </aside>

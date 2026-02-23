@@ -94,7 +94,6 @@ export function PublicRsvpPage() {
       event_id: event.id,
       first_name: data.first_name,
       last_name: data.last_name,
-      full_name: `${data.first_name} ${data.last_name}`,
       phone: data.phone,
       phone_normalized: normalizePhone(data.phone),
       email: data.email || null,

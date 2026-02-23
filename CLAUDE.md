@@ -1,8 +1,9 @@
 # EventFlow AI - Smart Event Production System
 
 **Project Type**: Full-Stack Web Application
-**Status**: Scaffold Ready
-**Version**: 2.0.0
+**Status**: Production-Verified
+**Version**: 2.2.0
+**Last Updated**: 2026-02-23T00:00:00Z
 
 ---
 
@@ -225,9 +226,27 @@ ENCRYPTION_KEY=your-32-char-encryption-key-here
 
 ---
 
+## Quality Baseline (2026-02-23)
+
+| Metric | Value |
+|--------|-------|
+| TypeScript | 0 errors (tsc --noEmit) |
+| ESLint | 0 warnings |
+| Unit Tests | 126/126 passing (Vitest) |
+| E2E Tests | 11/11 PASS (login, dashboard, events, create event, participants, vendors, checklist, messages, ai-chat, networking, logout) |
+| Build | Clean |
+| Latest Commit | 106b553 on main |
+| Deployed | https://eventflow-ai-prod.web.app |
+
+## Recent Changes
+
+- **2026-02-23:** Fixed events INSERT 403 — added SECURITY DEFINER to 4 usage trigger functions (increment_event_usage, increment_participant_usage, increment_message_usage, increment_ai_message_usage) via Supabase migration on project byhohetafnhlakqbydbj. Added logout button to Sidebar.tsx (LogOut icon, signOut() from useAuth(), data-testid="logout-button", label "יציאה", red on hover). E2E suite 11/11 PASS.
+- **2026-02-22:** Fixed ai-chat BOOT_ERROR — duplicate `const suggestions = []` in `executeSuggestRoomAssignments` caused Deno strict mode failure at startup. Merged tools.ts back into index.ts (2822 lines). All 9 edge functions verified working in production. AI Chat function calling verified end-to-end. Unit tests increased from 115 to 126.
+
 ## Notes
 
 - All UI is RTL-first (Hebrew primary)
 - Phone numbers are normalized to Israeli format (972...)
 - Companion support is built into participant management
 - Multi-tenant architecture with organization isolation
+- Edge Functions: 9 total (ai-chat, send-reminder, execute-ai-action, admin-set-tier, start-trial, budget-alerts, vendor-analysis, send-push-notification, _shared/quota-check)

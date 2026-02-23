@@ -235,11 +235,12 @@ ENCRYPTION_KEY=your-32-char-encryption-key-here
 | Unit Tests | 126/126 passing (Vitest) |
 | E2E Tests | 11/11 PASS (login, dashboard, events, create event, participants, vendors, checklist, messages, ai-chat, networking, logout) |
 | Build | Clean |
-| Latest Commit | 106b553 on main |
+| Latest Commit | 06300ab on main |
 | Deployed | https://eventflow-ai-prod.web.app |
 
 ## Recent Changes
 
+- **2026-02-23:** Public RSVP form — `/rsvp/:eventId` (no auth), anon RLS policies, WhatsApp confirmation via `send-reminder`. Toggle + copy-link in EventSettingsPanel. Two bugs found & fixed during Playwright testing: (1) `increment_participant_usage` trigger referenced `NEW.organization_id` which doesn't exist on `participants` — fixed to look up org via `events.organization_id`; (2) `full_name` is a generated column, removed from insert payload. 6/6 Playwright tests passing.
 - **2026-02-23:** Fixed events INSERT 403 — added SECURITY DEFINER to 4 usage trigger functions (increment_event_usage, increment_participant_usage, increment_message_usage, increment_ai_message_usage) via Supabase migration on project byhohetafnhlakqbydbj. Added logout button to Sidebar.tsx (LogOut icon, signOut() from useAuth(), data-testid="logout-button", label "יציאה", red on hover). E2E suite 11/11 PASS.
 - **2026-02-22:** Fixed ai-chat BOOT_ERROR — duplicate `const suggestions = []` in `executeSuggestRoomAssignments` caused Deno strict mode failure at startup. Merged tools.ts back into index.ts (2822 lines). All 9 edge functions verified working in production. AI Chat function calling verified end-to-end. Unit tests increased from 115 to 126.
 

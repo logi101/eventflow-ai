@@ -118,9 +118,9 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
 
 <div class="stats">
   <div class="stat"><div class="stat-num g">13</div><div class="stat-label">Implemented</div></div>
-  <div class="stat"><div class="stat-num y">5</div><div class="stat-label">Partial</div></div>
-  <div class="stat"><div class="stat-num r">2</div><div class="stat-label">Missing</div></div>
-  <div class="stat"><div class="stat-num b">74%</div><div class="stat-label">Overall</div></div>
+  <div class="stat"><div class="stat-num y">4</div><div class="stat-label">Partial</div></div>
+  <div class="stat"><div class="stat-num r">3</div><div class="stat-label">Missing</div></div>
+  <div class="stat"><div class="stat-num b">73%</div><div class="stat-label">Overall</div></div>
 </div>
 
 <div class="diagram-wrap">
@@ -139,7 +139,7 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
       <div class="box y" id="b-at">
         <div class="box-title">Attendee</div>
         <div class="box-desc">WhatsApp / Web Form</div>
-        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 60%</div>
+        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 80%</div>
       </div>
     </div>
   </div>
@@ -157,10 +157,10 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
         <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
       </div>
       <div class="spacer"></div>
-      <div class="box y" id="b-rf">
+      <div class="box g" id="b-rf">
         <div class="box-title">Registration Forms</div>
-        <div class="box-desc">Public &amp; Internal</div>
-        <div class="box-status"><span class="box-icon">&#x26A0;&#xFE0F;</span> 50%</div>
+        <div class="box-desc">Public RSVP + Internal</div>
+        <div class="box-status"><span class="box-icon">&#x2705;</span> 100%</div>
       </div>
       <div class="box y" id="b-ui">
         <div class="box-title">Unified Inbox</div>
@@ -277,7 +277,7 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
     <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Update Schedule</b> &mdash; Full CRUD</span></div>
     <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Auto-Generate Messages</b> &mdash; RPC + pg_cron 8 reminder types</span></div>
     <div class="flow y"><span class="flow-arrow">&#10132;</span><span><b>Vendor Responses</b> &mdash; DB exists, no auto-comms</span></div>
-    <div class="flow y"><span class="flow-arrow">&#10132;</span><span><b>Register / RSVP</b> &mdash; Internal only, no public form</span></div>
+    <div class="flow g"><span class="flow-arrow">&#10132;</span><span><b>Register / RSVP</b> &mdash; Public form + internal, WhatsApp confirmation</span></div>
     <div class="flow y"><span class="flow-arrow">&#10132;</span><span><b>Respond &amp; Interact</b> &mdash; Webhook + auto-reply</span></div>
     <div class="flow r"><span class="flow-arrow">&#10132;</span><span><b>Multi-Channel</b> &mdash; Only WhatsApp active</span></div>
     <div class="flow r"><span class="flow-arrow">&#10132;</span><span><b>Calendar Sync</b> &mdash; Not implemented</span></div>
@@ -293,8 +293,9 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
     <div class="feat g">&#x2705; Checklist Management</div>
     <div class="feat g">&#x2705; Excel Import / Export</div>
     <div class="feat g">&#x2705; Feedback Surveys</div>
+    <div class="feat g">&#x2705; Public RSVP Form</div>
     <div class="feat r">&#x274C; Payment Processing</div>
-    <div class="feat g">&#x2705; Automated Testing</div>
+    <div class="feat r">&#x274C; Automated Testing</div>
     <div class="feat r">&#x274C; Calendar Sync</div>
   </div>
 </div>
@@ -303,7 +304,7 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
   <h2>Change Log</h2>
   <div class="cl-entry">
     <div class="cl-date">2026-02-23</div>
-    <div>Fixed events INSERT 403 (SECURITY DEFINER on 4 usage trigger functions). Added logout button to Sidebar. Automated Testing → green (126 unit tests + E2E 11/11 PASS). <span class="cl-badge">FIX</span></div>
+    <div>Public RSVP form implemented: /rsvp/:eventId (no auth), anon DB policies, WhatsApp confirmation, toggle + copy-link in Event Settings. Registration Forms → 100% green. <span class="cl-badge">FEATURE</span></div>
   </div>
   <div class="cl-entry">
     <div class="cl-date">2026-02-01</div>
@@ -315,7 +316,7 @@ svg.lines { position:absolute; top:0; left:0; width:100%; height:100%; pointer-e
   </div>
 </div>
 
-<div class="footer">EventFlow AI &mdash; Architecture Status Map v1.2 &mdash; Last Updated 2026-02-23</div>
+<div class="footer">EventFlow AI &mdash; Architecture Status Map v1.3 &mdash; Last Updated 2026-02-23</div>
 
 <script>
 function pos(id, side) {

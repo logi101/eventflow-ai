@@ -149,3 +149,19 @@ export const participantStatusColors: Record<ParticipantStatus, string> = {
   checked_in: 'bg-emerald-900/40 text-emerald-300',
   no_show: 'bg-zinc-700/50 text-zinc-400'
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Public RSVP Schema (unauthenticated guest self-registration)
+// ────────────────────────────────────────────────────────────────────────────
+
+export const publicRsvpSchema = z.object({
+  first_name: z.string().min(2, 'שם פרטי נדרש'),
+  last_name:  z.string().min(2, 'שם משפחה נדרש'),
+  phone:      z.string().regex(ISRAELI_PHONE_REGEX, 'מספר טלפון לא תקין (10 ספרות, מתחיל ב-0)'),
+  email:      z.string().email('אימייל לא תקין').optional().or(z.literal('')),
+  has_companion:   z.boolean(),
+  companion_name:  z.string().min(2, 'שם מלווה נדרש').optional(),
+  companion_phone: z.string().regex(ISRAELI_PHONE_REGEX, 'מספר טלפון מלווה לא תקין').optional(),
+})
+
+export type PublicRsvpData = z.infer<typeof publicRsvpSchema>

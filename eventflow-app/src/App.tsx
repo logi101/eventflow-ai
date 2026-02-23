@@ -44,6 +44,7 @@ const AIAssistantPage = lazy(() => import('./pages/ai/AIAssistantPage').then(m =
 const ReportsPage = lazy(() => import('./pages/reports/ReportsPage').then(m => ({ default: m.ReportsPage })))
 const FeedbackPage = lazy(() => import('./pages/feedback/FeedbackPage').then(m => ({ default: m.FeedbackPage })))
 const CheckinPage = lazy(() => import('./pages/checkin/CheckinPage').then(m => ({ default: m.CheckinPage })))
+const PublicRsvpPage = lazy(() => import('./pages/rsvp/PublicRsvpPage').then(m => ({ default: m.PublicRsvpPage })))
 
 function LazyFallback() {
   return (
@@ -173,6 +174,15 @@ export default function App() {
 
   if (!isSupabaseConfigured) {
     return <SupabaseSetupNotice />
+  }
+
+  // Public RSVP page - no auth required
+  if (location.pathname.startsWith('/rsvp/')) {
+    return (
+      <Routes>
+        <Route path="/rsvp/:eventId" element={<Suspense fallback={<LazyFallback />}><PublicRsvpPage /></Suspense>} />
+      </Routes>
+    )
   }
 
   // Auth pages - full screen without sidebar

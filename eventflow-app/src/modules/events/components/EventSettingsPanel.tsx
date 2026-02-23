@@ -3,11 +3,13 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState } from 'react'
-import { Save, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Save, Loader2, ChevronDown, ChevronUp, Link as Link2, Copy, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { eventSettingsSchema, type EventSettings } from '../schemas/eventSettings'
 import { MessagePreview } from './MessagePreview'
 import { TestReminderButton } from './TestReminderButton'
+
+const APP_BASE_URL = 'https://eventflow-ai-prod.web.app'
 
 interface EventSettingsPanelProps {
   event: {
@@ -18,6 +20,7 @@ interface EventSettingsPanelProps {
     venue_name: string | null
     venue_address: string | null
     settings?: Record<string, boolean> | null
+    public_rsvp_enabled?: boolean | null
   }
 }
 
@@ -29,6 +32,30 @@ export function EventSettingsPanel({ event }: EventSettingsPanelProps) {
   const [settings, setSettings] = useState<EventSettings>(currentSettings)
   const [saving, setSaving] = useState(false)
   const [expandedReminder, setExpandedReminder] = useState<string | null>(null)
+
+  // RSVP state
+  const [rsvpEnabled, setRsvpEnabled] = useState(!!event.public_rsvp_enabled)
+  const [rsvpSaving, setRsvpSaving] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const rsvpUrl = `${APP_BASE_URL}/rsvp/${event.id}`
+
+  const handleRsvpToggle = async () => {
+    const next = !rsvpEnabled
+    setRsvpSaving(true)
+    const { error } = await supabase
+      .from('events')
+      .update({ public_rsvp_enabled: next })
+      .eq('id', event.id)
+    if (!error) setRsvpEnabled(next)
+    setRsvpSaving(false)
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(rsvpUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
 
   // Toast state
   const [toast, setToast] = useState<{ show: boolean; message: string; type: 'success' | 'error' }>({
@@ -238,6 +265,54 @@ export function EventSettingsPanel({ event }: EventSettingsPanelProps) {
           שלח הודעת בדיקה לטלפון שלך כדי לוודא שהכל עובד
         </p>
         <TestReminderButton eventId={event.id} />
+      </div>
+
+      {/* Public RSVP Section */}
+      <div className="card">
+        <h2 className="text-xl font-bold mb-2">הרשמה ציבורית (RSVP)</h2>
+        <p className="text-sm text-zinc-400 mb-4">
+          אפשר לאורחים להירשם לאירוע ישירות דרך קישור ציבורי, ללא צורך בהתחברות.
+        </p>
+
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            role="switch"
+            aria-checked={rsvpEnabled}
+            onClick={handleRsvpToggle}
+            disabled={rsvpSaving}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+              rsvpEnabled ? 'bg-orange-500' : 'bg-zinc-600'
+            } ${rsvpSaving ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                rsvpEnabled ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+          <span className="text-sm text-zinc-300">
+            {rsvpEnabled ? 'הרשמה ציבורית פעילה' : 'הרשמה ציבורית מושבתת'}
+          </span>
+          {rsvpSaving && <Loader2 className="animate-spin text-zinc-400" size={14} />}
+        </div>
+
+        {rsvpEnabled && (
+          <div className="flex items-center gap-2 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3">
+            <Link2 size={16} className="text-zinc-400 shrink-0" />
+            <span className="flex-1 text-sm text-zinc-300 truncate" dir="ltr">{rsvpUrl}</span>
+            <button
+              onClick={handleCopyLink}
+              className="shrink-0 p-1 hover:bg-zinc-700 rounded transition-colors"
+              title="העתק קישור"
+            >
+              {copied ? (
+                <Check size={16} className="text-green-400" />
+              ) : (
+                <Copy size={16} className="text-zinc-400" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

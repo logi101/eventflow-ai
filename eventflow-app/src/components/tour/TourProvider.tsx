@@ -5,7 +5,6 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { createContext, useContext, useEffect, useRef, useCallback, type ReactNode } from 'react'
-import { useLocation } from 'react-router-dom'
 import { driver, type DriveStep, type Config } from 'driver.js'
 import 'driver.js/dist/driver.css'
 
@@ -327,19 +326,6 @@ const PAGE_STEPS: Record<TourPage, DriveStep[]> = {
   ai:        aiSteps,
 }
 
-// ─── Route → TourPage map ────────────────────────────────────────────────────
-
-function routeToTourPage(pathname: string): TourPage | null {
-  if (pathname === '/' || pathname === '/events') return 'home'
-  if (pathname.includes('/dashboard')) return 'dashboard'
-  if (pathname.includes('/guests')) return 'guests'
-  if (pathname.includes('/vendors')) return 'vendors'
-  if (pathname.includes('/schedule') || pathname.includes('/program')) return 'schedule'
-  if (pathname.includes('/checklist')) return 'checklist'
-  if (pathname.includes('/messages')) return 'messages'
-  if (pathname.includes('/ai')) return 'ai'
-  return null
-}
 
 // ─── Driver config ───────────────────────────────────────────────────────────
 
@@ -376,8 +362,6 @@ const TourContext = createContext<TourContextValue | null>(null)
 
 export function TourProvider({ children }: { children: ReactNode }) {
   const driverRef = useRef<ReturnType<typeof driver> | null>(null)
-  const location = useLocation()
-  const visitedPages = useRef<Set<string>>(new Set())
 
   const isTourCompleted = useCallback(() =>
     localStorage.getItem(TOUR_STORAGE_KEY) === 'true', [])
@@ -415,31 +399,13 @@ export function TourProvider({ children }: { children: ReactNode }) {
     runTour(fullTourSteps)
   }, [runTour])
 
-  // Auto-start full tour on first visit
+  // Auto-start full tour on first login only
   useEffect(() => {
     if (!isTourCompleted()) {
       const t = setTimeout(startFullTour, 1200)
       return () => clearTimeout(t)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Per-page tour: trigger once per page when user navigates there (after tour completed)
-  useEffect(() => {
-    if (!isTourCompleted()) return // full tour handles first visit
-    const page = routeToTourPage(location.pathname)
-    if (!page) return
-    if (visitedPages.current.has(page)) return
-    visitedPages.current.add(page)
-
-    const key = `eventflow-tour-page-${page}`
-    if (localStorage.getItem(key) === 'true') return
-
-    const t = setTimeout(() => {
-      localStorage.setItem(key, 'true')
-      runTour(PAGE_STEPS[page])
-    }, 800)
-    return () => clearTimeout(t)
-  }, [location.pathname]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => () => { driverRef.current?.destroy() }, [])
 

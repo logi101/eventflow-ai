@@ -6,14 +6,17 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '../../contexts/AuthContext'
+import { PrivacyConsentModal } from '../../components/auth/PrivacyConsentModal'
+
+const PRIVACY_KEY = 'eventflow-privacy-accepted'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const { signIn, user } = useAuth()
 
-  // Redirect away if already authenticated
+  // Redirect away if already authenticated and privacy accepted
   useEffect(() => {
-    if (user) {
+    if (user && localStorage.getItem(PRIVACY_KEY) === 'true') {
       navigate('/', { replace: true })
     }
   }, [user, navigate])
@@ -23,6 +26,7 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showPrivacy, setShowPrivacy] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,7 +44,12 @@ export function LoginPage() {
           setError(error.message)
         }
       } else {
-        navigate('/')
+        // Check if user has accepted privacy policy
+        if (localStorage.getItem(PRIVACY_KEY) !== 'true') {
+          setShowPrivacy(true)
+        } else {
+          navigate('/')
+        }
       }
     } catch {
       setError('שגיאה בהתחברות. נסה שוב.')
@@ -49,7 +58,15 @@ export function LoginPage() {
     }
   }
 
+  const handlePrivacyAccept = () => {
+    localStorage.setItem(PRIVACY_KEY, 'true')
+    setShowPrivacy(false)
+    navigate('/')
+  }
+
   return (
+    <>
+    {showPrivacy && <PrivacyConsentModal onAccept={handlePrivacyAccept} />}
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
@@ -151,6 +168,7 @@ export function LoginPage() {
         </p>
       </div>
     </div>
+    </>
   )
 }
 

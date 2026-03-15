@@ -196,7 +196,7 @@ const PAGE_STEPS: Record<TourPage, DriveStep[]> = {
 
 // ─── Driver.js Base Config ────────────────────────────────────────────────────
 
-function buildDriverConfig(steps: DriveStep[], onComplete: () => void): Config {
+function buildDriverConfig(steps: DriveStep[], onComplete: () => void, getInstance: () => ReturnType<typeof driver> | null): Config {
   return {
     animate: true,
     overlayColor: 'rgba(0,0,0,0.7)',
@@ -210,7 +210,10 @@ function buildDriverConfig(steps: DriveStep[], onComplete: () => void): Config {
     showProgress: true,
     popoverClass: 'eventflow-tour-popover',
     steps,
-    onDestroyStarted: onComplete,
+    onDestroyStarted: () => {
+      onComplete()
+      getInstance()?.destroy()
+    },
   }
 }
 
@@ -263,7 +266,7 @@ export function TourProvider({ children }: TourProviderProps) {
       const availableSteps = getAvailableSteps(steps)
       if (availableSteps.length === 0) return
 
-      const driverInstance = driver(buildDriverConfig(availableSteps, markTourCompleted))
+      const driverInstance = driver(buildDriverConfig(availableSteps, markTourCompleted, () => driverRef.current))
       driverRef.current = driverInstance
       driverInstance.drive()
     },

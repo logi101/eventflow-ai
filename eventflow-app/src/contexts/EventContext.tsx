@@ -39,6 +39,7 @@ interface EventContextType {
   selectEventById: (eventId: string) => Promise<void>
   clearSelectedEvent: () => void
   loading: boolean
+  error: string | null
   allEvents: Event[]
   refreshEvents: () => Promise<void>
 }
@@ -50,6 +51,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [allEvents, setAllEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   // Load events when session changes (login/logout)
   useEffect(() => {
@@ -58,7 +60,33 @@ export function EventProvider({ children }: { children: ReactNode }) {
     } else {
       setAllEvents([])
       setSelectedEvent(null)
+      setError(null)
       setLoading(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.access_token])
+
+  // Supabase Realtime: re-fetch events list whenever the events table changes
+  // (INSERT, UPDATE, DELETE) so a new event added from another tab/session
+  // appears automatically without a manual page refresh.
+  useEffect(() => {
+    if (!session?.access_token) return
+
+    const channel = supabase
+      .channel('events-table-changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => {
+          // Re-fetch the full list to pick up counts and joined data.
+          // Using refreshEvents (not a delta) keeps logic centralised.
+          refreshEvents()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.access_token])
@@ -70,7 +98,10 @@ export function EventProvider({ children }: { children: ReactNode }) {
     }
   }, [selectedEvent])
 
-  // Restore selected event from localStorage on mount
+  // Restore selected event from localStorage on mount.
+  // We only auto-restore a previously saved selection — we never silently
+  // auto-select the first event when there is no saved ID, because that would
+  // hide the event picker from users who haven't chosen an event yet.
   useEffect(() => {
     if (selectedEvent || allEvents.length === 0) return
     const savedEventId = localStorage.getItem('selectedEventId')
@@ -80,18 +111,15 @@ export function EventProvider({ children }: { children: ReactNode }) {
       if (owned) {
         setSelectedEvent(owned)
       } else {
-        // Stale/inaccessible event — clear and select first available
+        // Stale/inaccessible event — clear storage but do NOT silently pick another
         localStorage.removeItem('selectedEventId')
-        setSelectedEvent(allEvents[0])
       }
-    } else {
-      // No saved event (new device / cleared storage) — auto-select most recent
-      setSelectedEvent(allEvents[0])
     }
+    // Intentionally no else branch: no saved ID means the user has not yet chosen
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allEvents])
 
-  async function refreshEvents() {
+  const refreshEvents = useCallback(async () => {
     // Guard: don't fetch without an authenticated session
     if (!session?.access_token) {
       setAllEvents([])
@@ -100,18 +128,21 @@ export function EventProvider({ children }: { children: ReactNode }) {
     }
 
     setLoading(true)
+    setError(null)
     try {
       const { data, error } = await supabase
         .from('events')
         .select(`
-          *,
+          id, name, description, status, start_date, end_date,
+          venue_name, venue_address, venue_city, max_participants,
+          budget, event_type_id, organization_id, public_rsvp_enabled,
           event_types(id, name, icon)
         `)
         .order('start_date', { ascending: false })
 
       if (error) throw error
 
-      // Auto-mark past events as "completed"
+      // Auto-mark past events as "completed" — single batch UPDATE instead of N individual calls
       const now = new Date()
       const pastEvents = (data || []).filter(event => {
         const endDate = event.end_date || event.start_date
@@ -122,23 +153,56 @@ export function EventProvider({ children }: { children: ReactNode }) {
         )
       })
       if (pastEvents.length > 0) {
-        await Promise.all(
-          pastEvents.map(event =>
-            supabase.from('events').update({ status: 'completed' }).eq('id', event.id)
-          )
-        )
-        for (const pe of pastEvents) {
-          const found = data?.find(e => e.id === pe.id)
-          if (found) found.status = 'completed'
+        const pastIds = pastEvents.map(e => e.id)
+        const { error: batchError } = await supabase
+          .from('events')
+          .update({ status: 'completed' })
+          .in('id', pastIds)
+        if (batchError) {
+          console.error('Failed to auto-complete past events:', batchError)
+          Sentry.captureException(batchError)
+        } else {
+          // Update local data for successfully completed events
+          pastIds.forEach(id => {
+            const found = data?.find(e => e.id === id)
+            if (found) found.status = 'completed'
+          })
         }
       }
 
       // Batch-fetch counts for all events (2 queries instead of 2N)
+      // Errors are non-fatal: counts fall back to 0 so events still render
       const eventIds = (data || []).map(e => e.id)
-      const [{ data: allParticipants }, { data: allSchedules }] = await Promise.all([
+      const [participantsResult, schedulesResult] = await Promise.allSettled([
         supabase.from('participants').select('event_id').in('event_id', eventIds),
         supabase.from('schedules').select('event_id').in('event_id', eventIds),
       ])
+
+      if (participantsResult.status === 'rejected') {
+        console.error('Failed to fetch participant counts:', participantsResult.reason)
+        Sentry.captureException(participantsResult.reason)
+      } else if (participantsResult.value.error) {
+        console.error('Failed to fetch participant counts:', participantsResult.value.error)
+        Sentry.captureException(participantsResult.value.error)
+      }
+
+      if (schedulesResult.status === 'rejected') {
+        console.error('Failed to fetch schedule counts:', schedulesResult.reason)
+        Sentry.captureException(schedulesResult.reason)
+      } else if (schedulesResult.value.error) {
+        console.error('Failed to fetch schedule counts:', schedulesResult.value.error)
+        Sentry.captureException(schedulesResult.value.error)
+      }
+
+      const allParticipants =
+        participantsResult.status === 'fulfilled' && !participantsResult.value.error
+          ? participantsResult.value.data
+          : null
+
+      const allSchedules =
+        schedulesResult.status === 'fulfilled' && !schedulesResult.value.error
+          ? schedulesResult.value.data
+          : null
 
       const participantCounts = (allParticipants || []).reduce<Record<string, number>>((acc, p) => {
         acc[p.event_id] = (acc[p.event_id] || 0) + 1
@@ -155,16 +219,18 @@ export function EventProvider({ children }: { children: ReactNode }) {
         schedules_count: scheduleCounts[event.id] || 0
       }))
 
-      setAllEvents(eventsWithCounts)
-    } catch (error) {
-      console.error('Error loading events:', error)
-      Sentry.captureException(error)
+      setAllEvents(eventsWithCounts as unknown as Event[])
+    } catch (err) {
+      console.error('Error loading events:', err)
+      Sentry.captureException(err)
+      const message = err instanceof Error ? err.message : 'Failed to load events'
+      setError(message)
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.access_token])
 
-  async function selectEventById(eventId: string) {
+  const selectEventById = useCallback(async (eventId: string) => {
     // First check if we already have it in allEvents
     const existingEvent = allEvents.find(e => e.id === eventId)
     if (existingEvent) {
@@ -177,7 +243,9 @@ export function EventProvider({ children }: { children: ReactNode }) {
       const { data, error } = await supabase
         .from('events')
         .select(`
-          *,
+          id, name, description, status, start_date, end_date,
+          venue_name, venue_address, venue_city, max_participants,
+          budget, event_type_id, organization_id, public_rsvp_enabled,
           event_types(id, name, icon)
         `)
         .eq('id', eventId)
@@ -193,7 +261,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
         setSelectedEvent({
           ...data,
           participants_count: participantsCount || 0
-        })
+        } as unknown as Event)
       }
     } catch (error) {
       console.error('Error selecting event:', error)
@@ -201,7 +269,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('selectedEventId')
       Sentry.captureException(error)
     }
-  }
+  }, [allEvents])
 
   const clearSelectedEvent = useCallback(() => {
     setSelectedEvent(null)
@@ -214,10 +282,10 @@ export function EventProvider({ children }: { children: ReactNode }) {
     selectEventById,
     clearSelectedEvent,
     loading,
+    error,
     allEvents,
     refreshEvents
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [selectedEvent, loading, allEvents, clearSelectedEvent])
+  }), [selectedEvent, loading, error, allEvents, clearSelectedEvent, selectEventById, refreshEvents])
 
   return (
     <EventContext.Provider value={value}>

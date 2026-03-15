@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Calendar, Eye, Shield, Grid3X3, Play, Clock, Zap } from 'lucide-react'
+import { Calendar, Eye, Shield, Grid3X3, Play, Clock, Hotel, Settings } from 'lucide-react'
 import { ArrowLeft } from 'lucide-react'
 import type { Event } from '../../../types'
 import { formatDate, getStatusColor, getStatusLabel } from '../../../utils'
@@ -15,10 +15,10 @@ const TABS: TabItem[] = [
   { id: 'program', label: 'בניית תוכנית', icon: <Calendar size={18} /> },
   { id: 'contingencies', label: 'תכניות חירום', icon: <Shield size={18} /> },
   { id: 'seating', label: 'שיבוץ לשולחנות', icon: <Grid3X3 size={18} /> },
-  { id: 'rooms', label: 'חדרים ולינה', icon: <Zap size={18} /> },
+  { id: 'rooms', label: 'חדרים ולינה', icon: <Hotel size={18} /> },
   { id: 'simulation', label: 'סימולציה', icon: <Play size={18} /> },
   { id: 'changes', label: 'יומן שינויים', icon: <Clock size={18} /> },
-  { id: 'settings', label: 'הגדרות תזכורות', icon: <Zap size={18} /> }
+  { id: 'settings', label: 'הגדרות תזכורות', icon: <Settings size={18} /> }
 ]
 
 interface EventDetailHeaderProps {

@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react'
-import { Users, UserPlus, Trash2, Loader2, AlertCircle, Shield, ShieldCheck, User } from 'lucide-react'
+import { Users, UserPlus, Trash2, Loader2, AlertCircle, Shield, ShieldCheck, User, KeyRound } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -22,6 +22,8 @@ export function UserManagementPage() {
   const [error, setError] = useState<string | null>(null)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [passwordDialog, setPasswordDialog] = useState<{ id: string; name: string } | null>(null)
+  const [newPasswordValue, setNewPasswordValue] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
 
   // Add user form state
@@ -94,6 +96,22 @@ export function UserManagementPage() {
       await fetchUsers()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'שגיאה במחיקת משתמש')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!passwordDialog) return
+    setActionLoading(true)
+    setError(null)
+    try {
+      await callManageUsers('update_password', { user_id: passwordDialog.id, password: newPasswordValue })
+      setPasswordDialog(null)
+      setNewPasswordValue('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בעדכון סיסמה')
     } finally {
       setActionLoading(false)
     }
@@ -204,15 +222,24 @@ export function UserManagementPage() {
                     {new Date(u.created_at).toLocaleDateString('he-IL')}
                   </td>
                   <td className="px-6 py-4">
-                    {u.id !== user?.id && u.role !== 'super_admin' && (
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setDeleteConfirm(u.id)}
-                        className="text-red-400 hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-500/10"
-                        title="מחק משתמש"
+                        onClick={() => { setPasswordDialog({ id: u.id, name: u.full_name }); setNewPasswordValue('') }}
+                        className="text-zinc-400 hover:text-blue-300 transition-colors p-2 rounded-lg hover:bg-blue-500/10"
+                        title="שנה סיסמה"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <KeyRound className="w-4 h-4" />
                       </button>
-                    )}
+                      {u.id !== user?.id && u.role !== 'super_admin' && (
+                        <button
+                          onClick={() => setDeleteConfirm(u.id)}
+                          className="text-red-400 hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-500/10"
+                          title="מחק משתמש"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -287,6 +314,52 @@ export function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddDialog(false)}
+                  className="px-6 py-2.5 rounded-xl border border-zinc-600 text-zinc-300 hover:bg-zinc-700/50 transition-colors"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Dialog */}
+      {passwordDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-card rounded-2xl p-8 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-6">
+              <KeyRound className="w-6 h-6 text-blue-400" />
+              <h2 className="text-xl font-bold text-white">שינוי סיסמה</h2>
+            </div>
+            <p className="text-zinc-400 text-sm mb-6">עדכון סיסמה עבור: <span className="text-white font-medium">{passwordDialog.name}</span></p>
+            <form onSubmit={handleChangePassword} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">סיסמה חדשה</label>
+                <input
+                  type="text"
+                  value={newPasswordValue}
+                  onChange={(e) => setNewPasswordValue(e.target.value)}
+                  className="input-field w-full"
+                  placeholder="מינימום 6 תווים"
+                  dir="ltr"
+                  required
+                  minLength={6}
+                  autoFocus
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                  עדכן סיסמה
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setPasswordDialog(null); setNewPasswordValue('') }}
                   className="px-6 py-2.5 rounded-xl border border-zinc-600 text-zinc-300 hover:bg-zinc-700/50 transition-colors"
                 >
                   ביטול

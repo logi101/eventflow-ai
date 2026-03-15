@@ -327,6 +327,20 @@ const PAGE_STEPS: Record<TourPage, DriveStep[]> = {
 }
 
 
+// ─── Route → TourPage map (exported for TourButton) ─────────────────────────
+
+export function routeToTourPage(pathname: string): TourPage | null {
+  if (pathname === '/' || pathname === '/events') return 'home'
+  if (pathname.includes('/dashboard')) return 'dashboard'
+  if (pathname.includes('/guests')) return 'guests'
+  if (pathname.includes('/vendors')) return 'vendors'
+  if (pathname.includes('/schedule') || pathname.includes('/program')) return 'schedule'
+  if (pathname.includes('/checklist')) return 'checklist'
+  if (pathname.includes('/messages')) return 'messages'
+  if (pathname.includes('/ai')) return 'ai'
+  return null
+}
+
 // ─── Driver config ───────────────────────────────────────────────────────────
 
 function buildDriverConfig(

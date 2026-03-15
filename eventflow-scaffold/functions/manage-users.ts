@@ -201,6 +201,45 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // ─── UPDATE PROFILE ─────────────────────────────────────────────────
+    if (action === "update_profile") {
+      const { user_id, full_name, email } = body;
+
+      if (!user_id || (!full_name && !email)) {
+        return new Response(
+          JSON.stringify({ error: "Missing user_id or fields to update" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Update user_profiles table
+      const profileUpdates: Record<string, string> = {};
+      if (full_name) profileUpdates.full_name = full_name;
+      if (email) profileUpdates.email = email;
+
+      const { error: profileError } = await adminClient
+        .from("user_profiles")
+        .update(profileUpdates)
+        .eq("id", user_id);
+
+      if (profileError) throw profileError;
+
+      // Update auth user (email + metadata)
+      const authUpdates: Record<string, unknown> = {};
+      if (email) authUpdates.email = email;
+      if (full_name) authUpdates.user_metadata = { full_name };
+
+      if (Object.keys(authUpdates).length > 0) {
+        const { error: authError } = await adminClient.auth.admin.updateUserById(user_id, authUpdates);
+        if (authError) throw authError;
+      }
+
+      return new Response(
+        JSON.stringify({ success: true }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ─── UPDATE PASSWORD ─────────────────────────────────────────────────
     if (action === "update_password") {
       const { user_id, password } = body;

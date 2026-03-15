@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react'
-import { Users, UserPlus, Trash2, Loader2, AlertCircle, Shield, ShieldCheck, User, KeyRound } from 'lucide-react'
+import { Users, UserPlus, Trash2, Loader2, AlertCircle, Shield, ShieldCheck, User, KeyRound, Pencil } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
 
@@ -24,6 +24,7 @@ export function UserManagementPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
   const [passwordDialog, setPasswordDialog] = useState<{ id: string; name: string } | null>(null)
   const [newPasswordValue, setNewPasswordValue] = useState('')
+  const [editDialog, setEditDialog] = useState<{ id: string; full_name: string; email: string } | null>(null)
   const [actionLoading, setActionLoading] = useState(false)
 
   // Add user form state
@@ -96,6 +97,26 @@ export function UserManagementPage() {
       await fetchUsers()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'שגיאה במחיקת משתמש')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  const handleEditProfile = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editDialog) return
+    setActionLoading(true)
+    setError(null)
+    try {
+      await callManageUsers('update_profile', {
+        user_id: editDialog.id,
+        full_name: editDialog.full_name,
+        email: editDialog.email,
+      })
+      setEditDialog(null)
+      await fetchUsers()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'שגיאה בעדכון פרטי משתמש')
     } finally {
       setActionLoading(false)
     }
@@ -224,6 +245,13 @@ export function UserManagementPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
                       <button
+                        onClick={() => setEditDialog({ id: u.id, full_name: u.full_name, email: u.email })}
+                        className="text-zinc-400 hover:text-orange-300 transition-colors p-2 rounded-lg hover:bg-orange-500/10"
+                        title="ערוך פרטים"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => { setPasswordDialog({ id: u.id, name: u.full_name }); setNewPasswordValue('') }}
                         className="text-zinc-400 hover:text-blue-300 transition-colors p-2 rounded-lg hover:bg-blue-500/10"
                         title="שנה סיסמה"
@@ -314,6 +342,61 @@ export function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setShowAddDialog(false)}
+                  className="px-6 py-2.5 rounded-xl border border-zinc-600 text-zinc-300 hover:bg-zinc-700/50 transition-colors"
+                >
+                  ביטול
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Profile Dialog */}
+      {editDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="glass-card rounded-2xl p-8 w-full max-w-md mx-4">
+            <div className="flex items-center gap-3 mb-6">
+              <Pencil className="w-6 h-6 text-orange-400" />
+              <h2 className="text-xl font-bold text-white">עריכת פרטי משתמש</h2>
+            </div>
+            <form onSubmit={handleEditProfile} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">שם תצוגה</label>
+                <input
+                  type="text"
+                  value={editDialog.full_name}
+                  onChange={(e) => setEditDialog({ ...editDialog, full_name: e.target.value })}
+                  className="input-field w-full"
+                  placeholder="שם מלא"
+                  required
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-zinc-300 mb-2">אימייל (שם משתמש)</label>
+                <input
+                  type="email"
+                  value={editDialog.email}
+                  onChange={(e) => setEditDialog({ ...editDialog, email: e.target.value })}
+                  className="input-field w-full"
+                  placeholder="user@example.com"
+                  dir="ltr"
+                  required
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="btn-primary flex-1 flex items-center justify-center gap-2"
+                >
+                  {actionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Pencil className="w-4 h-4" />}
+                  שמור שינויים
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEditDialog(null)}
                   className="px-6 py-2.5 rounded-xl border border-zinc-600 text-zinc-300 hover:bg-zinc-700/50 transition-colors"
                 >
                   ביטול

@@ -135,22 +135,22 @@ function AppLayout() {
             </ProtectedRoute>
           } />
 
-          {/* Legacy routes - redirect to home */}
-          <Route path="/events" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/guests" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/schedules" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/program" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/vendors" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/checklist" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/messages" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/feedback" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/checkin" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
-          <Route path="/reports" element={<Suspense fallback={<LazyFallback />}><HomePage /></Suspense>} />
+          {/* Legacy routes - redirect to canonical paths */}
+          <Route path="/events" element={<Navigate to="/" replace />} />
+          <Route path="/guests" element={<Navigate to="/event/guests" replace />} />
+          <Route path="/schedules" element={<Navigate to="/event/schedule" replace />} />
+          <Route path="/program" element={<Navigate to="/event/program" replace />} />
+          <Route path="/vendors" element={<Navigate to="/event/vendors" replace />} />
+          <Route path="/checklist" element={<Navigate to="/event/checklist" replace />} />
+          <Route path="/messages" element={<Navigate to="/event/messages" replace />} />
+          <Route path="/feedback" element={<Navigate to="/event/feedback" replace />} />
+          <Route path="/checkin" element={<Navigate to="/event/checkin" replace />} />
+          <Route path="/reports" element={<Navigate to="/event/reports" replace />} />
         </Routes>
       </main>
 
       {/* Floating AI Chat */}
-      <FeatureGuard feature="ai">
+      <FeatureGuard feature="ai" showUpgrade={false}>
         <Suspense fallback={null}>
           <FloatingChat />
         </Suspense>

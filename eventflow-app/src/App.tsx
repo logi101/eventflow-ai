@@ -8,6 +8,8 @@ import { Loader2 } from 'lucide-react'
 import { Toaster } from 'sonner'
 
 // Layout & Components
+import { TourProvider } from './components/tour/TourProvider'
+import { TourButton } from './components/tour/TourButton'
 import { Sidebar } from './components/layout/Sidebar'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
@@ -80,6 +82,7 @@ function SupabaseSetupNotice() {
 
 function AppLayout() {
   return (
+    <TourProvider>
     <ErrorBoundary>
       <div className="flex" dir="rtl" data-testid="app-container">
         <Sidebar />
@@ -159,8 +162,12 @@ function AppLayout() {
       {/* Grace Period System */}
       <GracePeriodBanner />
       <GracePeriodConfirmationPopup />
+
+      {/* Onboarding Tour Button */}
+      <TourButton />
       </div>
     </ErrorBoundary>
+    </TourProvider>
   )
 }
 

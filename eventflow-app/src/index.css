@@ -1531,3 +1531,105 @@ select.input {
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Driver.js Tour - RTL + EventFlow Theme Overrides
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.driver-popover.eventflow-tour-popover {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Heebo', sans-serif;
+  background-color: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 12px;
+  color: #f4f4f5;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(249, 115, 22, 0.15);
+  max-width: 320px;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f97316;
+  margin-bottom: 6px;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-description {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  line-height: 1.6;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-footer {
+  direction: rtl;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  margin-top: 12px;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-progress-text {
+  font-size: 0.75rem;
+  color: #71717a;
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-btn-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.driver-popover.eventflow-tour-popover button {
+  font-family: 'Heebo', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-prev-btn {
+  background-color: #3f3f46;
+  color: #d4d4d8;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-prev-btn:hover {
+  background-color: #52525b;
+  color: #ffffff;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-next-btn,
+.driver-popover.eventflow-tour-popover .driver-popover-done-btn {
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  color: #ffffff;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-next-btn:hover,
+.driver-popover.eventflow-tour-popover .driver-popover-done-btn:hover {
+  background: linear-gradient(135deg, #ea580c, #f97316);
+  transform: translateY(-1px);
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-close-btn {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: auto;
+  color: #71717a;
+  background: transparent;
+  padding: 4px;
+  font-size: 1rem;
+}
+
+.driver-popover.eventflow-tour-popover .driver-popover-close-btn:hover {
+  color: #f4f4f5;
+}
+
+.driver-popover-arrow {
+  border-color: #3f3f46 transparent transparent transparent;
+}

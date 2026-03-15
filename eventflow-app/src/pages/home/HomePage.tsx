@@ -3,7 +3,7 @@
 // Shows all events as cards for selection
 // ═══════════════════════════════════════════════════════════════════════════
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Calendar,
@@ -30,7 +30,7 @@ type FilterStatus = 'all' | 'active' | 'planning' | 'draft' | 'completed' | 'arc
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { allEvents, setSelectedEvent, loading, refreshEvents } = useEvent()
+  const { allEvents, setSelectedEvent, loading, error: eventsError, refreshEvents } = useEvent()
   const { user, userProfile } = useAuth()
   const [search, setSearch] = useState('')
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all')
@@ -206,14 +206,14 @@ export function HomePage() {
     }
   }
 
-  const filteredEvents = allEvents.filter(event => {
+  const filteredEvents = useMemo(() => allEvents.filter(event => {
     const matchesSearch = event.name.toLowerCase().includes(search.toLowerCase()) ||
                          event.venue_name?.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = filterStatus === 'all'
       ? event.status !== 'archived'
       : event.status === filterStatus
     return matchesSearch && matchesStatus
-  })
+  }), [allEvents, search, filterStatus])
 
   const getStatusLabel = (status: string) => {
     switch (status) {
@@ -271,6 +271,24 @@ export function HomePage() {
     )
   }
 
+  if (eventsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--ef-cream)' }}>
+        <div className="bg-white rounded-2xl border border-red-200 p-10 text-center max-w-md">
+          <p className="text-red-600 font-semibold text-lg mb-2">שגיאה בטעינת האירועים</p>
+          <p className="text-gray-500 text-sm mb-6">{eventsError}</p>
+          <button
+            onClick={refreshEvents}
+            className="px-5 py-2.5 rounded-xl text-white font-medium"
+            style={{ background: 'var(--ef-terracotta)' }}
+          >
+            נסה שנית
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen" style={{ background: 'var(--ef-cream)' }}>
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -290,7 +308,12 @@ export function HomePage() {
                 בחר אירוע לניהול
               </h1>
               <p className="text-gray-500 mt-1">
-                {allEvents.length} אירועים במערכת
+                {allEvents.filter(e => e.status !== 'archived').length} אירועים
+                {allEvents.filter(e => e.status === 'archived').length > 0 && (
+                  <span className="text-gray-400 text-xs mr-1">
+                    ({allEvents.filter(e => e.status === 'archived').length} בארכיון)
+                  </span>
+                )}
               </p>
             </div>
             <button
@@ -473,10 +496,10 @@ export function HomePage() {
                   {event.status !== 'archived' && (
                     <button
                       onClick={(e) => handleArchiveEvent(e, event)}
-                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl font-medium text-sm hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all"
+                      className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 text-gray-500 border border-gray-200 rounded-xl font-medium text-sm hover:bg-orange-50 hover:text-orange-600 hover:border-orange-200 transition-all"
                     >
                       <Archive size={16} />
-                      מחק
+                      ארכיון
                     </button>
                   )}
                 </div>

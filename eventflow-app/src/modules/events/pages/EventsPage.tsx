@@ -74,26 +74,60 @@ export function EventsPage() {
 
       if (error) throw error
 
-      const eventsWithStats = await Promise.all((data || []).map(async (event) => {
-        const [participantsRes, checklistRes, vendorsRes] = await Promise.all([
-          supabase.from('participants').select('id', { count: 'exact', head: true }).eq('event_id', event.id),
-          supabase.from('checklist_items').select('id, status').eq('event_id', event.id),
-          supabase.from('event_vendors').select('id', { count: 'exact', head: true }).eq('event_id', event.id)
-        ])
+      const eventIds = (data || []).map(e => e.id)
 
-        const checklistItems = checklistRes.data || []
-        const completedItems = checklistItems.filter(item => item.status === 'completed').length
-        const checklistProgress = checklistItems.length > 0
-          ? Math.round((completedItems / checklistItems.length) * 100)
+      // Batch-fetch all stats in 3 queries instead of 3N queries (N+1 fix)
+      const [participantsResult, checklistResult, vendorsResult] = await Promise.allSettled([
+        supabase.from('participants').select('event_id').in('event_id', eventIds),
+        supabase.from('checklist_items').select('event_id, status').in('event_id', eventIds),
+        supabase.from('event_vendors').select('event_id').in('event_id', eventIds),
+      ])
+
+      const allParticipants =
+        participantsResult.status === 'fulfilled' && !participantsResult.value.error
+          ? participantsResult.value.data || []
+          : []
+
+      const allChecklistItems =
+        checklistResult.status === 'fulfilled' && !checklistResult.value.error
+          ? checklistResult.value.data || []
+          : []
+
+      const allVendors =
+        vendorsResult.status === 'fulfilled' && !vendorsResult.value.error
+          ? vendorsResult.value.data || []
+          : []
+
+      // Build lookup maps in O(n) — one pass per result set
+      const participantCounts = allParticipants.reduce<Record<string, number>>((acc, p) => {
+        acc[p.event_id] = (acc[p.event_id] || 0) + 1
+        return acc
+      }, {})
+
+      const checklistTotals = allChecklistItems.reduce<Record<string, { total: number; completed: number }>>((acc, item) => {
+        if (!acc[item.event_id]) acc[item.event_id] = { total: 0, completed: 0 }
+        acc[item.event_id].total++
+        if (item.status === 'completed') acc[item.event_id].completed++
+        return acc
+      }, {})
+
+      const vendorCounts = allVendors.reduce<Record<string, number>>((acc, v) => {
+        acc[v.event_id] = (acc[v.event_id] || 0) + 1
+        return acc
+      }, {})
+
+      const eventsWithStats = (data || []).map(event => {
+        const cl = checklistTotals[event.id]
+        const checklistProgress = cl && cl.total > 0
+          ? Math.round((cl.completed / cl.total) * 100)
           : 0
-
         return {
           ...event,
-          participants_count: participantsRes.count || 0,
+          participants_count: participantCounts[event.id] || 0,
           checklist_progress: checklistProgress,
-          vendors_count: vendorsRes.count || 0
+          vendors_count: vendorCounts[event.id] || 0,
         }
-      }))
+      })
 
       setEvents(eventsWithStats)
     } catch (error) {
@@ -237,7 +271,7 @@ export function EventsPage() {
 
       {/* Filters */}
       <div className="flex gap-2 mb-8 flex-wrap" data-testid="event-filters">
-        {(['all', 'draft', 'planning', 'active', 'completed', 'cancelled'] as const).map(status => (
+        {(['all', 'draft', 'planning', 'active', 'completed', 'cancelled', 'archived'] as const).map(status => (
           <button
             key={status}
             className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${

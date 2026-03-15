@@ -95,7 +95,7 @@ export function EventCard({ event, onEdit, onDelete }: EventCardProps) {
             <Edit2 size={18} className="text-zinc-400 hover:text-white transition-colors" />
           </button>
           <button
-            className="p-2.5 hover:bg-red-500/100/10 rounded-xl transition-all duration-200"
+            className="p-2.5 hover:bg-red-500/10 rounded-xl transition-all duration-200"
             onClick={handleDelete}
             title="מחיקה"
           >

@@ -101,6 +101,10 @@ export function PublicRsvpPage() {
       has_companion: data.has_companion,
       companion_name: data.has_companion ? (data.companion_name ?? null) : null,
       companion_phone: data.has_companion ? (data.companion_phone ?? null) : null,
+      // Required for batch WhatsApp sends in send-reminder cron jobs
+      companion_phone_normalized: data.has_companion && data.companion_phone
+        ? normalizePhone(data.companion_phone)
+        : null,
     }
 
     const { error: insertError } = await supabase.from('participants').insert(payload)
@@ -112,12 +116,15 @@ export function PublicRsvpPage() {
     }
 
     // Send WhatsApp confirmation (best-effort, don't block on failure)
+    // Uses send-reminder test-mode path: event_id + test_phone + type='activation'
+    // TODO: replace with dedicated send-whatsapp edge function once created
     try {
       await supabase.functions.invoke('send-reminder', {
         body: {
-          to: normalizePhone(data.phone),
-          message: `תודה על ההרשמה לאירוע "${event.name}"! נשמח לראותך.`,
-          type: 'rsvp_confirmation',
+          test: true,
+          event_id: event.id,
+          test_phone: normalizePhone(data.phone),
+          type: 'activation',
         },
       })
     } catch {

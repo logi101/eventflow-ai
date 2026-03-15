@@ -326,7 +326,7 @@ function EventDashboard({ eventId, eventName, startDate }: { eventId: string; ev
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" aria-busy={participantsLoading || checklistLoading || messagesLoading} aria-live="polite">
         {/* Participants Card */}
         {participantsLoading ? <StatCardSkeleton /> : (
-          <Link to="/guests" className="premium-stats-card orange group" data-testid="participants-stat">
+          <Link to="/event/guests" className="premium-stats-card orange group" data-testid="participants-stat">
             <div className="flex items-center justify-between mb-3">
               <span className="text-zinc-400 text-sm font-medium">משתתפים</span>
               <Users className="w-5 h-5 text-orange-400" aria-hidden="true" />
@@ -351,7 +351,7 @@ function EventDashboard({ eventId, eventName, startDate }: { eventId: string; ev
 
         {/* Checklist Card */}
         {checklistLoading ? <StatCardSkeleton /> : (
-          <Link to="/checklist" className="premium-stats-card success group" data-testid="checklist-stat">
+          <Link to="/event/checklist" className="premium-stats-card success group" data-testid="checklist-stat">
             <div className="flex items-center justify-between mb-3">
               <span className="text-zinc-400 text-sm font-medium">צ'קליסט</span>
               <CheckSquare className="w-5 h-5 text-green-400" aria-hidden="true" />
@@ -372,7 +372,7 @@ function EventDashboard({ eventId, eventName, startDate }: { eventId: string; ev
 
         {/* Messages Card */}
         {messagesLoading ? <StatCardSkeleton /> : (
-          <Link to="/messages" className="premium-stats-card yellow group" data-testid="messages-stat">
+          <Link to="/event/messages" className="premium-stats-card yellow group" data-testid="messages-stat">
             <div className="flex items-center justify-between mb-3">
               <span className="text-zinc-400 text-sm font-medium">הודעות</span>
               <MessageSquare className="w-5 h-5 text-amber-400" aria-hidden="true" />
@@ -407,7 +407,7 @@ function EventDashboard({ eventId, eventName, startDate }: { eventId: string; ev
                 <Clock className="w-5 h-5 text-amber-400" aria-hidden="true" />
                 לוח זמנים קרוב
               </h2>
-              <Link to="/schedules" className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors">
+              <Link to="/event/schedule" className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1 transition-colors">
                 הצג הכל
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               </Link>
@@ -462,7 +462,7 @@ function EventDashboard({ eventId, eventName, startDate }: { eventId: string; ev
                 <MessageSquare className="w-5 h-5 text-blue-400" aria-hidden="true" />
                 פעילות אחרונה
               </h2>
-              <Link to="/messages" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
+              <Link to="/event/messages" className="text-sm text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors">
                 הצג הכל
                 <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               </Link>

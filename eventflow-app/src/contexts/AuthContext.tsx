@@ -27,6 +27,10 @@ interface AuthContextType {
   loading: boolean
   isSuperAdmin: boolean
   isAdmin: boolean
+  /** True when the user is authenticated but their user_profiles row has organization_id = NULL.
+   *  In this state the app should show the "complete your profile / setup organization" screen
+   *  instead of an empty events list with no explanation. */
+  needsOnboarding: boolean
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
@@ -53,7 +57,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserProfile(null)
       return
     }
-    setUserProfile(data as UserProfile)
+
+    const profile = data as UserProfile
+
+    // Warn loudly in development when organization_id is NULL so it is
+    // immediately visible in the console.  In production the
+    // `needsOnboarding` flag in context drives the UI to show the
+    // setup screen rather than a silent empty events list.
+    if (profile.organization_id === null) {
+      console.warn(
+        '[AuthContext] user_profiles.organization_id is NULL for user',
+        userId,
+        '– every RLS policy that checks auth.user_org_id() will return NULL',
+        'and the user will see zero events / data. Run migration',
+        '004_fix_user_creation_trigger.sql or ensure the handle_new_user()',
+        'trigger fired when this account was created.'
+      )
+      Sentry.captureMessage(
+        `user_profiles.organization_id is NULL for user ${userId}`,
+        'warning'
+      )
+    }
+
+    setUserProfile(profile)
   }
 
   useEffect(() => {
@@ -126,17 +152,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isSuperAdmin = userProfile?.role === 'super_admin'
   const isAdmin = isSuperAdmin || userProfile?.role === 'admin'
 
+  // needsOnboarding: user is authenticated and has a profile row, but the
+  // profile has no organization_id linked yet.  Consumers (ProtectedRoute,
+  // AppLayout, etc.) should render an onboarding/setup screen when this is
+  // true rather than the normal app shell, because every RLS query that
+  // checks auth.user_org_id() will return NULL and all data will be hidden.
+  const needsOnboarding =
+    isSupabaseConfigured &&
+    !loading &&
+    user !== null &&
+    userProfile !== null &&
+    userProfile.organization_id === null
+
   const value = useMemo(() => ({
     user,
     session,
     userProfile,
-    loading: loading || !isSupabaseConfigured,
+    // When Supabase is not configured the app is in a known "no auth" state —
+    // loading should be false so the UI can render the config error instead of
+    // spinning forever.
+    loading: isSupabaseConfigured ? loading : false,
     isSuperAdmin: isSuperAdmin && isSupabaseConfigured,
     isAdmin: isAdmin && isSupabaseConfigured,
+    needsOnboarding,
     signIn,
     signOut,
     resetPassword,
-  }), [user, session, userProfile, loading, isSuperAdmin, isAdmin, signIn, signOut, resetPassword])
+  }), [user, session, userProfile, loading, isSuperAdmin, isAdmin, needsOnboarding, signIn, signOut, resetPassword])
 
   return (
     <AuthContext.Provider value={value}>

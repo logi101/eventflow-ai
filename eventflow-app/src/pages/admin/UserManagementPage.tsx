@@ -254,10 +254,11 @@ export function UserManagementPage() {
                             startImpersonation({ id: u.id, full_name: u.full_name, email: u.email, role: u.role })
                             navigate('/')
                           }}
-                          className="text-zinc-400 hover:text-emerald-300 transition-colors p-2 rounded-lg hover:bg-emerald-500/10"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-600/40 hover:border-emerald-500/60 transition-all text-xs font-medium"
                           title={`כנס כ-${u.full_name}`}
                         >
-                          <Eye className="w-4 h-4" />
+                          <Eye className="w-3.5 h-3.5" />
+                          צפה כמשתמש
                         </button>
                       )}
                       <button

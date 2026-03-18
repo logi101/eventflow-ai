@@ -16,6 +16,8 @@ import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
 import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPopup'
 import { FeatureGuard } from './components/guards/FeatureGuard'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { ImpersonationProvider, useImpersonation } from './contexts/ImpersonationContext'
+import { ImpersonationBanner } from './components/admin/ImpersonationBanner'
 import { isSupabaseConfigured, supabaseConfigError } from './lib/supabase'
 
 // Lazy-loaded pages (heavy/less frequently visited)
@@ -81,10 +83,14 @@ function SupabaseSetupNotice() {
 // ═══════════════════════════════════════════════════════════════════════════
 
 function AppLayout() {
+  const { isImpersonating } = useImpersonation()
+
   return (
     <TourProvider>
     <ErrorBoundary>
-      <div className="flex" dir="rtl" data-testid="app-container">
+      {/* Impersonation banner — fixed top, shifts content down */}
+      <ImpersonationBanner />
+      <div className={`flex${isImpersonating ? ' pt-11' : ''}`} dir="rtl" data-testid="app-container">
         <Sidebar />
         <main className="flex-1 min-h-screen min-w-0" data-testid="main-content">
           <Routes>
@@ -209,8 +215,10 @@ export default function App() {
   // Main app with sidebar - requires authentication
   return (
     <ProtectedRoute>
-      <Toaster richColors position="top-center" dir="rtl" />
-      <AppLayout />
+      <ImpersonationProvider>
+        <Toaster richColors position="top-center" dir="rtl" />
+        <AppLayout />
+      </ImpersonationProvider>
     </ProtectedRoute>
   )
 }

@@ -3,9 +3,11 @@
 // ═══════════════════════════════════════════════════════════════════════════
 
 import { useState, useEffect } from 'react'
-import { Users, UserPlus, Trash2, Loader2, AlertCircle, Shield, ShieldCheck, User, KeyRound, Pencil } from 'lucide-react'
+import { Users, UserPlus, Trash2, Loader2, AlertCircle, Shield, ShieldCheck, User, KeyRound, Pencil, Eye } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import { useImpersonation } from '../../contexts/ImpersonationContext'
 
 interface ManagedUser {
   id: string
@@ -17,6 +19,8 @@ interface ManagedUser {
 
 export function UserManagementPage() {
   const { user } = useAuth()
+  const { startImpersonation } = useImpersonation()
+  const navigate = useNavigate()
   const [users, setUsers] = useState<ManagedUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -244,6 +248,18 @@ export function UserManagementPage() {
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1">
+                      {u.id !== user?.id && (
+                        <button
+                          onClick={() => {
+                            startImpersonation({ id: u.id, full_name: u.full_name, email: u.email, role: u.role })
+                            navigate('/')
+                          }}
+                          className="text-zinc-400 hover:text-emerald-300 transition-colors p-2 rounded-lg hover:bg-emerald-500/10"
+                          title={`כנס כ-${u.full_name}`}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      )}
                       <button
                         onClick={() => setEditDialog({ id: u.id, full_name: u.full_name, email: u.email })}
                         className="text-zinc-400 hover:text-orange-300 transition-colors p-2 rounded-lg hover:bg-orange-500/10"

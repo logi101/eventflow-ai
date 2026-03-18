@@ -239,7 +239,7 @@ export function EventProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }, [session?.access_token])
+  }, [session?.access_token, isImpersonating, impersonatedUser?.id, impersonatedUser?.organization_id])
 
   const selectEventById = useCallback(async (eventId: string) => {
     // First check if we already have it in allEvents

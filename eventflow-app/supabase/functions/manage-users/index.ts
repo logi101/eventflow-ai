@@ -104,8 +104,38 @@ Deno.serve(async (req: Request) => {
 
       if (createError) throw createError;
 
+      // Create a dedicated organization for this new user
+      const orgName = `${full_name} - ארגון`;
+      const { data: newOrg, error: orgError } = await adminClient
+        .from("organizations")
+        .insert({
+          name: orgName,
+          settings: {},
+          tier: "base",
+          tier_limits: {},
+          current_usage: {
+            events_count: 0,
+            messages_sent: 0,
+            ai_messages_sent: 0,
+            warned_this_month: false,
+            participants_count: 0,
+          },
+        })
+        .select("id")
+        .single();
+
+      if (orgError) throw orgError;
+
+      // Update the user_profile created by the trigger with the new org
+      const { error: profileError } = await adminClient
+        .from("user_profiles")
+        .update({ organization_id: newOrg.id })
+        .eq("id", newUser.user.id);
+
+      if (profileError) throw profileError;
+
       return new Response(
-        JSON.stringify({ success: true, user: { id: newUser.user.id, email } }),
+        JSON.stringify({ success: true, user: { id: newUser.user.id, email }, organization_id: newOrg.id }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

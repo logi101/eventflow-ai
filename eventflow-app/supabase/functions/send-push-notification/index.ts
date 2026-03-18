@@ -5,9 +5,13 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
+// send-push-notification is an internal server-to-server function called with CRON_SECRET.
+// Wildcard CORS is acceptable here since CRON_SECRET guards actual access.
+// However, we restrict to the known app origin to follow least-privilege.
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://eventflow-ai-prod.web.app',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 function base64UrlToUint8Array(input: string): Uint8Array {
@@ -206,15 +210,21 @@ Deno.serve(async (req) => {
   }
 
   // Verify cron secret to prevent unauthorized invocation
+  // SECURITY: Always require CRON_SECRET — reject if not configured
   const cronSecret = Deno.env.get('CRON_SECRET')
-  if (cronSecret) {
-    const authHeader = req.headers.get('authorization')
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
+  if (!cronSecret) {
+    console.error('CRON_SECRET env var is not set — rejecting all requests for safety')
+    return new Response(JSON.stringify({ error: 'Service not configured' }), {
+      status: 503,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
+  }
+  const authHeader = req.headers.get('authorization')
+  if (authHeader !== `Bearer ${cronSecret}`) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    })
   }
 
   try {

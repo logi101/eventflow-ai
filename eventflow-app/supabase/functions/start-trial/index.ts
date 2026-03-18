@@ -95,10 +95,43 @@ serve(async (req) => {
       )
     }
 
+    // Authenticate caller — require a valid user JWT
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Initialize Supabase client with service role key for database writes
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Verify JWT is valid and user belongs to the requested organization
+    const userToken = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: userError } = await supabase.auth.getUser(userToken)
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Verify the user actually belongs to the organization they are trying to start a trial for
+    const { data: userProfile, error: profileError } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', user.id)
+      .single()
+    if (profileError || !userProfile || userProfile.organization_id !== organizationId) {
+      console.log(`User ${user.id} attempted to start trial for org ${organizationId} they do not belong to`)
+      return new Response(
+        JSON.stringify({ error: 'Forbidden: you do not have access to this organization' }),
+        { status: 403, headers: { ...getCorsHeaders(req.headers.get('origin')), 'Content-Type': 'application/json' } }
+      )
+    }
 
     // Check if organization is already on trial or Premium
     const { data: org } = await supabase

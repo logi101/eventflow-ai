@@ -15,6 +15,7 @@ interface ManagedUser {
   email: string
   role: string
   created_at: string
+  organization_id: string | null
 }
 
 export function UserManagementPage() {
@@ -251,7 +252,7 @@ export function UserManagementPage() {
                       {u.id !== user?.id && (
                         <button
                           onClick={() => {
-                            startImpersonation({ id: u.id, full_name: u.full_name, email: u.email, role: u.role })
+                            startImpersonation({ id: u.id, full_name: u.full_name, email: u.email, role: u.role, organization_id: u.organization_id })
                             navigate('/')
                           }}
                           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-500/30 text-emerald-400 hover:text-emerald-300 border border-emerald-600/40 hover:border-emerald-500/60 transition-all text-xs font-medium"

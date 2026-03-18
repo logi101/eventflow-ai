@@ -16,7 +16,7 @@ import { GracePeriodBanner } from './components/shared/GracePeriodBanner'
 import { GracePeriodConfirmationPopup } from './components/shared/ConfirmationPopup'
 import { FeatureGuard } from './components/guards/FeatureGuard'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { ImpersonationProvider, useImpersonation } from './contexts/ImpersonationContext'
+import { useImpersonation } from './contexts/ImpersonationContext'
 import { ImpersonationBanner } from './components/admin/ImpersonationBanner'
 import { isSupabaseConfigured, supabaseConfigError } from './lib/supabase'
 
@@ -215,10 +215,8 @@ export default function App() {
   // Main app with sidebar - requires authentication
   return (
     <ProtectedRoute>
-      <ImpersonationProvider>
-        <Toaster richColors position="top-center" dir="rtl" />
-        <AppLayout />
-      </ImpersonationProvider>
+      <Toaster richColors position="top-center" dir="rtl" />
+      <AppLayout />
     </ProtectedRoute>
   )
 }

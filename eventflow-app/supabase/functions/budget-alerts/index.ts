@@ -6,9 +6,26 @@ import {
   createPremiumRequiredResponse
 } from '../_shared/quota-check.ts'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Strict CORS — only allow known production origins and localhost for development
+function isAllowedOrigin(origin: string): boolean {
+  if (origin === 'https://eventflow-ai-prod.web.app') return true
+  if (origin === 'https://eventflow-ai-prod.firebaseapp.com') return true
+  const prodOrigin = Deno.env.get('ALLOWED_ORIGIN')
+  if (prodOrigin && origin === prodOrigin) return true
+  if (origin.startsWith('http://localhost:')) return true
+  return false
+}
+
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigin = origin && isAllowedOrigin(origin)
+    ? origin
+    : 'https://eventflow-ai-prod.web.app'
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  }
 }
 
 interface BudgetCheckResult {
@@ -22,6 +39,9 @@ interface BudgetCheckResult {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('origin')
+  const corsHeaders = getCorsHeaders(origin)
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -77,7 +97,12 @@ serve(async (req) => {
       const org = await getOrganizationData(supabase, orgIdToCheck)
       if (org && !hasPremiumAccess(org.tier)) {
         console.log(`Budget alerts blocked for org ${orgIdToCheck}, tier: ${org.tier}`)
-        return createPremiumRequiredResponse('budget_alerts')
+        // Return with CORS headers so browser can read the 403 response
+        const premiumResp = createPremiumRequiredResponse('budget_alerts')
+        return new Response(premiumResp.body, {
+          status: premiumResp.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
       }
     }
 

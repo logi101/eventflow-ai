@@ -6,6 +6,7 @@ import './index.css'
 import App from './App.tsx'
 import { ChatProvider } from './contexts/ChatContext'
 import { AuthProvider } from './contexts/AuthContext'
+import { ImpersonationProvider } from './contexts/ImpersonationContext'
 import { EventProvider } from './contexts/EventContext'
 import { GracePeriodProvider } from './contexts/GracePeriodContext'
 import { TierProvider } from './contexts/TierContext'
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')!).render(
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
           <AuthProvider>
+            <ImpersonationProvider>
             <EventProvider>
               <TierProvider>
                 <GracePeriodProvider>
@@ -42,6 +44,7 @@ createRoot(document.getElementById('root')!).render(
                 </GracePeriodProvider>
               </TierProvider>
             </EventProvider>
+            </ImpersonationProvider>
           </AuthProvider>
         </BrowserRouter>
       </QueryClientProvider>

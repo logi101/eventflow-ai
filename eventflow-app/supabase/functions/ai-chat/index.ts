@@ -2470,7 +2470,9 @@ serve(async (req) => {
       )
     }
     console.log('ai-chat request:', JSON.stringify({ message: body.message?.substring(0, 50), page: body.page, hasContext: !!body.context, hasHistory: !!body.history }))
-    const { message, context, history, page, eventId, eventName, organizationId, userId } = body
+    // SECURITY: organizationId is intentionally NOT destructured from body here.
+    // It is derived server-side from the authenticated user's profile after JWT verification.
+    const { message, context, history, page, eventId, eventName } = body
 
     if (!message || !message.trim()) {
       return new Response(
@@ -2478,6 +2480,41 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // ========================================================================
+    // AUTHENTICATION — require a valid JWT; derive userId from token, not body
+    // ========================================================================
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return new Response(
+        JSON.stringify({ error: 'Missing or invalid authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // Initialize Supabase client with service role key for database access
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    const userToken = authHeader.replace('Bearer ', '')
+    const { data: { user: authedUser }, error: authError } = await supabase.auth.getUser(userToken)
+    if (authError || !authedUser) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid or expired token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    // SECURITY: always use the server-verified user ID, never trust the client-supplied one
+    const userId = authedUser.id
+
+    // SECURITY: derive organizationId from the verified user profile, never from the request body
+    const { data: callerProfile } = await supabase
+      .from('user_profiles')
+      .select('organization_id')
+      .eq('id', userId)
+      .single()
+    const organizationId: string | null = callerProfile?.organization_id ?? null
 
     // Get Gemini API key
     const geminiApiKey = await getGeminiApiKey()
@@ -2489,17 +2526,12 @@ serve(async (req) => {
       )
     }
 
-    // Initialize Supabase client with service role key for database access
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    const supabase = createClient(supabaseUrl, supabaseServiceKey)
-
     // ========================================================================
     // TIER CHECK - AI Chat is a Premium feature for unlimited use
     // Base tier gets limited AI messages per month
     // ========================================================================
     let userTier: 'base' | 'premium' | 'legacy_premium' = 'base'
-    if (userId) {
+    {
       const quotaResult = await checkQuota(supabase, userId, 'ai_messages')
 
       if (!quotaResult.allowed) {
@@ -2535,15 +2567,6 @@ serve(async (req) => {
       systemInstruction += `- מנוע הנטוורקינג\n`
       systemInstruction += `- התראות תקציב\n`
       systemInstruction += `- ניתוח ספקים\n\n`
-    }
-
-    if (context) {
-      systemInstruction += `\n\n--- הקשר נוכחי ---\n${context}`
-    }
-    if (eventId) {
-      systemInstruction += `\n\n--- אירוע נוכחי ---\nמזהה אירוע: ${eventId}`
-      if (eventName) systemInstruction += `\nשם האירוע: ${eventName}`
-      systemInstruction += `\n\n**חשוב מאוד:** המשתמש כרגע עובד על האירוע הזה. כשהוא מבקש לבצע פעולות (הוספת משתתפים, עדכון, שליחת הודעות, סימון משימות, צ'קליסט וכו'), השתמשי במזהה האירוע הזה (${eventId}) אוטומטית - אל תשאלי אותו מהו מזהה האירוע.`
     }
 
     if (context) {
@@ -2814,8 +2837,9 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Internal server error'
     const errorStack = error instanceof Error ? error.stack : undefined
     console.error('Error stack:', errorStack)
+    // NOTE: errorStack is logged server-side only — never sent to client
     return new Response(
-      JSON.stringify({ error: errorMessage, details: errorStack }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }

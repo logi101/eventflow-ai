@@ -7,6 +7,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useMemo } 
 import type { ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from './AuthContext'
+import { useImpersonation } from './ImpersonationContext'
 import { Sentry } from '../lib/sentry'
 
 interface Event {
@@ -48,14 +49,17 @@ const EventContext = createContext<EventContextType | undefined>(undefined)
 
 export function EventProvider({ children }: { children: ReactNode }) {
   const { session } = useAuth()
+  const { isImpersonating, impersonatedUser } = useImpersonation()
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [allEvents, setAllEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Load events when session changes (login/logout)
+  // Load events when session changes (login/logout) or impersonation changes
   useEffect(() => {
     if (session?.access_token) {
+      setSelectedEvent(null)
+      localStorage.removeItem('selectedEventId')
       refreshEvents()
     } else {
       setAllEvents([])
@@ -63,8 +67,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
       setError(null)
       setLoading(false)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.access_token])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.access_token, isImpersonating, impersonatedUser?.id])
 
   // Supabase Realtime: re-fetch events list whenever the events table changes
   // (INSERT, UPDATE, DELETE) so a new event added from another tab/session
@@ -130,7 +134,8 @@ export function EventProvider({ children }: { children: ReactNode }) {
     setLoading(true)
     setError(null)
     try {
-      const { data, error } = await supabase
+      // When impersonating, filter by the impersonated user's organization
+      let query = supabase
         .from('events')
         .select(`
           id, name, description, status, start_date, end_date,
@@ -139,6 +144,12 @@ export function EventProvider({ children }: { children: ReactNode }) {
           event_types(id, name, icon)
         `)
         .order('start_date', { ascending: false })
+
+      if (isImpersonating && impersonatedUser?.organization_id) {
+        query = query.eq('organization_id', impersonatedUser.organization_id)
+      }
+
+      const { data, error } = await query
 
       if (error) throw error
 

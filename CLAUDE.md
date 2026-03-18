@@ -2,8 +2,8 @@
 
 **Project Type**: Full-Stack Web Application
 **Status**: Production-Verified
-**Version**: 2.2.0
-**Last Updated**: 2026-02-23T00:00:00Z
+**Version**: 2.3.0
+**Last Updated**: 2026-02-23T12:00:00Z
 
 ---
 
@@ -110,6 +110,7 @@ src/
 
 ### Phase 1: Execution System (מערכת ביצוע)
 - Participant registration page
+- Public RSVP form (`/rsvp/:eventId`, no auth, WhatsApp confirmation)
 - Excel import/export
 - Personal schedules
 - WhatsApp invitations & reminders
@@ -233,9 +234,9 @@ ENCRYPTION_KEY=your-32-char-encryption-key-here
 | TypeScript | 0 errors (tsc --noEmit) |
 | ESLint | 0 warnings |
 | Unit Tests | 126/126 passing (Vitest) |
-| E2E Tests | 11/11 PASS (login, dashboard, events, create event, participants, vendors, checklist, messages, ai-chat, networking, logout) |
+| E2E Tests | 17/17 PASS (login, dashboard, events, create event, participants, vendors, checklist, messages, ai-chat, networking, logout + 6 RSVP) |
 | Build | Clean |
-| Latest Commit | 06300ab on main |
+| Latest Commit | d697b1c on main |
 | Deployed | https://eventflow-ai-prod.web.app |
 
 ## Recent Changes

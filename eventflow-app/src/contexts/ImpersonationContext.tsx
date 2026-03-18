@@ -11,6 +11,7 @@ export interface ImpersonatedUser {
   full_name: string
   email: string
   role: string
+  organization_id: string | null
 }
 
 interface ImpersonationContextType {
